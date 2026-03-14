@@ -1,9 +1,8 @@
 namespace Ube.Domain.Enums;
 
-public enum VendorStatus
+public enum VendorApplicationStatus
 {
     Pending = 0,
     Approved = 1,
-    Rejected = 2,
-    Suspended = 3
+    Rejected = 2
 }

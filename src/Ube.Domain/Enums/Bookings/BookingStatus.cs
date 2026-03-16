@@ -1,4 +1,4 @@
-namespace Ube.Domain.Enums;
+namespace Ube.Domain.Enums.Bookings;
 
 public enum BookingStatus
 {

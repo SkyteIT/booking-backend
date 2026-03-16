@@ -1,4 +1,7 @@
-namespace Ube.Domain.Entities;
+using Ube.Domain.Enums.Users;
+
+
+namespace Ube.Domain.Entities.Users;
 
 public class User
 {
@@ -18,9 +21,11 @@ public class User
 
     public bool IsEmailVerified { get; set; } = false;
 
-    public string AuthProvider { get; set; } = "Local";
+    public AuthProvider AuthProvider { get; set; } = AuthProvider.Local;
 
     public string? GoogleId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? UpdatedAt { get; set; }
 }

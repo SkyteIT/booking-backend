@@ -1,4 +1,4 @@
-namespace Ube.Domain.Enums;
+namespace Ube.Domain.Enums.Vendors;
 
 public enum VendorApplicationStatus
 {

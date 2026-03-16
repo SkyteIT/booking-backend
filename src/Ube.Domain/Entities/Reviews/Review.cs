@@ -1,12 +1,15 @@
+using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Users;
-using Ube.Domain.Enums.Bookings;
 
-namespace Ube.Domain.Entities.Bookings;
+namespace Ube.Domain.Entities.Reviews;
 
-public class Booking
+public class Review
 {
     public Guid Id { get; set; }
+
+    public Guid BookingId { get; set; }
+    public Booking Booking { get; set; } = default!;
 
     public Guid ListingId { get; set; }
     public Listing Listing { get; set; } = default!;
@@ -14,15 +17,9 @@ public class Booking
     public Guid CustomerId { get; set; }
     public User Customer { get; set; } = default!;
 
-    public DateTime StartDateTime { get; set; }
+    public int Rating { get; set; }
 
-    public DateTime EndDateTime { get; set; }
-
-    public BookingStatus Status { get; set; } = BookingStatus.Pending;
-
-    public decimal TotalAmount { get; set; }
-
-    public string Currency { get; set; } = "LKR";
+    public string Comment { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

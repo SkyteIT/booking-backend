@@ -1,7 +1,6 @@
-using Ube.Domain.Enums.Vendors;
 namespace Ube.Domain.Entities.Vendors;
 
-public class VendorApplication
+public class VendorProfile
 {
     public Guid Id { get; set; }
 
@@ -15,11 +14,9 @@ public class VendorApplication
 
     public string ContactNumber { get; set; } = string.Empty;
 
-    public VendorApplicationStatus Status { get; set; } = VendorApplicationStatus.Pending;
+    public bool IsActive { get; set; } = true;
 
-    public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    public DateTime? ReviewedAt { get; set; }
-
-    public string? RejectionReason { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }

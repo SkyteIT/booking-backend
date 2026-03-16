@@ -1,0 +1,33 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Listings;
+
+namespace Ube.Infrastructure.Persistence.Configurations;
+public class BookingConfiguration : IEntityTypeConfiguration<Booking>
+{
+    public void Configure(EntityTypeBuilder<Booking> builder)
+    {
+       builder.HasKey(x => x.Id);
+       builder.Property(x => x.StartDateTime)
+              .IsRequired();
+        builder.Property(x => x.EndDateTime)
+                .IsRequired();
+        builder.Property(x => x.TotalAmount)
+                .IsRequired()
+                .HasColumnType("decimal(18,2)");
+        builder.Property(x => x.Currency)
+                .IsRequired()
+                .HasMaxLength(10);
+        builder.Property(x => x.Status)
+                .IsRequired();
+        builder.HasOne<Listing>()
+                .WithMany()
+                .HasForeignKey(x => x.ListingId)
+                .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.Customer)
+                .WithMany()
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+    }
+}

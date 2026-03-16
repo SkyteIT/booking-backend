@@ -1,9 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ube.Domain.Entities.Reviews;
-using Ube.Domain.Entities.Bookings;
-using Ube.Domain.Entities.Listings;
-using Ube.Domain.Entities.Users;
 
 namespace Ube.Inrastructure.persistence.Configurations;
 
@@ -20,15 +17,17 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
                 .IsRequired()
                 .HasMaxLength(1000);
         builder.HasIndex(x => x.BookingId);
-        builder.HasOne<Booking>()
+        builder.HasIndex(x => x.ListingId);
+        builder.HasIndex(x => x.CustomerId);
+        builder.HasOne(x => x.Booking)
                 .WithMany()
                 .HasForeignKey(x => x.BookingId)
                 .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<Listing>()
+        builder.HasOne(x => x.Listing)
                 .WithMany()
                 .HasForeignKey(x => x.ListingId)
                 .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<User>()
+        builder.HasOne(x => x.Customer)
                 .WithMany()
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);

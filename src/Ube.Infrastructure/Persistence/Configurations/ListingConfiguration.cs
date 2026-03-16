@@ -27,6 +27,10 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
                 .HasMaxLength(200);
         builder.Property(x => x.IsActive)
                 .IsRequired();
+        builder.HasIndex(x => x.VendorProfileId);
+        builder.HasIndex(x => x.CategoryId);
+        builder.HasIndex(x => x.IsActive);
+        
 
         builder.HasOne<Category>()
                 .WithMany()

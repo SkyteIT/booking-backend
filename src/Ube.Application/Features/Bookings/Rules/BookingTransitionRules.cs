@@ -1,3 +1,4 @@
+using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Application.Features.Bookings.Rules;
@@ -8,17 +9,42 @@ public static class BookingTransitionRules
     {
         return (currentStatus, newStatus) switch
         {
-            // Pending
+            // how pending status can change
             (BookingStatus.Pending, BookingStatus.Confirmed) => true,
             (BookingStatus.Pending, BookingStatus.Rejected) => true,
             (BookingStatus.Pending, BookingStatus.Cancelled) => true,
 
-            // Confirmed
+            // how confirmed status can change
             (BookingStatus.Confirmed, BookingStatus.Cancelled) => true,
             (BookingStatus.Confirmed, BookingStatus.Completed) => true,
 
-            // Everything else is not allowed
+            //everything else invalid
             _ => false
+        };
+    }
+    public static bool CanVendorTransition(BookingStatus currentStatus, BookingStatus newStatus)
+    {
+        if (!CanTransition(currentStatus, newStatus))
+            return false;
+
+        return (currentStatus, newStatus) switch
+        {
+            (BookingStatus.Pending, BookingStatus.Confirmed) => true,
+            (BookingStatus.Pending, BookingStatus.Rejected) => true,
+
+            _ => false
+        };
+    }
+    public static bool CanCustomerTransition(BookingStatus currentStatus, BookingStatus newStatus)
+    {
+        if(!CanTransition(currentStatus,newStatus))
+            return false;
+        return (currentStatus, newStatus) switch
+        {
+            (BookingStatus.Pending, BookingStatus.Cancelled) => true,
+            (BookingStatus.Confirmed, BookingStatus.Cancelled) => true,
+
+            _ =>false
         };
     }
 }

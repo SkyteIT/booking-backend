@@ -7,23 +7,23 @@ namespace Ube.Infrastructure.Persistence.Repositories.Bookings;
 
 public class BookingRepository : IBookingRepository
 {
-    private readonly ApplicationDbContext _context;
+    private readonly ApplicationDbContext _db;
 
     public BookingRepository(ApplicationDbContext context)
     {
-        _context = context;
+        _db = context;
     }
 
     public async Task<Booking?> GetByIdAsync(Guid bookingId)
     {
-        return await _context.Bookings
+        return await _db.Bookings
             .Include(b => b.Listing)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
 
     public async Task UpdateAsync(Booking booking)
     {
-        _context.Bookings.Update(booking);
-        await _context.SaveChangesAsync();
+        _db.Bookings.Update(booking);
+        await _db.SaveChangesAsync();
     }
 }

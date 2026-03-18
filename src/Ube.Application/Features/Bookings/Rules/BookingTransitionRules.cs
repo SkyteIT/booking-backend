@@ -47,4 +47,15 @@ public static class BookingTransitionRules
             _ =>false
         };
     }
+
+    public static bool CanSystemTransition(BookingStatus currentStatus, BookingStatus newStatus)
+    {
+        if (!CanTransition(currentStatus, newStatus))
+            return false;
+        return (currentStatus, newStatus) switch
+        {
+            (BookingStatus.Confirmed,BookingStatus.Completed)=>true,
+            _ => false
+        };
+    }
 }

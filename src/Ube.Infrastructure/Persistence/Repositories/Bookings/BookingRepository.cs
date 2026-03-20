@@ -20,6 +20,15 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.Listing)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
+    public async Task<int> GetNextBookingSequenceAsync()
+    {
+        var result = await _db
+            .Database
+            .SqlQueryRaw<int>("SELECT NEXT VALUE FOR BookingNumbers")
+            .FirstAsync();
+
+        return result;
+    }
 
     public async Task UpdateAsync(Booking booking)
     {

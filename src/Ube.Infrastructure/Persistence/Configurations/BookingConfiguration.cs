@@ -8,6 +8,10 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
     public void Configure(EntityTypeBuilder<Booking> builder)
     {
        builder.HasKey(x => x.Id);
+       builder.Property(x => x.BookingNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+       
        builder.Property(x => x.StartDateTime)
               .IsRequired();
         builder.Property(x => x.EndDateTime)
@@ -25,6 +29,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(x => x.CustomerId);
 
         builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.BookingNumber)
+                .IsUnique();
 
         builder.HasIndex(x => x.StartDateTime);
         builder.HasOne(x => x.Listing)

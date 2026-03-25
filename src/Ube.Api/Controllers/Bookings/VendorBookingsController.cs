@@ -30,4 +30,11 @@ public class VendorBookingsController : ControllerBase
 
         return Ok("Booking status updated successfully.");
     }
+
+    [HttpGet("vendor-booking")]
+    public async Task<IActionResult> GetVendorBookings([FromQuery] Guid vendorId)
+    {
+        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId);
+        return Ok(bookings);
+    }
 }

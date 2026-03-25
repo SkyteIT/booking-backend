@@ -2,6 +2,7 @@ using Ube.Application.common.Interfaces.Services;
 using Ube.Application.Features.Bookings.Rules;
 using Ube.Domain.Enums.Bookings;
 using Ube.Application.common.Interfaces.Persistence;
+using Ube.Application.Features.Bookings.DTOs;
 namespace Ube.Application.Features.Bookings.Services;
 
 public class BookingService : IBookingService
@@ -37,5 +38,22 @@ public class BookingService : IBookingService
         await _bookingRepository.UpdateAsync(booking);
         
         return true;
+    }
+    public async Task<List<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId)
+    {
+        var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId);
+        
+        return bookings.Select(b => new VendorBookingDto
+        {
+            BookingNumber = b.BookingNumber,
+            ListingTitle = b.Listing.Title,
+            CustomerId = b.CustomerId,
+            StartDateTime = b.StartDateTime,
+            EndDateTime = b.EndDateTime,
+            Status = b.Status,
+            TotalAmount = b.TotalAmount,
+            Currency = b.Currency,
+            CreatedAt = b.CreatedAt
+        }).ToList();
     }
 }

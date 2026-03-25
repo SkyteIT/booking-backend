@@ -29,6 +29,13 @@ public class BookingRepository : IBookingRepository
 
         return result;
     }
+    public async Task<List<Booking>> GetBookingsByVendorIdAsync(Guid vendorId)
+    {
+        return await _db.Bookings
+            .Include(b => b.Listing)
+            .Where(b => b.Listing.VendorProfileId == vendorId)
+            .ToListAsync();
+    }
 
     public async Task UpdateAsync(Booking booking)
     {

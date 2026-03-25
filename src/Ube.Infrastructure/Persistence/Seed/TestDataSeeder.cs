@@ -12,7 +12,7 @@ namespace Ube.Infrastructure.Persistence.Seed;
 public static class TestDataSeeder
 {
     public static readonly Guid CustomerUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    public static readonly Guid VendorUserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+    public static readonly Guid UserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     public static readonly Guid OtherVendorUserId = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
     public static readonly Guid VendorProfileId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
@@ -23,6 +23,7 @@ public static class TestDataSeeder
 
     public static readonly Guid PendingBookingId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
     public static readonly Guid ConfirmedBookingId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
+    public static readonly Guid CancelledBookingId = Guid.Parse("99999999-9999-9999-9999-999999999999");
 
     public static async Task SeedAsync(ApplicationDbContext dbContext, ILogger logger, CancellationToken cancellationToken = default)
     {
@@ -45,11 +46,11 @@ public static class TestDataSeeder
             });
         }
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == VendorUserId, cancellationToken))
+        if (!await dbContext.Users.AnyAsync(x => x.Id == UserId, cancellationToken))
         {
             dbContext.Users.Add(new User
             {
-                Id = VendorUserId,
+                Id = UserId,
                 Email = "vendor@test.local",
                 FirstName = "Main",
                 LastName = "Vendor",
@@ -80,7 +81,7 @@ public static class TestDataSeeder
             dbContext.VendorProfiles.Add(new VendorProfile
             {
                 Id = VendorProfileId,
-                UserId = VendorUserId,
+                UserId = UserId,
                 BusinessName = "Main Vendor Studio",
                 BusinessType = "Photography",
                 Description = "Seeded vendor profile for booking status tests.",
@@ -139,6 +140,7 @@ public static class TestDataSeeder
             dbContext.Bookings.Add(new Booking
             {
                 Id = PendingBookingId,
+                BookingNumber = "BKG-000001",
                 ListingId = ListingId,
                 CustomerId = CustomerUserId,
                 StartDateTime = now.AddDays(10),
@@ -155,6 +157,7 @@ public static class TestDataSeeder
             dbContext.Bookings.Add(new Booking
             {
                 Id = ConfirmedBookingId,
+                BookingNumber = "BKG-000002",
                 ListingId = ListingId,
                 CustomerId = CustomerUserId,
                 StartDateTime = now.AddDays(15),
@@ -165,14 +168,31 @@ public static class TestDataSeeder
                 CreatedAt = now
             });
         }
+        if (!await dbContext.Bookings.AnyAsync(x => x.Id == CancelledBookingId, cancellationToken))
+        {
+            dbContext.Bookings.Add(new Booking
+            {
+                Id = CancelledBookingId,
+                BookingNumber = "BKG-000002",
+                ListingId = ListingId,
+                CustomerId = CustomerUserId,
+                StartDateTime = now.AddDays(20),
+                EndDateTime = now.AddDays(20).AddHours(4),
+                Status = BookingStatus.Cancelled,
+                TotalAmount = 15000m,
+                Currency = "LKR",
+                CreatedAt = now
+            });
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Seed data ready. VendorProfileId={VendorProfileId}, OtherVendorProfileId={OtherVendorProfileId}, PendingBookingId={PendingBookingId}, ConfirmedBookingId={ConfirmedBookingId}",
+            "Seed data ready. VendorProfileId={VendorProfileId}, OtherVendorProfileId={OtherVendorProfileId}, PendingBookingId={PendingBookingId}, ConfirmedBookingId={ConfirmedBookingId}, CancelledBookingId={CancelledBookingId}",
             VendorProfileId,
             OtherVendorProfileId,
             PendingBookingId,
-            ConfirmedBookingId);
+            ConfirmedBookingId,
+            CancelledBookingId);
     }
 }

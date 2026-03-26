@@ -3,6 +3,7 @@ using Ube.Application.common.Interfaces.Persistence;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Enums.Bookings;
 
+
 namespace Ube.Infrastructure.Persistence.Repositories.Bookings;
 
 public class BookingRepository : IBookingRepository
@@ -30,20 +31,27 @@ public class BookingRepository : IBookingRepository
 
         return result;
     }
-    public async Task<List<Booking>> GetBookingsByVendorIdAsync(Guid vendorId , BookingStatus? status )
+    public async Task<List<Booking>> GetBookingsByVendorIdAsync(
+        Guid vendorId , BookingStatus? status , BookingSortBy? sortBy)
     {
         var query = _db.Bookings
-            .Include(b => b.Listing)
-            .Where(b => b.Listing.VendorProfileId == vendorId);
+            .Include(b => b.Customer)// get customer details for the booking
+            .Include(b => b.Listing)// get Vendor Id through listing
+            .Where(b => b.Listing.VendorProfileId == vendorId)
+            .AsQueryable();
             if (status.HasValue)
-        {
-            //filter by status
-            query = query.Where(b => b.Status ==status.Value);
-
-        }
-        return await query
-            .OrderByDescending(b => b.CreatedAt) 
-            .ToListAsync();
+            {
+                //filter by status
+                query = query.Where(b => b.Status ==status.Value);
+            }
+            query = sortBy switch
+            {
+                BookingSortBy.Oldest => query.OrderBy(b => b.CreatedAt), //oldest booking first
+                BookingSortBy.StartDateAsc => query.OrderBy(b => b.StartDateTime), //near upcoming booking first
+                BookingSortBy.StartDateDesc => query.OrderByDescending(b => b.StartDateTime), //far upcoming booking first
+                _ => query.OrderByDescending(b => b.CreatedAt) //latest booking first   
+            };
+        return await query.ToListAsync();
     }
 
     public async Task UpdateAsync(Booking booking)

@@ -7,7 +7,7 @@ public class VendorBookingDto
 {
     public string BookingNumber { get; set;} = string.Empty;
     public string ListingTitle { get; set;} = string.Empty;
-    public Guid CustomerId {get; set;}
+    public string CustomerName { get; set;} = string.Empty;
     public DateTime StartDateTime { get; set;}
     public DateTime EndDateTime { get; set;}
     public BookingStatus Status { get; set;}

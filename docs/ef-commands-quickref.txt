@@ -33,3 +33,18 @@ dotnet ef database update MigrationName --project src\Ube.Infrastructure --start
 # Script between migrations
 dotnet ef migrations script FromMigration ToMigration --project src\Ube.Infrastructure --startup-project src\Ube.Api</content>
 <parameter name="filePath">e:\software_project\booking-backend\docs\ef-commands-quickref.txt
+
+
+//dotnet ef database drop --project "E:\software_project\booking-backend\src\Ube.Infrastructure\Ube.Infrastructure.csproj" --startup-project "E:\software_project\booking-backend\src\Ube.Api\Ube.Api.csproj" --force
+dotnet ef database update --project "E:\software_project\booking-backend\src\Ube.Infrastructure\Ube.Infrastructure.csproj" --startup-project "E:\software_project\booking-backend\src\Ube.Api\Ube.Api.csproj"
+
+
+/////////////////////////////////////////////////////
+# Step 1: Drop the database
+dotnet ef database drop --project "E:\software_project\booking-backend\src\Ube.Infrastructure\Ube.Infrastructure.csproj" --startup-project "E:\software_project\booking-backend\src\Ube.Api\Ube.Api.csproj" --force
+
+# Step 2: Recreate the database
+dotnet ef database update --project "E:\software_project\booking-backend\src\Ube.Infrastructure\Ube.Infrastructure.csproj" --startup-project "E:\software_project\booking-backend\src\Ube.Api\Ube.Api.csproj"
+
+# Step 3: Run the app to apply seed data
+dotnet run --project "E:\software_project\booking-backend\src\Ube.Api\Ube.Api.csproj"

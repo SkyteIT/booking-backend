@@ -5,6 +5,7 @@ using Ube.Application.common.Interfaces.Services;
 using Ube.Application.Features.Bookings.Services;
 using Ube.Infrastructure.Persistence.Repositories.Bookings;
 using Ube.Infrastructure.Persistence.Seed;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,11 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 
 var app = builder.Build();
@@ -37,4 +43,3 @@ app.MapControllers();
 
 app.Run();
 
-            

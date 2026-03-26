@@ -37,8 +37,8 @@ public static class TestDataSeeder
             {
                 Id = CustomerUserId,
                 Email = "customer@test.local",
-                FirstName = "Test",
-                LastName = "Customer",
+                FirstName = "Isuru",
+                LastName = "Kavinda",
                 PhoneNumber = "+94770000001",
                 IsEmailVerified = true,
                 AuthProvider = AuthProvider.Local,
@@ -51,7 +51,7 @@ public static class TestDataSeeder
             dbContext.Users.Add(new User
             {
                 Id = UserId,
-                Email = "vendor@test.local",
+                Email = "vendor@testU.local",
                 FirstName = "Main",
                 LastName = "Vendor",
                 PhoneNumber = "+94770000002",
@@ -173,7 +173,7 @@ public static class TestDataSeeder
             dbContext.Bookings.Add(new Booking
             {
                 Id = CancelledBookingId,
-                BookingNumber = "BKG-000002",
+                BookingNumber = "BKG-000003",
                 ListingId = ListingId,
                 CustomerId = CustomerUserId,
                 StartDateTime = now.AddDays(20),

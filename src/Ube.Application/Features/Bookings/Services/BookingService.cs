@@ -39,14 +39,14 @@ public class BookingService : IBookingService
         
         return true;
     }
-    public async Task<List<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingStatus? status = null)
+    public async Task<List<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingStatus? status = null , BookingSortBy? sortBy = null)
     {
-        var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, status);
+        var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, status, sortBy);
         return bookings.Select(b => new VendorBookingDto
         {
             BookingNumber = b.BookingNumber,
             ListingTitle = b.Listing.Title,
-            CustomerId = b.CustomerId,
+            CustomerName = b.Customer.FirstName + " " + b.Customer.LastName,
             StartDateTime = b.StartDateTime,
             EndDateTime = b.EndDateTime,
             Status = b.Status,

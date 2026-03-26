@@ -33,9 +33,13 @@ public class VendorBookingsController : ControllerBase
     }
 // get vendor bookings with status filter
     [HttpGet("vendor-booking")]
-    public async Task<IActionResult> GetVendorBookings([FromQuery] Guid vendorId , [FromQuery] BookingStatus? status = null)
+    public async Task<IActionResult> GetVendorBookings(
+        [FromQuery] Guid vendorId , 
+        [FromQuery] BookingStatus? status = null ,
+        [FromQuery] BookingSortBy? sortBy = null
+         )
     {
-        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, status);
+        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, status, sortBy);
         return Ok(bookings);
     }
 }

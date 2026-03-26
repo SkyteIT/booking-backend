@@ -1,6 +1,7 @@
 using Ube.Application.common.Interfaces.Services;
 using Ube.Api.Contracts.Bookings;
 using Microsoft.AspNetCore.Mvc;
+using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Api.Controllers.Bookings;
 
@@ -30,11 +31,11 @@ public class VendorBookingsController : ControllerBase
 
         return Ok("Booking status updated successfully.");
     }
-
+// get vendor bookings with status filter
     [HttpGet("vendor-booking")]
-    public async Task<IActionResult> GetVendorBookings([FromQuery] Guid vendorId)
+    public async Task<IActionResult> GetVendorBookings([FromQuery] Guid vendorId , [FromQuery] BookingStatus? status = null)
     {
-        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId);
+        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, status);
         return Ok(bookings);
     }
 }

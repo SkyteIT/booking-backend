@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.common.Interfaces.Persistence;
 using Ube.Domain.Entities.Bookings;
-using Ube.Infrastructure.Persistence;
+using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Infrastructure.Persistence.Repositories.Bookings;
 
@@ -14,6 +14,7 @@ public class BookingRepository : IBookingRepository
         _db = context;
     }
 
+//
     public async Task<Booking?> GetByIdAsync(Guid bookingId)
     {
         return await _db.Bookings
@@ -29,11 +30,19 @@ public class BookingRepository : IBookingRepository
 
         return result;
     }
-    public async Task<List<Booking>> GetBookingsByVendorIdAsync(Guid vendorId)
+    public async Task<List<Booking>> GetBookingsByVendorIdAsync(Guid vendorId , BookingStatus? status )
     {
-        return await _db.Bookings
+        var query = _db.Bookings
             .Include(b => b.Listing)
-            .Where(b => b.Listing.VendorProfileId == vendorId)
+            .Where(b => b.Listing.VendorProfileId == vendorId);
+            if (status.HasValue)
+        {
+            //filter by status
+            query = query.Where(b => b.Status ==status.Value);
+
+        }
+        return await query
+            .OrderByDescending(b => b.CreatedAt) 
             .ToListAsync();
     }
 

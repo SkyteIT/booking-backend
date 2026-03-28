@@ -16,10 +16,10 @@ public class VendorBookingsController : ControllerBase
         _bookingService = bookingService;
     }
 
-    [HttpPut("{bookingId}/status")]
+    [HttpPatch("{bookingId}/status")]
     public async Task<IActionResult> UpdateBookingStatus(
         Guid bookingId,
-        UpdateVendorBookingStatusRequest request)
+        [FromBody] UpdateVendorBookingStatusRequest request)
     {
         var success = await _bookingService.UpdateVendorBookingStatusAsync(
             bookingId,

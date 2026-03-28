@@ -14,13 +14,13 @@ public class BookingService : IBookingService
     {
         _bookingRepository = bookingRepository;
     }
-    public async Task<bool> UpdateVendorBookingStatusAsync(Guid BookingId, Guid VendorId, BookingStatus newStatus)
+    public async Task<BookingDetailDto?> UpdateVendorBookingStatusAsync(Guid BookingId, Guid VendorId, BookingStatus newStatus)
     {
         //retireve the booking
         var booking = await _bookingRepository.GetByIdAsync(BookingId);
 
         if (booking == null)
-            return false;
+            return null;
 
         var isAllowed = newStatus switch
         {
@@ -32,13 +32,27 @@ public class BookingService : IBookingService
             _ => false
         };
         if (!isAllowed)
-            return false;
+            return null;
 
         booking.Status = newStatus;
 
         await _bookingRepository.UpdateAsync(booking);
         
-        return true;
+        return new BookingDetailDto
+        {
+            BookingNumber = booking.BookingNumber,
+            ListingTitle = booking.Listing.Title,
+            CustomerName = booking.Customer.FirstName + " " + booking.Customer.LastName,
+            CustomerEmail = booking.Customer.Email,
+            StartDateTime = booking.StartDateTime,
+            EndDateTime = booking.EndDateTime,
+            Status = booking.Status,
+            TotalAmount = booking.TotalAmount,
+            Currency = booking.Currency,
+            CreatedAt = booking.CreatedAt,
+            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, VendorId),
+            CanReject = BookingValidationRules.CanVendorReject(booking, VendorId)
+        };
     }
     public async Task<List<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingStatus? status = null , BookingSortBy? sortBy = null)
     {

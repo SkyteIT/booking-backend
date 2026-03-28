@@ -21,15 +21,15 @@ public class VendorBookingsController : ControllerBase
         Guid bookingId,
         [FromBody] UpdateVendorBookingStatusRequest request)
     {
-        var success = await _bookingService.UpdateVendorBookingStatusAsync(
+        var bookingDetail = await _bookingService.UpdateVendorBookingStatusAsync(
             bookingId,
             request.VendorId,
             request.NewStatus);
 
-        if (!success)
+        if (bookingDetail == null)
             return BadRequest("Booking status update failed.");
 
-        return Ok("Booking status updated successfully.");
+        return Ok(bookingDetail);
     }
 // get vendor bookings with status filter
     [HttpGet("vendor-booking")]

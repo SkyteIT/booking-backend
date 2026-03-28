@@ -1,7 +1,7 @@
 using Ube.Application.common.Interfaces.Services;
 using Ube.Api.Contracts.Bookings;
 using Microsoft.AspNetCore.Mvc;
-using Ube.Domain.Enums.Bookings;
+using Ube.Application.Features.Bookings.Requests;
 
 namespace Ube.Api.Controllers.Bookings;
 
@@ -35,11 +35,10 @@ public class VendorBookingsController : ControllerBase
     [HttpGet("vendor-booking")]
     public async Task<IActionResult> GetVendorBookings(
         [FromQuery] Guid vendorId , 
-        [FromQuery] BookingStatus? status = null ,
-        [FromQuery] BookingSortBy? sortBy = null
+        [FromQuery] BookingsRequest request
          )
     {
-        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, status, sortBy);
+        var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, request);
         return Ok(bookings);
     }
 

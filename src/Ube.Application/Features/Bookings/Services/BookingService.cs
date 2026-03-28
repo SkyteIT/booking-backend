@@ -3,7 +3,8 @@ using Ube.Application.Features.Bookings.Rules;
 using Ube.Domain.Enums.Bookings;
 using Ube.Application.common.Interfaces.Persistence;
 using Ube.Application.Features.Bookings.DTOs;
-using Ube.Domain.Entities.Bookings;
+using Ube.Application.common.Models.pagination;
+using Ube.Application.Features.Bookings.Requests;
 namespace Ube.Application.Features.Bookings.Services;
 
 public class BookingService : IBookingService
@@ -54,10 +55,10 @@ public class BookingService : IBookingService
             CanReject = BookingValidationRules.CanVendorReject(booking, VendorId)
         };
     }
-    public async Task<List<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingStatus? status = null , BookingSortBy? sortBy = null)
+    public async Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request)
     {
-        var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, status, sortBy);
-        return bookings.Select(b => new VendorBookingDto
+        var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, request);
+        var vendorBookings = bookings.Items.Select(b => new VendorBookingDto
         {
             BookingNumber = b.BookingNumber,
             ListingTitle = b.Listing.Title,
@@ -69,6 +70,14 @@ public class BookingService : IBookingService
             Currency = b.Currency,
             CreatedAt = b.CreatedAt
         }).ToList();
+        return new PagedResult<VendorBookingDto>
+        {
+            Items = vendorBookings,
+            PageNumber = bookings.PageNumber,
+            PageSize = bookings.PageSize,
+            TotalCount = bookings.TotalCount,
+            TotalPages = bookings.TotalPages
+        };
     }
 
     public async Task<BookingDetailDto?> GetBookingDetailAsync(Guid BookingId, Guid vendorId)

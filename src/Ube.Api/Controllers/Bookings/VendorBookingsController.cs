@@ -42,4 +42,15 @@ public class VendorBookingsController : ControllerBase
         var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, status, sortBy);
         return Ok(bookings);
     }
+
+    [HttpGet("booking-detail/{bookingId}")]
+    public async Task<IActionResult> GetBookingDetail(
+        Guid bookingId,[FromQuery] Guid vendorId)
+    {
+        var bookingDetail = await _bookingService.GetBookingDetailAsync(bookingId, vendorId);
+        if(bookingDetail == null)
+            return NotFound("Booking not found or you don't have access to it.");
+        return Ok(bookingDetail);
+
+    }
 }

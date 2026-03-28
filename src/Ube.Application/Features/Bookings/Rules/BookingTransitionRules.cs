@@ -1,4 +1,4 @@
-using Ube.Domain.Entities.Bookings;
+
 using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Application.Features.Bookings.Rules;

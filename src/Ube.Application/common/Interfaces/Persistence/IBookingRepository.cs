@@ -8,6 +8,7 @@ public interface IBookingRepository
     Task<Booking ?> GetByIdAsync(Guid BookingId);
     Task UpdateAsync(Booking booking);
     Task<List<Booking>> GetBookingsByVendorIdAsync(Guid vendorId, BookingStatus? status, BookingSortBy? sortBy);
+    Task<Booking?>GetBookingAsync(Guid BookingId , Guid vendorId);
     Task<int> GetNextBookingSequenceAsync();
 
     

@@ -3,6 +3,7 @@ using Ube.Application.Features.Bookings.Rules;
 using Ube.Domain.Enums.Bookings;
 using Ube.Application.common.Interfaces.Persistence;
 using Ube.Application.Features.Bookings.DTOs;
+using Ube.Domain.Entities.Bookings;
 namespace Ube.Application.Features.Bookings.Services;
 
 public class BookingService : IBookingService
@@ -54,5 +55,28 @@ public class BookingService : IBookingService
             Currency = b.Currency,
             CreatedAt = b.CreatedAt
         }).ToList();
+    }
+
+    public async Task<BookingDetailDto?> GetBookingDetailAsync(Guid BookingId, Guid vendorId)
+    {
+        var booking = await _bookingRepository.GetBookingAsync(BookingId, vendorId);
+        if(booking ==null)
+            return null;
+        
+        return new BookingDetailDto
+        {
+            BookingNumber = booking.BookingNumber,
+            ListingTitle = booking.Listing.Title,
+            CustomerName = booking.Customer.FirstName + " " + booking.Customer.LastName,
+            CustomerEmail = booking.Customer.Email,
+            StartDateTime = booking.StartDateTime,
+            EndDateTime = booking.EndDateTime,
+            Status = booking.Status,
+            TotalAmount = booking.TotalAmount,
+            Currency = booking.Currency,
+            CreatedAt = booking.CreatedAt,
+            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, vendorId),
+            CanReject = BookingValidationRules.CanVendorReject(booking, vendorId)
+        };
     }
 }

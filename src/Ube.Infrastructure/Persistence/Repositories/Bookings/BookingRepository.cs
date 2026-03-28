@@ -54,6 +54,16 @@ public class BookingRepository : IBookingRepository
         return await query.ToListAsync();
     }
 
+    public async Task<Booking?> GetBookingAsync(Guid BookingId, Guid vendorId){
+
+        var query = _db.Bookings
+            .Include(b => b.Listing)
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b => b.Id == BookingId && b.Listing.VendorProfileId == vendorId);
+        return await query;
+
+    }
+
     public async Task UpdateAsync(Booking booking)
     {
         _db.Bookings.Update(booking);

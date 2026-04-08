@@ -1,6 +1,6 @@
 using Ube.Domain.Enums.Bookings;
 
-namespace Ube.Application.Features.Bookings.DTOs;
+namespace Ube.Application.Features.Bookings;
 public class BookingDetailDto
 {
     public string BookingNumber { get; set; } = string.Empty;

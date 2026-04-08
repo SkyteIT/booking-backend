@@ -1,7 +1,7 @@
 using Ube.Application.Common.Models.Pagination;
 using Ube.Domain.Enums.Bookings;
 
-namespace Ube.Application.Features.Bookings.Requests;
+namespace Ube.Application.Features.Bookings;
 
 public class BookingsRequest : PagedRequest
 {

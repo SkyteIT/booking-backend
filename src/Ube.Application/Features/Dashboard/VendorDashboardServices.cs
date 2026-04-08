@@ -1,6 +1,6 @@
-using Ube.Application.Features.Dashboard.DTOs;
+using Ube.Application.Features.Dashboard;
 
-namespace Ube.Application.Features.Dashboard.Services;
+namespace Ube.Application.Features.Dashboard;
 public class VendorDashboardService : IDashboardService
 {
     public async Task<VendorDashboardDto> GetVendorDashboardAsync(Guid vendorId)

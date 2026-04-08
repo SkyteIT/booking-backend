@@ -20,6 +20,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Category> Categories {get; set; } = default!;
     public DbSet <VendorApplication> VendorApplications { get; set; } = default!;
     public DbSet <VendorProfile> VendorProfiles {get; set; } = default!;
+    public DbSet <BlockedDate> BlockedDates {get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

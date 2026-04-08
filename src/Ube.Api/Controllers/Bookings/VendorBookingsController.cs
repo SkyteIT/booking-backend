@@ -1,7 +1,7 @@
-using Ube.Application.common.Interfaces.Services;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Api.Contracts.Bookings;
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.Features.Bookings.Requests;
+using Ube.Application.Features.Bookings;
 
 namespace Ube.Api.Controllers.Bookings;
 

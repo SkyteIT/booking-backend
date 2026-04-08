@@ -1,9 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Ube.Application.common.Interfaces.Persistence;
+using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Enums.Bookings;
-using Ube.Application.Features.Bookings.Requests;
-using Ube.Application.common.Models.pagination;
+using Ube.Application.Features.Bookings;
+using Ube.Application.Common.Models.Pagination;
 
 
 namespace Ube.Infrastructure.Persistence.Repositories.Bookings;

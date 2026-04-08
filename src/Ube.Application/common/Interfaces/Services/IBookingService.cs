@@ -1,10 +1,8 @@
 using Ube.Domain.Enums.Bookings;
-using Ube.Application.Features.Bookings.DTOs;
-using Ube.Application.common.Models.pagination;
-using Ube.Application.Features.Bookings.Requests;
+using Ube.Application.Common.Models.Pagination;
+using Ube.Application.Features.Bookings;
 
-
-namespace Ube.Application.common.Interfaces.Services;
+namespace Ube.Application.Common.Interfaces.Services;
 
 public interface IBookingService
 {

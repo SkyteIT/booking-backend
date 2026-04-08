@@ -1,8 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Infrastructure.Persistence;
-using Ube.Application.common.Interfaces.Persistence;
-using Ube.Application.common.Interfaces.Services;
-using Ube.Application.Features.Bookings.Services;
+using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Interfaces.Services;
+using Ube.Application.Features.Dashboard;
+using Ube.Application.Features.Bookings;
 using Ube.Infrastructure.Persistence.Repositories.Bookings;
 using Ube.Infrastructure.Persistence.Seed;
 using System.Text.Json.Serialization;
@@ -17,6 +18,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

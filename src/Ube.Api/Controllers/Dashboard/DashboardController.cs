@@ -1,5 +1,5 @@
-using Ube.Application.Features.Dashboard.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Ube.Application.Features.Dashboard;
 namespace Ube.Api.Controllers.Dashboard;
 
 [ApiController]

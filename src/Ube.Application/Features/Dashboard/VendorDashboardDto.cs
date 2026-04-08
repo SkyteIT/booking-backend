@@ -1,4 +1,4 @@
-namespace Ube.Application.Features.Dashboard.DTOs;
+namespace Ube.Application.Features.Dashboard;
 
 public class VendorDashboardDto
 {

@@ -1,4 +1,4 @@
-namespace Ube.Application.common.Models.pagination;
+namespace Ube.Application.Common.Models.Pagination;
 
 public class PagedResult<T>
 {

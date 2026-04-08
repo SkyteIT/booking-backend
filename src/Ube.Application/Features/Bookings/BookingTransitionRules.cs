@@ -1,7 +1,7 @@
 
 using Ube.Domain.Enums.Bookings;
 
-namespace Ube.Application.Features.Bookings.Rules;
+namespace Ube.Application.Features.Bookings;
 
 public static class BookingTransitionRules
 {

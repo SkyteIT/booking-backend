@@ -1,8 +1,8 @@
 using Ube.Domain.Entities.Bookings;
-using Ube.Application.Features.Bookings.Requests;
-using Ube.Application.common.Models.pagination;
+using Ube.Application.Features.Bookings;
+using Ube.Application.Common.Models.Pagination;
 
-namespace Ube.Application.common.Interfaces.Persistence;
+namespace Ube.Application.Common.Interfaces.Persistence;
 
 public interface IBookingRepository
 {

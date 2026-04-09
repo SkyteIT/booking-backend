@@ -2,8 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Vendors;
+using Ube.Domain.Enums.Listings;
 
-namespace ube.Infrastructure.persistence.Configurations;
+namespace Ube.Infrastructure.Persistence.Configurations;
 
 public class ListingConfiguration : IEntityTypeConfiguration<Listing>
 {
@@ -30,8 +31,13 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
         builder.HasIndex(x => x.VendorProfileId);
         builder.HasIndex(x => x.CategoryId);
         builder.HasIndex(x => x.IsActive);
-        
+        builder.Property(x => x.Capacity)
+                .IsRequired();
 
+         builder.Property(x => x.AvailabilityType)
+                   .IsRequired()
+                   .HasConversion<int>()
+                   .HasDefaultValue(AvailabilityType.Capacity); 
         builder.HasOne<Category>()
                 .WithMany()
                 .HasForeignKey(x => x.CategoryId)

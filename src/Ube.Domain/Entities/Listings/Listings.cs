@@ -1,3 +1,5 @@
+using Ube.Domain.Enums.Listings;
+
 namespace Ube.Domain.Entities.Listings;
 
 public class Listing
@@ -19,6 +21,10 @@ public class Listing
     public string? Location { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    public AvailabilityType AvailabilityType { get; set; }
+
+    public int Capacity { get; set; } // For Capacity-based availability
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

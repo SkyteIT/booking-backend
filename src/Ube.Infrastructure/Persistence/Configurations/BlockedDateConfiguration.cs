@@ -21,5 +21,9 @@ public class BlockedDateConfiguration : IEntityTypeConfiguration<BlockedDate>
 
         builder.HasIndex( bd => new {bd.ListingId, bd.Date})
             .IsUnique();
+        builder.HasOne<Listing>()
+            .WithMany()
+            .HasForeignKey(x => x.ListingId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

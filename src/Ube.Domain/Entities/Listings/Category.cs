@@ -1,16 +1,21 @@
-namespace Ube.Domain.Entities.Listings;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Ube.Domain.Entities.Listings; // Needed to reference Listing
 
-public class Category
+namespace Ube.Domain.Entities.Listings // Same namespace as Listing
 {
-    public Guid Id { get; set; }
+    public class Category
+    {
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)] // 🔥 IMPORTANT
+        public int Id { get; set; }
 
-    public string Name { get; set; } = string.Empty;
+        [Required] // Optional but good practice
+        public string? Name { get; set; }
 
-    public string? Description { get; set; }
+        public bool IsActive { get; set; } = true;
 
-    public bool IsActive { get; set; } = true;
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public DateTime? UpdatedAt { get; set; }
+        public ICollection<Listing> Listings { get; set; } = new List<Listing>();
+    }
 }

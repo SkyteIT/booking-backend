@@ -1,12 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.Interfaces;
-using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Content;
 using Ube.Domain.Entities.Listings;
-using Ube.Domain.Entities.Reviews;
-using Ube.Domain.Entities.Users;
-using Ube.Domain.Entities.Vendors;
-using System.Threading;
-using System.Threading.Tasks;
+using Ube.Domain.Entities.Notifications;
 
 namespace Ube.Infrastructure.Persistence;
 
@@ -14,17 +10,16 @@ public class UbeDbContext : DbContext, IAppDbContext
 {
     public UbeDbContext(DbContextOptions<UbeDbContext> options) : base(options) { }
 
-    public DbSet<User> Users { get; set; } = default!;
-    public DbSet<Listing> Listings { get; set; } = default!;
-    public DbSet<Booking> Bookings { get; set; } = default!;
-    public DbSet<Review> Reviews { get; set; } = default!;
-    public DbSet<Category> Categories { get; set; } = default!;
-    public DbSet<VendorApplication> VendorApplications { get; set; } = default!;
-    public DbSet<VendorProfile> VendorProfiles { get; set; } = default!;
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Listing> Listings => Set<Listing>();
+    public DbSet<Banner> Banners => Set<Banner>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<NotificationPreference> NotificationPreferences => Set<NotificationPreference>();
 
-    // Implement the interface method
-    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        return base.SaveChangesAsync(cancellationToken);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(UbeDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
     }
 }

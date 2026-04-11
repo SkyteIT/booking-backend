@@ -1,15 +1,10 @@
-using Ube.Application.DTOs.Category; // DTOs for Category
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Ube.Application.DTOs.Category;
 
-namespace Ube.Application.Interfaces
+namespace Ube.Application.Interfaces;
+
+public interface ICategoryService
 {
-    public interface ICategoryService
-    {
-        Task<List<CategoryDto>> GetAllAsync();
-        Task<CategoryDto> CreateAsync(CreateCategoryDto dto);
-        Task<bool> UpdateAsync(int id, UpdateCategoryDto dto);
-        Task<bool> DeleteAsync(int id);
-        Task<bool> ToggleStatusAsync(int id);
-    }
+    Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken);
+    Task<CategoryDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+    Task<CategoryDto> CreateAsync(CreateCategoryDto dto, CancellationToken cancellationToken);
 }

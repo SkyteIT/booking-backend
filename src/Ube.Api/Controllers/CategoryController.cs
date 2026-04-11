@@ -1,63 +1,38 @@
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs.Category;      // for CreateCategoryDto, UpdateCategoryDto, CategoryDto
-using Ube.Application.Interfaces;         // for ICategoryService
+using Ube.Application.DTOs.Category;
+using Ube.Application.Interfaces;
 
-namespace Ube.Api.Controllers
+namespace Ube.Api.Controllers;
+
+[ApiController]
+[Route("api/categories")]
+public class CategoryController : ControllerBase
 {
+    private readonly ICategoryService _service;
 
-    [ApiController]
-    [Route("api/[controller]")]
-    public class CategoryController : ControllerBase
+    public CategoryController(ICategoryService service)
     {
-        private readonly ICategoryService _service;
+        _service = service;
+    }
 
-        public CategoryController(ICategoryService service)
-        {
-            _service = service;
-        }
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetAllAsync(cancellationToken);
+        return Ok(result);
+    }
 
-        // GET ALL (for cards UI)
-        [HttpGet]
-        public async Task<IActionResult> GetAll()
-        {
-            return Ok(await _service.GetAllAsync());
-        }
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetByIdAsync(id, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
 
-        // CREATE
-        [HttpPost]
-        public async Task<IActionResult> Create(CreateCategoryDto dto)
-        {
-            return Ok(await _service.CreateAsync(dto));
-        }
-
-        // UPDATE
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, UpdateCategoryDto dto)
-        {
-            var result = await _service.UpdateAsync(id, dto);
-            if (!result) return NotFound();
-
-            return Ok();
-        }
-
-        // DELETE
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            var result = await _service.DeleteAsync(id);
-            if (!result) return NotFound();
-
-            return Ok();
-        }
-
-        // 🔥 TOGGLE (for switch button)
-        [HttpPatch("{id}/toggle")]
-        public async Task<IActionResult> Toggle(int id)
-        {
-            var result = await _service.ToggleStatusAsync(id);
-            if (!result) return NotFound();
-
-            return Ok();
-        }
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateCategoryDto dto, CancellationToken cancellationToken)
+    {
+        var result = await _service.CreateAsync(dto, cancellationToken);
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 }

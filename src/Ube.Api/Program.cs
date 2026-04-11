@@ -5,25 +5,25 @@ using Ube.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add framework services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// --- REGISTER YOUR INTERFACES & IMPLEMENTATIONS ---
-// Register your DbContext
+// Add DbContext
 builder.Services.AddDbContext<UbeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Register IAppDbContext so it can be injected
+// Register Application services
 builder.Services.AddScoped<IAppDbContext>(provider => provider.GetRequiredService<UbeDbContext>());
-
-// Register CategoryService for ICategoryService
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IBannerService, BannerService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -31,9 +31,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

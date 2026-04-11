@@ -1,83 +1,89 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.DTOs.Category;
 using Ube.Application.Interfaces;
-using Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Content;
+using Ube.Domain.Enums;
 
-namespace Ube.Application.Services
+namespace Ube.Application.Services;
+
+public class CategoryService : ICategoryService
 {
-    public class CategoryService : ICategoryService
+    private readonly IAppDbContext _context;
+
+    public CategoryService(IAppDbContext context)
     {
-        private readonly IAppDbContext _context;
+        _context = context;
+    }
 
-        public CategoryService(IAppDbContext context)
-        {
-            _context = context;
-        }
-
-        public async Task<List<CategoryDto>> GetAllAsync()
-        {
-            return await _context.Categories
-                .Select(c => new CategoryDto
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    IsActive = c.IsActive,
-                    ListingCount = c.Listings.Count()
-                })
-                .ToListAsync();
-        }
-
-        public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto)
-        {
-            var category = new Category
+    public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await _context.Categories
+            .Select(x => new CategoryDto
             {
-                Name = dto.Name,
-                IsActive = true
-            };
+                Id = x.Id,
+                Name = x.Name,
+                Description = x.Description,
+                Icon = x.Icon,
+                BannerImageUrl = x.BannerImageUrl,
+                DisplayOrder = x.DisplayOrder,
+                RequiresAdminApproval = x.RequiresAdminApproval,
+                IsFeatured = x.IsFeatured,
+                Status = x.Status.ToString(),
+                ListingCount = x.Listings.Count
+            })
+            .OrderBy(x => x.DisplayOrder)
+            .ToListAsync(cancellationToken);
+    }
 
-            _context.Categories.Add(category);
-            await _context.SaveChangesAsync(CancellationToken.None);
-
-            return new CategoryDto
+    public async Task<CategoryDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _context.Categories
+            .Where(x => x.Id == id)
+            .Select(x => new CategoryDto
             {
-                Id = category.Id,
-                Name = category.Name,
-                IsActive = category.IsActive,
-                ListingCount = 0
-            };
-        }
+                Id = x.Id,
+                Name = x.Name,
+                Description = x.Description,
+                Icon = x.Icon,
+                BannerImageUrl = x.BannerImageUrl,
+                DisplayOrder = x.DisplayOrder,
+                RequiresAdminApproval = x.RequiresAdminApproval,
+                IsFeatured = x.IsFeatured,
+                Status = x.Status.ToString(),
+                ListingCount = x.Listings.Count
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+    }
 
-        public async Task<bool> UpdateAsync(int id, UpdateCategoryDto dto)
+    public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, CancellationToken cancellationToken)
+    {
+        var entity = new Category
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null) return false;
+            Name = dto.Name,
+            Description = dto.Description,
+            Icon = dto.Icon,
+            BannerImageUrl = dto.BannerImageUrl,
+            DisplayOrder = dto.DisplayOrder,
+            RequiresAdminApproval = dto.RequiresAdminApproval,
+            IsFeatured = dto.IsFeatured,
+            Status = RecordStatus.Active
+        };
 
-            category.Name = dto.Name;
-            category.IsActive = dto.IsActive;
+        _context.Categories.Add(entity);
+        await _context.SaveChangesAsync(cancellationToken);
 
-            await _context.SaveChangesAsync(CancellationToken.None);
-            return true;
-        }
-
-        public async Task<bool> DeleteAsync(int id)
+        return new CategoryDto
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null) return false;
-
-            _context.Categories.Remove(category);
-            await _context.SaveChangesAsync(CancellationToken.None);
-            return true;
-        }
-
-        public async Task<bool> ToggleStatusAsync(int id)
-        {
-            var category = await _context.Categories.FindAsync(id);
-            if (category == null) return false;
-
-            category.IsActive = !category.IsActive;
-
-            await _context.SaveChangesAsync(CancellationToken.None);
-            return true;
-        }
+            Id = entity.Id,
+            Name = entity.Name,
+            Description = entity.Description,
+            Icon = entity.Icon,
+            BannerImageUrl = entity.BannerImageUrl,
+            DisplayOrder = entity.DisplayOrder,
+            RequiresAdminApproval = entity.RequiresAdminApproval,
+            IsFeatured = entity.IsFeatured,
+            Status = entity.Status.ToString(),
+            ListingCount = 0
+        };
     }
 }

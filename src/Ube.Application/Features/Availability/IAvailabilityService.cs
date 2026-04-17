@@ -1,6 +1,6 @@
 
 
-namespace Ube.Application.Features.Availablity;
+namespace Ube.Application.Features.Availability;
 
 public interface IAvailabilityService
 {

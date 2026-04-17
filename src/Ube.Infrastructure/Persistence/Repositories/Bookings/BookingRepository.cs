@@ -17,13 +17,14 @@ public class BookingRepository : IBookingRepository
         _db = context;
     }
 
-//
+    //get booking by id with listing and customer details
     public async Task<Booking?> GetByIdAsync(Guid bookingId)
     {
         return await _db.Bookings
             .Include(b => b.Listing)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
+    //
     public async Task<int> GetNextBookingSequenceAsync()
     {
         var result = await _db
@@ -33,6 +34,7 @@ public class BookingRepository : IBookingRepository
 
         return result;
     }
+    // get ookings for booking management page for vendors with pagination and filtering
     public async Task<PagedResult<Booking>> GetBookingsByVendorIdAsync(
         Guid vendorId , BookingsRequest request)
     {
@@ -68,7 +70,7 @@ public class BookingRepository : IBookingRepository
         };
 
     }
-
+    // Get a specific booking for a vendor (used for booking details page)
     public async Task<Booking?> GetBookingAsync(Guid BookingId, Guid vendorId){
 
         var query = _db.Bookings
@@ -84,4 +86,21 @@ public class BookingRepository : IBookingRepository
         _db.Bookings.Update(booking);
         await _db.SaveChangesAsync();
     }
+
+    // Get bookings for a listing in a date range(use for availability check)
+    public async Task<List<Booking>> GetBookingsByListingAndDateRangeAsync(
+        Guid listingId,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        return await _db.Bookings
+            .Where( b => b.ListingId == listingId &&
+                    b.StartDateTime <= endDate &&
+                    b.EndDateTime >= startDate &&
+                    (b.Status == BookingStatus.Confirmed || 
+                        (b.Status == BookingStatus.Pending && b.CreatedAt >= DateTime.UtcNow.AddHours(-1))) // consider pending bookings created within last 1 hour as they might still be confirmed
+                    )
+            .ToListAsync();
+    }
+    
 }

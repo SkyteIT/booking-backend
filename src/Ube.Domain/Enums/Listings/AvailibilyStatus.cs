@@ -1,4 +1,4 @@
-namespace Ube.Application.Features.Availablity;
+namespace Ube.Application.Features.Availability;
     public enum AvailabilityStatus
     {
         Available = 1,

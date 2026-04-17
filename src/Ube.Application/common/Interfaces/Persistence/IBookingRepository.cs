@@ -12,5 +12,7 @@ public interface IBookingRepository
     Task<Booking?>GetBookingAsync(Guid BookingId , Guid vendorId);
     Task<int> GetNextBookingSequenceAsync();
 
+    Task <List<Booking>> GetBookingsByListingAndDateRangeAsync(Guid listingId , DateTime startDate , DateTime endDate);
+
     
 }

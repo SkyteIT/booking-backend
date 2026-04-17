@@ -7,18 +7,26 @@ using Ube.Application.Features.Bookings;
 using Ube.Infrastructure.Persistence.Repositories.Bookings;
 using Ube.Infrastructure.Persistence.Seed;
 using System.Text.Json.Serialization;
+using Ube.Application.Features.Availability;
+using Ube.Application.Features.Availability.Strategies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers();  
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
+// Register repositories and services
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
+// Register availability strategies
+builder.Services.AddScoped<IAvailabilityStrategy, CapacityStrategy>();
+builder.Services.AddScoped<IAvailabilityStrategy, SingleUnitStrategy>();
+builder.Services.AddScoped<StrategySelector>();
+
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

@@ -17,10 +17,11 @@ public class BlockedDateRepository :IBlockedDateRepository
     {
         return await _db.BlockedDates
             .Where(bd => bd.ListingId == listingId && 
-                    bd.Date >= startDate && 
-                    bd.Date <= endDate)
+                    bd.Date >= startDate.Date && 
+                    bd.Date <= endDate.Date)
             .ToListAsync();
     }
+    // get block dates for a listing for specific dates (used for availability check)
      public async Task<List<BlockedDate>> GetByListingAndDatesAsync(
             Guid listingId,
             List<DateTime> dates)

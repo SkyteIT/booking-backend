@@ -1,12 +1,13 @@
 
-
 using Ube.Domain.Enums.Listings;
-
-namespace Ube.Application.Features.Availablity.Strategies;
+namespace Ube.Application.Features.Availability.Strategies;
 
 public class CapacityStrategy : IAvailabilityStrategy
 {
+    public AvailabilityType Type => AvailabilityType.Capacity;
+    // calculates availability based on the total capacity of the listing and the number of bookings.
     public CalanderDayDto CalculateAvailability(
+        
         DateTime date,
         int capacity,
         int bookedCount,

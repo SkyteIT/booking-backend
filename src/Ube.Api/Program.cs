@@ -25,7 +25,7 @@ builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
 builder.Services.AddScoped<IAvailabilityStrategy, CapacityStrategy>();
 builder.Services.AddScoped<IAvailabilityStrategy, SingleUnitStrategy>();
 builder.Services.AddScoped<StrategySelector>();
-
+builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 
 
 builder.Services.AddEndpointsApiExplorer();

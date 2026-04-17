@@ -1,10 +1,10 @@
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Availability.Strategies;
-using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Listings;
 
 namespace Ube.Application.Features.Availability;
 
-public class AvailabilityService
+public class AvailabilityService : IAvailabilityService
 {
     private readonly StrategySelector _strategySelector;
     private readonly IListingRepository _listingRepository;
@@ -38,8 +38,10 @@ public class AvailabilityService
         // calculate Date range of month
         var startDate = new DateTime(year, month,1);
         var endDate = startDate.AddMonths(1).AddDays(-1);
+
         // Get blocked dates for listing in date range 
         var blockedDates = await _blockedDateRepository.GetByListingAndDateRangeAsync(listingId, startDate, endDate);
+
         //use hashset for faster lookup
         var blockSet = blockedDates
             .Select ( bd => bd.Date.Date)
@@ -67,5 +69,56 @@ public class AvailabilityService
         }
         return result;
     }
+    public async Task BlockdatesAsync(Guid listingId, List<DateTime> dates)
+    {
+        if (dates ==  null || !dates.Any()){
+            throw new ArgumentException("Dates are required");
+        }
+        // Normalize dates to date only and remove duplicates
+         var normalizeDates = dates
+            .Select(d => d.Date)
+            .Distinct()
+            .ToList();
+        // Check if any of the dates are already blocked
+        var existing = await _blockedDateRepository
+            .GetByListingAndDatesAsync(listingId, normalizeDates);
+        var exsistingDates = existing
+            .Select( x => x.Date)
+            .ToHashSet();
 
+        var newDates = normalizeDates
+            .Where(d => !exsistingDates.Contains(d))
+            .ToList();
+
+        var blockedDates = newDates
+            .Select(d => new BlockedDate
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                Date = d
+            }).ToList();
+
+        if(blockedDates.Any())
+        {
+            await _blockedDateRepository.AddRangeAsync(blockedDates);
+        }
+    }
+    public async Task UnBlockdatesAsync(Guid listingId, List<DateTime> dates)
+    {
+        if (dates ==  null || !dates.Any()){
+            throw new ArgumentException("Dates are required");
+        }
+        // Normalize dates to date only and remove duplicates
+         var normalizeDates = dates
+            .Select(d => d.Date)
+            .Distinct()
+            .ToList();
+        // Get existing blocked dates for the listing and specified dates
+        var existing = await _blockedDateRepository
+            .GetByListingAndDatesAsync(listingId, normalizeDates);
+        if(existing.Any())
+        {
+            await _blockedDateRepository.RemoveRangeAsync(existing);
+        }
+    }
 }

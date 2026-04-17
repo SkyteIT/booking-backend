@@ -1,4 +1,5 @@
 using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Features.Availability.rules;
 using Ube.Application.Features.Availability.Strategies;
 using Ube.Domain.Entities.Listings;
 
@@ -23,14 +24,17 @@ public class AvailabilityService : IAvailabilityService
         _blockedDateRepository = blockedDateRepository;
     }
 
-    public async Task<List<CalanderDayDto>> GetCalanderAsync(Guid listingId, int month, int year)
+    public async Task<List<CalanderDayDto>> GetCalanderAsync(Guid listingId, Guid vendorId, int month, int year)
     {
-        //Vailidate  month 
-        if(month <1 || month > 12) throw new ArgumentException ("Invalid month");
-
         // Get listing(use this for get availability type)
         var listing = await _listingRepository.GetByIdAsync(listingId);
-        if (listing == null) throw new ArgumentException("Listing not found");
+        if (listing == null) throw new KeyNotFoundException("Listing not found");
+        var authResult = AvailabilityAuthorizationRules.CanModifyAvailability(listing, vendorId);
+
+        if (!authResult.IsSuccess)
+        {
+            throw new UnauthorizedAccessException(authResult.ErrorMessage);
+        }
 
         // Get strategy using listing availability type
         var strategy = _strategySelector.GetStrategy(listing.AvailabilityType);
@@ -49,14 +53,28 @@ public class AvailabilityService : IAvailabilityService
         var bookings = await _bookingRepository.GetBookingsByListingAndDateRangeAsync(listingId, startDate, endDate);
 
         var result = new List<CalanderDayDto>();
+
+        var bookingMap = new Dictionary<DateTime, int>();
+        foreach (var booking in bookings)
+        {
+            for (var d = booking.StartDateTime.Date; d <= booking.EndDateTime.Date; d = d.AddDays(1))
+            {
+                if (bookingMap.ContainsKey(d))
+                {
+                    bookingMap[d] += 1;
+                }
+                else
+                {
+                    bookingMap[d] = 1;
+                }
+            }
+        }
         for ( var date = startDate ; date <= endDate; date = date.AddDays(1))
         {
             var isBlocked = blockSet.Contains(date.Date);
             
             // Count bookings for the day (check if booking overlaps with the day)
-            var bookingCount = bookings.Count(
-                b => b.StartDateTime.Date <= date.Date && b.EndDateTime.Date >= date.Date
-            );
+            var bookingCount = bookingMap.TryGetValue(date.Date, out var count) ? count : 0;
             // Calculate availability for the day using strategy
             var day = strategy.CalculateAvailability(
                 date.Date,
@@ -69,16 +87,48 @@ public class AvailabilityService : IAvailabilityService
         }
         return result;
     }
-    public async Task BlockdatesAsync(Guid listingId, List<DateTime> dates)
-    {
+    public async Task BlockdatesAsync(Guid listingId, Guid vendorId, List<DateTime> dates)
+    { 
+        
+        // Validation
         if (dates ==  null || !dates.Any()){
             throw new ArgumentException("Dates are required");
         }
+
+        var today = DateTime.UtcNow.Date;
+
+        if (dates.Any(d => d.Date < today))
+        {
+            throw new ArgumentException("Cannot block past dates");
+        }
+        var listing = await _listingRepository.GetByIdAsync(listingId);
+        if (listing == null) throw new KeyNotFoundException("Listing not found");
+
+        var authResult = AvailabilityAuthorizationRules
+            .CanModifyAvailability(listing, vendorId);
+
+        if (!authResult.IsSuccess)
+            throw new UnauthorizedAccessException(authResult.ErrorMessage);
+            
+
+
         // Normalize dates to date only and remove duplicates
          var normalizeDates = dates
             .Select(d => d.Date)
             .Distinct()
             .ToList();
+        var bookings = await _bookingRepository
+            .GetBookingsByListingAndDateRangeAsync(
+                listingId,
+                normalizeDates.Min(),
+                normalizeDates.Max()
+            );
+
+        var ruleResult = AvailabilityBlockingRules.CanBlockDates(bookings, normalizeDates);
+        if (!ruleResult.IsSuccess)
+        {
+            throw new InvalidOperationException(ruleResult.ErrorMessage);
+        }
         // Check if any of the dates are already blocked
         var existing = await _blockedDateRepository
             .GetByListingAndDatesAsync(listingId, normalizeDates);
@@ -103,11 +153,26 @@ public class AvailabilityService : IAvailabilityService
             await _blockedDateRepository.AddRangeAsync(blockedDates);
         }
     }
-    public async Task UnBlockdatesAsync(Guid listingId, List<DateTime> dates)
+    public async Task UnBlockdatesAsync(Guid listingId, Guid vendorId, List<DateTime> dates)
     {
         if (dates ==  null || !dates.Any()){
             throw new ArgumentException("Dates are required");
         }
+        var today = DateTime.UtcNow.Date;
+
+        if (dates.Any(d => d.Date < today))
+        {
+            throw new ArgumentException("Cannot unblock past dates");
+        }
+        var listing = await _listingRepository.GetByIdAsync(listingId);
+        if (listing == null) throw new KeyNotFoundException("Listing not found");
+
+        var authResult = AvailabilityAuthorizationRules
+            .CanModifyAvailability(listing, vendorId);
+
+        if (!authResult.IsSuccess)
+            throw new UnauthorizedAccessException(authResult.ErrorMessage);
+
         // Normalize dates to date only and remove duplicates
          var normalizeDates = dates
             .Select(d => d.Date)

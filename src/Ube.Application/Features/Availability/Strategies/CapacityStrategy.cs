@@ -14,6 +14,15 @@ public class CapacityStrategy : IAvailabilityStrategy
         bool isBlocked
     )
     {
+         if (capacity <= 0)
+        {
+            return new CalanderDayDto
+            {
+                Date = date,
+                Status = AvailabilityStatus.Full,
+                AvailableCount = 0
+            };
+        }
         if (isBlocked)
         {
             return new CalanderDayDto

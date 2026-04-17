@@ -9,11 +9,16 @@ using Ube.Infrastructure.Persistence.Seed;
 using System.Text.Json.Serialization;
 using Ube.Application.Features.Availability;
 using Ube.Application.Features.Availability.Strategies;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();  
-
+builder.Services.AddControllers(); 
+// Add FluentValidation 
+builder.Services.AddFluentValidationAutoValidation();
+// Register validators from the assembly containing Program
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 

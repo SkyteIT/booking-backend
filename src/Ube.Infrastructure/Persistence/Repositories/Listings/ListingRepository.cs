@@ -3,7 +3,7 @@ using Ube.Domain.Entities.Listings;
 using Ube.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Ube.Infrastructure.persistence.Repositories.Listings;
+namespace Ube.Infrastructure.Persistence.Repositories.Listings;
 
 public class ListingRepository : IListingRepository
 {
@@ -18,4 +18,10 @@ public class ListingRepository : IListingRepository
         return await _db.Listings
             .FirstOrDefaultAsync(b => b.Id == listingId);
     }
+    public async Task<List<Listing>> GetByVendorIdAsync(Guid vendorId)
+{
+    return await _db.Listings
+        .Where(l => l.VendorProfileId == vendorId)
+        .ToListAsync();
+}
 }

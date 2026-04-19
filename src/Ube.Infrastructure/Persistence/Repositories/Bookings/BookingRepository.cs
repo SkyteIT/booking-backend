@@ -5,7 +5,6 @@ using Ube.Domain.Enums.Bookings;
 using Ube.Application.Features.Bookings;
 using Ube.Application.Common.Models.Pagination;
 
-
 namespace Ube.Infrastructure.Persistence.Repositories.Bookings;
 
 public class BookingRepository : IBookingRepository
@@ -24,7 +23,7 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.Listing)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
-    //
+    // Get next booking sequence number for generating booking reference number
     public async Task<int> GetNextBookingSequenceAsync()
     {
         var result = await _db
@@ -95,8 +94,8 @@ public class BookingRepository : IBookingRepository
     {
         return await _db.Bookings
             .Where( b => b.ListingId == listingId &&
-                    b.StartDateTime <= endDate &&
-                    b.EndDateTime >= startDate &&
+                    b.StartDateTime.Date <= endDate.Date &&
+                    b.EndDateTime.Date >= startDate.Date &&
                     (b.Status == BookingStatus.Confirmed || 
                         (b.Status == BookingStatus.Pending && b.CreatedAt >= DateTime.UtcNow.AddHours(-1))) // consider pending bookings created within last 1 hour as they might still be confirmed
                     )

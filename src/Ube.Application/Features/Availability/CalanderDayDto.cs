@@ -8,4 +8,7 @@ public class CalanderDayDto
     public AvailabilityStatus Status { get; set;}
     //how many units are available
     public int AvailableCount {get;set;}
+    public int BookingCount { get; set;}
+    public bool IsBlocked { get; set;}
+    
 }

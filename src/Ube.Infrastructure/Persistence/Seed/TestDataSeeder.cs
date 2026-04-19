@@ -118,7 +118,10 @@ public static class TestDataSeeder
             });
         }
 
-        if (!await dbContext.Listings.AnyAsync(x => x.Id == ListingId, cancellationToken))
+        // Ensure listing exists and has correct Capacity
+        var existingListing = await dbContext.Listings.FirstOrDefaultAsync(x => x.Id == ListingId, cancellationToken);
+        
+        if (existingListing == null)
         {
             dbContext.Listings.Add(new Listing
             {
@@ -131,11 +134,27 @@ public static class TestDataSeeder
                 Currency = "LKR",
                 Location = "Colombo",
                 IsActive = true,
+                Capacity = 5,
+                AvailabilityType = Ube.Domain.Enums.Listings.AvailabilityType.Capacity,
                 CreatedAt = now
             });
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        else if (existingListing.Capacity != 5)
+        {
+            // Update capacity if it's not already 5
+            existingListing.Capacity = 5;
+            existingListing.AvailabilityType = Ube.Domain.Enums.Listings.AvailabilityType.Capacity;
+            dbContext.Listings.Update(existingListing);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        if (!await dbContext.Bookings.AnyAsync(x => x.Id == PendingBookingId, cancellationToken))
+        var pendingStart = new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Utc);
+        var confirmedStart = new DateTime(2026, 5, 15, 10, 0, 0, DateTimeKind.Utc);
+        var cancelledStart = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Utc);
+
+        var pendingBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == PendingBookingId, cancellationToken);
+        if (pendingBooking == null)
         {
             dbContext.Bookings.Add(new Booking
             {
@@ -143,16 +162,29 @@ public static class TestDataSeeder
                 BookingNumber = "BKG-000001",
                 ListingId = ListingId,
                 CustomerId = CustomerUserId,
-                StartDateTime = now.AddDays(10),
-                EndDateTime = now.AddDays(10).AddHours(4),
+                StartDateTime = pendingStart,
+                EndDateTime = pendingStart.AddHours(4),
                 Status = BookingStatus.Pending,
                 TotalAmount = 15000m,
                 Currency = "LKR",
                 CreatedAt = now
             });
         }
+        else
+        {
+            pendingBooking.ListingId = ListingId;
+            pendingBooking.CustomerId = CustomerUserId;
+            pendingBooking.StartDateTime = pendingStart;
+            pendingBooking.EndDateTime = pendingStart.AddHours(4);
+            pendingBooking.Status = BookingStatus.Pending;
+            pendingBooking.TotalAmount = 15000m;
+            pendingBooking.Currency = "LKR";
+            pendingBooking.CreatedAt = now;
+            dbContext.Bookings.Update(pendingBooking);
+        }
 
-        if (!await dbContext.Bookings.AnyAsync(x => x.Id == ConfirmedBookingId, cancellationToken))
+        var confirmedBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == ConfirmedBookingId, cancellationToken);
+        if (confirmedBooking == null)
         {
             dbContext.Bookings.Add(new Booking
             {
@@ -160,15 +192,28 @@ public static class TestDataSeeder
                 BookingNumber = "BKG-000002",
                 ListingId = ListingId,
                 CustomerId = CustomerUserId,
-                StartDateTime = now.AddDays(15),
-                EndDateTime = now.AddDays(15).AddHours(4),
+                StartDateTime = confirmedStart,
+                EndDateTime = confirmedStart.AddHours(4),
                 Status = BookingStatus.Confirmed,
                 TotalAmount = 18000m,
                 Currency = "LKR",
                 CreatedAt = now
             });
         }
-        if (!await dbContext.Bookings.AnyAsync(x => x.Id == CancelledBookingId, cancellationToken))
+        else
+        {
+            confirmedBooking.ListingId = ListingId;
+            confirmedBooking.CustomerId = CustomerUserId;
+            confirmedBooking.StartDateTime = confirmedStart;
+            confirmedBooking.EndDateTime = confirmedStart.AddHours(4);
+            confirmedBooking.Status = BookingStatus.Confirmed;
+            confirmedBooking.TotalAmount = 18000m;
+            confirmedBooking.Currency = "LKR";
+            dbContext.Bookings.Update(confirmedBooking);
+        }
+
+        var cancelledBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == CancelledBookingId, cancellationToken);
+        if (cancelledBooking == null)
         {
             dbContext.Bookings.Add(new Booking
             {
@@ -176,13 +221,24 @@ public static class TestDataSeeder
                 BookingNumber = "BKG-000003",
                 ListingId = ListingId,
                 CustomerId = CustomerUserId,
-                StartDateTime = now.AddDays(20),
-                EndDateTime = now.AddDays(20).AddHours(4),
+                StartDateTime = cancelledStart,
+                EndDateTime = cancelledStart.AddHours(4),
                 Status = BookingStatus.Cancelled,
                 TotalAmount = 15000m,
                 Currency = "LKR",
                 CreatedAt = now
             });
+        }
+        else
+        {
+            cancelledBooking.ListingId = ListingId;
+            cancelledBooking.CustomerId = CustomerUserId;
+            cancelledBooking.StartDateTime = cancelledStart;
+            cancelledBooking.EndDateTime = cancelledStart.AddHours(4);
+            cancelledBooking.Status = BookingStatus.Cancelled;
+            cancelledBooking.TotalAmount = 15000m;
+            cancelledBooking.Currency = "LKR";
+            dbContext.Bookings.Update(cancelledBooking);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

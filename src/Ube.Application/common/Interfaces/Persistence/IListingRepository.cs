@@ -6,5 +6,6 @@ namespace Ube.Application.Common.Interfaces.Persistence
     {
         //Get listing by id (used in availability)
         Task<Listing?> GetByIdAsync(Guid listingId);
+        Task<List<Listing>> GetByVendorIdAsync(Guid vendorId);
     }
 }

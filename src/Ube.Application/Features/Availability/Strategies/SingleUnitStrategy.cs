@@ -1,3 +1,4 @@
+using Ube.Domain.Enums;
 using Ube.Domain.Enums.Listings;
 
 namespace Ube.Application.Features.Availability.Strategies;
@@ -5,46 +6,32 @@ namespace Ube.Application.Features.Availability.Strategies;
 public class SingleUnitStrategy : IAvailabilityStrategy
 {
     public AvailabilityType Type => AvailabilityType.SingleUnit;
+
     public CalanderDayDto CalculateAvailability(
-         DateTime date,
-        int capacity, 
-        int bookedCount, 
+        DateTime date,
+        int capacity,
+        int bookedCount,
         bool isBlocked
     )
     {
-        if (capacity <= 0)
-        {
-            return new CalanderDayDto
-            {
-                Date = date,
-                Status = AvailabilityStatus.Full,
-                AvailableCount = 0
-            };
-        }
-        if (isBlocked)
-        {
-            return new CalanderDayDto
-            {
-                Date = date,
-                Status = AvailabilityStatus.Blocked,
-                AvailableCount = 0
-            };
-        }
+        AvailabilityStatus status;
 
-        if (bookedCount > 0)
-        {
-            return new CalanderDayDto
-            {
-                Date = date,
-                Status = AvailabilityStatus.Full,
-                AvailableCount = 0
-            };
-        }
+        if (capacity <= 0)
+            status = AvailabilityStatus.Full;
+        else if (isBlocked)
+            status = AvailabilityStatus.Blocked;
+        else if (bookedCount > 0)
+            status = AvailabilityStatus.Full;
+        else
+            status = AvailabilityStatus.Available;
+
         return new CalanderDayDto
         {
             Date = date,
-            Status = AvailabilityStatus.Available,
-            AvailableCount = 1
+            Status = status,
+            AvailableCount = bookedCount > 0 ? 0 : 1,
+            BookingCount = bookedCount,
+            IsBlocked = isBlocked
         };
     }
 }

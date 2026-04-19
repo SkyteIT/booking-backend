@@ -1,6 +1,9 @@
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Availability.rules;
 using Ube.Application.Features.Availability.Strategies;
+using Ube.Application.Common.Exceptions;
+
+
 using Ube.Domain.Entities.Listings;
 
 namespace Ube.Application.Features.Availability;
@@ -33,8 +36,14 @@ public class AvailabilityService : IAvailabilityService
 
         if (!authResult.IsSuccess)
         {
-            throw new UnauthorizedAccessException(authResult.ErrorMessage);
+            throw new ForbiddenException(authResult.ErrorMessage);
         }
+        var today = DateTime.UtcNow.Date;
+        if (year < today.Year || (year == today.Year && month < today.Month))
+        {
+            throw new BusinessRuleException("Cannot get calendar for past months");
+        }
+
 
         // Get strategy using listing availability type
         var strategy = _strategySelector.GetStrategy(listing.AvailabilityType);
@@ -78,8 +87,8 @@ public class AvailabilityService : IAvailabilityService
             // Calculate availability for the day using strategy
             var day = strategy.CalculateAvailability(
                 date.Date,
-                bookingCount,
                 listing.Capacity,
+                bookingCount,
                 isBlocked
             );
             result.Add(day);
@@ -90,16 +99,17 @@ public class AvailabilityService : IAvailabilityService
     public async Task BlockdatesAsync(Guid listingId, Guid vendorId, List<DateTime> dates)
     { 
         
-        // Validation
-        if (dates ==  null || !dates.Any()){
-            throw new ArgumentException("Dates are required");
-        }
+        
+        // Normalize dates to date only and remove duplicates
+        var normalizeDates = dates
+            .Select(d => d.Date)
+            .Distinct()
+            .ToList();
 
         var today = DateTime.UtcNow.Date;
-
-        if (dates.Any(d => d.Date < today))
+        if (normalizeDates.Any(d => d <= today))
         {
-            throw new ArgumentException("Cannot block past dates");
+            throw new BusinessRuleException("Cannot block past dates");
         }
         var listing = await _listingRepository.GetByIdAsync(listingId);
         if (listing == null) throw new KeyNotFoundException("Listing not found");
@@ -108,15 +118,8 @@ public class AvailabilityService : IAvailabilityService
             .CanModifyAvailability(listing, vendorId);
 
         if (!authResult.IsSuccess)
-            throw new UnauthorizedAccessException(authResult.ErrorMessage);
-            
-
-
-        // Normalize dates to date only and remove duplicates
-         var normalizeDates = dates
-            .Select(d => d.Date)
-            .Distinct()
-            .ToList();
+            throw new ForbiddenException(authResult.ErrorMessage);
+        
         var bookings = await _bookingRepository
             .GetBookingsByListingAndDateRangeAsync(
                 listingId,
@@ -127,7 +130,7 @@ public class AvailabilityService : IAvailabilityService
         var ruleResult = AvailabilityBlockingRules.CanBlockDates(bookings, normalizeDates);
         if (!ruleResult.IsSuccess)
         {
-            throw new InvalidOperationException(ruleResult.ErrorMessage);
+            throw new BusinessRuleException(ruleResult.ErrorMessage);
         }
         // Check if any of the dates are already blocked
         var existing = await _blockedDateRepository
@@ -135,7 +138,16 @@ public class AvailabilityService : IAvailabilityService
         var exsistingDates = existing
             .Select( x => x.Date)
             .ToHashSet();
+        var alreadyBlocked = normalizeDates
+            .Where(d => exsistingDates.Contains(d))
+            .ToList();
 
+        if (alreadyBlocked.Any())
+        {
+            throw new BusinessRuleException(
+                $"These dates are already blocked: {string.Join(", ", alreadyBlocked.Select(d => d.ToString("yyyy-MM-dd")))}"
+            );
+        }
         var newDates = normalizeDates
             .Where(d => !exsistingDates.Contains(d))
             .ToList();
@@ -156,13 +168,13 @@ public class AvailabilityService : IAvailabilityService
     public async Task UnBlockdatesAsync(Guid listingId, Guid vendorId, List<DateTime> dates)
     {
         if (dates ==  null || !dates.Any()){
-            throw new ArgumentException("Dates are required");
+            throw new BusinessRuleException("Dates are required");
         }
         var today = DateTime.UtcNow.Date;
 
-        if (dates.Any(d => d.Date < today))
+        if (dates.Any(d => d.Date <= today))
         {
-            throw new ArgumentException("Cannot unblock past dates");
+            throw new BusinessRuleException("Cannot unblock past dates");
         }
         var listing = await _listingRepository.GetByIdAsync(listingId);
         if (listing == null) throw new KeyNotFoundException("Listing not found");
@@ -171,7 +183,7 @@ public class AvailabilityService : IAvailabilityService
             .CanModifyAvailability(listing, vendorId);
 
         if (!authResult.IsSuccess)
-            throw new UnauthorizedAccessException(authResult.ErrorMessage);
+            throw new ForbiddenException(authResult.ErrorMessage);
 
         // Normalize dates to date only and remove duplicates
          var normalizeDates = dates
@@ -181,6 +193,18 @@ public class AvailabilityService : IAvailabilityService
         // Get existing blocked dates for the listing and specified dates
         var existing = await _blockedDateRepository
             .GetByListingAndDatesAsync(listingId, normalizeDates);
+        var existingDates = existing.Select(x => x.Date).ToHashSet();
+
+        var missingDates = normalizeDates
+            .Where(d => !existingDates.Contains(d))
+            .ToList();
+
+        if (missingDates.Any())
+        {
+            throw new BusinessRuleException(
+                $"These dates are not blocked: {string.Join(", ", missingDates.Select(d => d.ToString("yyyy-MM-dd")))}"
+            );
+        }
         if(existing.Any())
         {
             await _blockedDateRepository.RemoveRangeAsync(existing);

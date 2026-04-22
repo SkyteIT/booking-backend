@@ -1,4 +1,4 @@
-using Ube.Domain.Enums.Listings;
+ï»¿using Ube.Domain.Enums.Listings;
 
 namespace Ube.Application.Features.Listings.Queries;
 
@@ -14,7 +14,7 @@ public class ListingResponse
 
     public string? Description { get; set; }
 
-    public decimal BasePrice { get; set; }
+    public decimal Price { get; set; }
 
     public string Currency { get; set; } = "LKR";
 
@@ -27,9 +27,9 @@ public class ListingResponse
 
     public string VendorName { get; set; } = string.Empty;
 
-    //  NEW — Listing Type
+    //  NEW ï¿½ Listing Type
     public ListingType Type { get; set; }
 
-    //  NEW — Type-specific data
+    //  NEW ï¿½ Type-specific data
     public HotelDetailsResponse? HotelDetails { get; set; }
 }

@@ -36,7 +36,7 @@ public class ListingsController : ControllerBase
             CategoryId = request.CategoryId,
             Title = request.Title,
             Description = request.Description,
-            BasePrice = request.BasePrice,
+            Price = request.Price,
             Currency = request.Currency,
             Location = request.Location,
             CreatedAt = DateTime.UtcNow,
@@ -56,9 +56,12 @@ public class ListingsController : ControllerBase
             {
                 Id = Guid.NewGuid(),
                 ListingId = listing.Id,
-
-                // ONLY keep f  ields you ALREADY had working before
-                //NumberOfRooms = h.NumberOfRooms
+                PricePerNight = h.PricePerNight,
+                Location = h.Location,
+                AvailableRooms = h.AvailableRooms,
+                Amenities = h.Amenities,
+                CheckInTime = h.CheckInTime,
+                CheckOutTime = h.CheckOutTime
             });
         }
 
@@ -71,9 +74,11 @@ public class ListingsController : ControllerBase
             {
                 Id = Guid.NewGuid(),
                 ListingId = listing.Id,
-
-                CuisineType = r.CuisineType
-                // remove NumberOfTables / others if they don't exist
+                CuisineType = r.CuisineType,
+                AverageCost = r.AverageCost,
+                OpeningHours = r.OpeningHours,
+                TableCapacity = r.TableCapacity,
+                Location = r.Location
             });
         }
 
@@ -86,9 +91,12 @@ public class ListingsController : ControllerBase
             {
                 Id = Guid.NewGuid(),
                 ListingId = listing.Id,
-
-                EventDate = e.EventDate
-                // remove DurationHours, etc. if DTO doesn't have them
+                EventName = e.EventName,
+                Organizer = e.Organizer,
+                DateAndTime = e.DateAndTime,
+                Location = e.Location,
+                SeatCount = e.SeatCount,
+                TicketPrice = e.TicketPrice
             });
         }
 
@@ -100,9 +108,14 @@ public class ListingsController : ControllerBase
             _context.Set<CarRentalListingDetails>().Add(new CarRentalListingDetails
             {
                 Id = Guid.NewGuid(),
-                ListingId = listing.Id
-
-                // only add fields that ACTUALLY exist in your entity
+                ListingId = listing.Id,
+                Brand = c.Brand,
+                Model = c.Model,
+                Transmission = c.Transmission,
+                PricePerDay = c.PricePerDay,
+                SeatCount = c.SeatCount,
+                FuelType = c.FuelType,
+                AvailabilityStatus = c.AvailabilityStatus
             });
         }
 
@@ -115,8 +128,11 @@ public class ListingsController : ControllerBase
             {
                 Id = Guid.NewGuid(),
                 ListingId = listing.Id,
-
-                ActivityType = a.ActivityType
+                ActivityType = a.ActivityType,
+                DurationHours = a.DurationHours,
+                DifficultyLevel = a.DifficultyLevel,
+                Price = a.Price,
+                Location = a.Location
             });
         }
 
@@ -144,7 +160,7 @@ public class ListingsController : ControllerBase
             CategoryId = listing.CategoryId,
             Title = listing.Title,
             Description = listing.Description,
-            BasePrice = listing.BasePrice,
+            Price = listing.Price,
             Currency = listing.Currency,
             Location = listing.Location,
             IsActive = listing.IsActive,
@@ -169,7 +185,7 @@ public class ListingsController : ControllerBase
         listing.CategoryId = request.CategoryId;
         listing.Title = request.Title;
         listing.Description = request.Description;
-        listing.BasePrice = request.BasePrice;
+        listing.Price = request.Price;
         listing.Currency = request.Currency;
         listing.Location = request.Location;
         listing.IsActive = request.IsActive;

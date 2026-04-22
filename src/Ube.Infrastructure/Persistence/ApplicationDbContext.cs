@@ -71,7 +71,7 @@ public class ApplicationDbContext : DbContext
 
         // ================= DECIMAL PRECISION =================
         modelBuilder.Entity<Listing>()
-            .Property(l => l.BasePrice)
+            .Property(l => l.Price)
             .HasPrecision(18, 2);
 
         modelBuilder.Entity<Booking>()

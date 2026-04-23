@@ -1,6 +1,7 @@
-using Ube.Application.common.Interfaces.Services;
-using Ube.Api.Contracts.Bookings;
 using Microsoft.AspNetCore.Mvc;
+using Ube.Api.Contracts.Bookings;
+using Ube.Application.common.Interfaces.Services;
+using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Bookings.Requests;
 
 namespace Ube.Api.Controllers.Bookings;
@@ -31,10 +32,10 @@ public class VendorBookingsController : ControllerBase
 
         return Ok(bookingDetail);
     }
-// get vendor bookings with status filter
+    // get vendor bookings with status filter
     [HttpGet("vendor-booking")]
     public async Task<IActionResult> GetVendorBookings(
-        [FromQuery] Guid vendorId , 
+        [FromQuery] Guid vendorId,
         [FromQuery] BookingsRequest request
          )
     {
@@ -44,10 +45,10 @@ public class VendorBookingsController : ControllerBase
 
     [HttpGet("booking-detail/{bookingId}")]
     public async Task<IActionResult> GetBookingDetail(
-        Guid bookingId,[FromQuery] Guid vendorId)
+        Guid bookingId, [FromQuery] Guid vendorId)
     {
         var bookingDetail = await _bookingService.GetBookingDetailAsync(bookingId, vendorId);
-        if(bookingDetail == null)
+        if (bookingDetail == null)
             return NotFound("Booking not found or you don't have access to it.");
         return Ok(bookingDetail);
 

@@ -9,10 +9,17 @@ namespace Ube.Application.Services;
 public class NotificationService : INotificationService
 {
     private readonly IAppDbContext _context;
+    private readonly IEmailService _emailService;
+    private readonly ISmsService _smsService;
 
-    public NotificationService(IAppDbContext context)
+    public NotificationService(
+        IAppDbContext context,
+        IEmailService emailService,
+        ISmsService smsService)
     {
         _context = context;
+        _emailService = emailService;
+        _smsService = smsService;
     }
 
     public async Task<IReadOnlyList<NotificationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
@@ -36,6 +43,7 @@ public class NotificationService : INotificationService
 
     public async Task<NotificationDto> CreateAsync(CreateNotificationDto dto, CancellationToken cancellationToken)
     {
+        // 1. Save notification
         var notification = new Notification
         {
             UserId = dto.UserId,
@@ -47,6 +55,34 @@ public class NotificationService : INotificationService
 
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync(cancellationToken);
+
+        // 2. Get preference (NO USERS TABLE USED)
+        var preference = await _context.NotificationPreferences
+            .FirstOrDefaultAsync(x =>
+                x.UserId == dto.UserId &&
+                x.NotificationType == notification.Type,
+                cancellationToken);
+
+        // 3. EMAIL SEND
+        if (preference?.EmailEnabled == true &&
+            !string.IsNullOrEmpty(dto.Email))
+        {
+            await _emailService.SendEmailAsync(
+                dto.Email,
+                notification.Title,
+                notification.Message
+            );
+        }
+
+        // 4. SMS SEND
+        if (preference?.SmsEnabled == true &&
+            !string.IsNullOrEmpty(dto.PhoneNumber))
+        {
+            await _smsService.SendSmsAsync(
+                dto.PhoneNumber,
+                notification.Message
+            );
+        }
 
         return new NotificationDto
         {
@@ -63,7 +99,9 @@ public class NotificationService : INotificationService
 
     public async Task<bool> MarkAsReadAsync(Guid id, CancellationToken cancellationToken)
     {
-        var notification = await _context.Notifications.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var notification = await _context.Notifications
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
         if (notification is null) return false;
 
         notification.IsRead = true;
@@ -80,11 +118,11 @@ public class NotificationService : INotificationService
             .Where(x => x.UserId == userId && !x.IsRead)
             .ToListAsync(cancellationToken);
 
-        foreach (var notification in notifications)
+        foreach (var n in notifications)
         {
-            notification.IsRead = true;
-            notification.ReadAtUtc = DateTime.UtcNow;
-            notification.UpdatedAtUtc = DateTime.UtcNow;
+            n.IsRead = true;
+            n.ReadAtUtc = DateTime.UtcNow;
+            n.UpdatedAtUtc = DateTime.UtcNow;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

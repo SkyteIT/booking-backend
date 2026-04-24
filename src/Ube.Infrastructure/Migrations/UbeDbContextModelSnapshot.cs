@@ -116,12 +116,26 @@ namespace Ube.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<bool>("AvailabilityCalendarEnabled")
+                        .HasColumnType("bit");
+
                     b.Property<string>("BannerImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("BookingType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("DateSelectionEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("DefaultCommissionPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -142,11 +156,25 @@ namespace Ube.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<decimal?>("PlatformServiceFee")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<bool>("RequiresAdminApproval")
                         .HasColumnType("bit");
 
+                    b.Property<string>("ServiceModel")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<bool>("TaxApplicable")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("TimeSlotEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
                         .HasColumnType("datetime2");

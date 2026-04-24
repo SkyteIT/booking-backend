@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Ube.Application.Common.Interfaces;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Reviews;
@@ -7,7 +8,7 @@ using Ube.Domain.Entities.Vendors;
 
 namespace Ube.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
     { }
@@ -20,6 +21,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<VendorApplication> VendorApplications { get; set; } = default!;
     public DbSet<VendorProfile> VendorProfiles { get; set; } = default!;
+    public DbSet<VendorRegisterApplication> VendorRegisterApplications { get; set; } = default!;
 
     // ================= LISTING DETAIL TABLES =================
     public DbSet<HotelListingDetails> HotelListingDetails { get; set; } = default!;
@@ -32,82 +34,55 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // ================= RELATIONSHIPS =================
-
-        // Booking -> User (Customer)
-        modelBuilder.Entity<Booking>()
-            .HasOne(b => b.Customer)
-            .WithMany()
-            .HasForeignKey(b => b.CustomerId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Booking -> Listing
-        modelBuilder.Entity<Booking>()
-            .HasOne(b => b.Listing)
-            .WithMany()
-            .HasForeignKey(b => b.ListingId)
-            .OnDelete(DeleteBehavior.NoAction);
-
-        // Listing -> Vendor
-        modelBuilder.Entity<Listing>()
-            .HasOne(l => l.Vendor)
-            .WithMany()
-            .HasForeignKey(l => l.VendorId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // Listing -> Category
-        modelBuilder.Entity<Listing>()
-            .HasOne(l => l.Category)
-            .WithMany(c => c.Listings)
-            .HasForeignKey(l => l.CategoryId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // VendorProfile -> User
-        modelBuilder.Entity<VendorProfile>()
-            .HasOne(v => v.User)
-            .WithMany()
-            .HasForeignKey(v => v.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // ================= DECIMAL PRECISION =================
-        modelBuilder.Entity<Listing>()
-            .Property(l => l.Price)
-            .HasPrecision(18, 2);
-
-        modelBuilder.Entity<Booking>()
-            .Property(b => b.TotalAmount)
-            .HasPrecision(18, 2);
+        // Apply all configurations from the current assembly (Configurations directory)
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 
         // ================= ONE-TO-ONE LISTING DETAILS =================
+        // (These are currently not in separate configuration files)
 
-        modelBuilder.Entity<HotelListingDetails>()
-            .HasOne(h => h.Listing)
-            .WithOne()
-            .HasForeignKey<HotelListingDetails>(h => h.ListingId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<HotelListingDetails>(entity =>
+        {
+            entity.HasOne(h => h.Listing)
+                .WithOne()
+                .HasForeignKey<HotelListingDetails>(h => h.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(h => h.PricePerNight).HasColumnType("decimal(18,2)");
+        });
 
-        modelBuilder.Entity<RestaurantListingDetails>()
-            .HasOne(r => r.Listing)
-            .WithOne()
-            .HasForeignKey<RestaurantListingDetails>(r => r.ListingId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<RestaurantListingDetails>(entity =>
+        {
+            entity.HasOne(r => r.Listing)
+                .WithOne()
+                .HasForeignKey<RestaurantListingDetails>(r => r.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(r => r.AverageCost).HasColumnType("decimal(18,2)");
+        });
 
-        modelBuilder.Entity<EventListingDetails>()
-            .HasOne(e => e.Listing)
-            .WithOne()
-            .HasForeignKey<EventListingDetails>(e => e.ListingId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<EventListingDetails>(entity =>
+        {
+            entity.HasOne(e => e.Listing)
+                .WithOne()
+                .HasForeignKey<EventListingDetails>(e => e.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.TicketPrice).HasColumnType("decimal(18,2)");
+        });
 
-        modelBuilder.Entity<CarRentalListingDetails>()
-            .HasOne(c => c.Listing)
-            .WithOne()
-            .HasForeignKey<CarRentalListingDetails>(c => c.ListingId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<CarRentalListingDetails>(entity =>
+        {
+            entity.HasOne(c => c.Listing)
+                .WithOne()
+                .HasForeignKey<CarRentalListingDetails>(c => c.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(c => c.PricePerDay).HasColumnType("decimal(18,2)");
+        });
 
-        modelBuilder.Entity<ActivityListingDetails>()
-            .HasOne(a => a.Listing)
-            .WithOne()
-            .HasForeignKey<ActivityListingDetails>(a => a.ListingId)
-            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ActivityListingDetails>(entity =>
+        {
+            entity.HasOne(a => a.Listing)
+                .WithOne()
+                .HasForeignKey<ActivityListingDetails>(a => a.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(a => a.Price).HasColumnType("decimal(18,2)");
+        });
     }
 }

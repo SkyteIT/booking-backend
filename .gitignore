@@ -1,6 +1,6 @@
-## =========================
-## .NET / Visual Studio
-## =========================
+# OS files
+.DS_Store
+Thumbs.db
 
 # Visual Studio
 .vs/
@@ -8,20 +8,21 @@
 *.suo
 
 # Build results
+bin/
+obj/
 [Dd]ebug/
-[Dd]ebugPublic/
 [Rr]elease/
-[Rr]eleases/
 x64/
 x86/
 [Ww][Ii][Nn]32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]in/
-[Oo]bj/
 [Ll]og/
 [Ll]ogs/
+
+# Node (if frontend exists in repo)
+node_modules/
 
 # .NET Core
 project.lock.json
@@ -49,7 +50,3 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
-
-# OS files
-.DS_Store
-Thumbs.db

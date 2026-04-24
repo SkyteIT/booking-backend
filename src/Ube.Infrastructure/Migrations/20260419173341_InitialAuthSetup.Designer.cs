@@ -12,15 +12,15 @@ using Ube.Infrastructure.Persistence;
 namespace Ube.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260410180504_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260419173341_InitialAuthSetup")]
+    partial class InitialAuthSetup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("ProductVersion", "8.0.25")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -31,12 +31,18 @@ namespace Ube.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("BookingNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
@@ -54,7 +60,6 @@ namespace Ube.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -62,9 +67,16 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BookingNumber")
+                        .IsUnique();
+
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("ListingId");
+
+                    b.HasIndex("StartDateTime");
+
+                    b.HasIndex("Status");
 
                     b.ToTable("Bookings");
                 });
@@ -75,12 +87,23 @@ namespace Ube.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -93,10 +116,6 @@ namespace Ube.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("BasePrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
@@ -105,57 +124,44 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<string>("Location")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("VendorId")
+                    b.Property<Guid>("VendorProfileId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
 
-                    b.HasIndex("VendorId");
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("VendorProfileId");
 
                     b.ToTable("Listings");
-                });
-
-            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsPrimary")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId");
-
-                    b.ToTable("ListingImage");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -169,7 +175,8 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("Comment")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -211,11 +218,13 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("GoogleId")
                         .HasColumnType("nvarchar(max)");
@@ -225,21 +234,30 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PasswordHash")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ProfileImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -252,22 +270,27 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("BusinessName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("BusinessType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("ContactNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("RejectionReason")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("ReviewedAt")
                         .HasColumnType("datetime2");
@@ -283,6 +306,8 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UserId");
+
                     b.ToTable("VendorApplications");
                 });
 
@@ -294,22 +319,26 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("BusinessName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("BusinessType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("ContactNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -322,7 +351,8 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
                     b.ToTable("VendorProfiles");
                 });
@@ -338,7 +368,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
                         .WithMany()
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Customer");
@@ -348,32 +378,17 @@ namespace Ube.Infrastructure.Migrations
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
                 {
-                    b.HasOne("Ube.Domain.Entities.Listings.Category", "Category")
-                        .WithMany("Listings")
+                    b.HasOne("Ube.Domain.Entities.Listings.Category", null)
+                        .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Ube.Domain.Entities.Vendors.VendorProfile", "Vendor")
+                    b.HasOne("Ube.Domain.Entities.Vendors.VendorProfile", null)
                         .WithMany()
-                        .HasForeignKey("VendorId")
+                        .HasForeignKey("VendorProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Category");
-
-                    b.Navigation("Vendor");
-                });
-
-            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
-                {
-                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
-                        .WithMany("Images")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -381,19 +396,19 @@ namespace Ube.Infrastructure.Migrations
                     b.HasOne("Ube.Domain.Entities.Bookings.Booking", "Booking")
                         .WithMany()
                         .HasForeignKey("BookingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Ube.Domain.Entities.Users.User", "Customer")
                         .WithMany()
                         .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
                         .WithMany()
                         .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Booking");
@@ -403,25 +418,22 @@ namespace Ube.Infrastructure.Migrations
                     b.Navigation("Listing");
                 });
 
-            modelBuilder.Entity("Ube.Domain.Entities.Vendors.VendorProfile", b =>
+            modelBuilder.Entity("Ube.Domain.Entities.Vendors.VendorApplication", b =>
                 {
-                    b.HasOne("Ube.Domain.Entities.Users.User", "User")
+                    b.HasOne("Ube.Domain.Entities.Users.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Ube.Domain.Entities.Listings.Category", b =>
+            modelBuilder.Entity("Ube.Domain.Entities.Vendors.VendorProfile", b =>
                 {
-                    b.Navigation("Listings");
-                });
-
-            modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
-                {
-                    b.Navigation("Images");
+                    b.HasOne("Ube.Domain.Entities.Users.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

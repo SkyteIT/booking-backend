@@ -7,6 +7,7 @@ namespace Ube.Domain.Entities.Bookings;
 public class Booking
 {
     public Guid Id { get; set; }
+    public string BookingNumber { get; set; } = string.Empty;
 
     public Guid ListingId { get; set; }
     public Listing Listing { get; set; } = default!;

@@ -32,7 +32,7 @@ public class ListingsController : ControllerBase
         var listing = new Listing
         {
             Id = Guid.NewGuid(),
-            VendorId = request.VendorId,
+            VendorProfileId = request.VendorId,
             CategoryId = request.CategoryId,
             Title = request.Title,
             Description = request.Description,
@@ -156,7 +156,7 @@ public class ListingsController : ControllerBase
         var dto = new ListingResponse
         {
             Id = listing.Id,
-            VendorId = listing.VendorId,
+            VendorId = listing.VendorProfileId,
             CategoryId = listing.CategoryId,
             Title = listing.Title,
             Description = listing.Description,
@@ -181,7 +181,7 @@ public class ListingsController : ControllerBase
         if (listing == null)
             return NotFound("Listing not found.");
 
-        listing.VendorId = request.VendorId;
+        listing.VendorProfileId = request.VendorId;
         listing.CategoryId = request.CategoryId;
         listing.Title = request.Title;
         listing.Description = request.Description;

@@ -2,18 +2,23 @@ using Ube.Application.Common.Interfaces.Services;
 using Ube.Api.Contracts.Bookings;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Features.Bookings;
+using Microsoft.AspNetCore.Authorization;
+using Ube.Application.Common.Interfaces.Services.Auth;
 
 namespace Ube.Api.Controllers.Bookings;
 
+[Authorize(Roles = "Vendor")]
 [ApiController]
 [Route("api/vendor/bookings")]
 public class VendorBookingsController : ControllerBase
 {
     private readonly IBookingService _bookingService;
+    private readonly ICurrentUserService _currentUser;
 
-    public VendorBookingsController(IBookingService bookingService)
+    public VendorBookingsController(IBookingService bookingService, ICurrentUserService currentUser)
     {
         _bookingService = bookingService;
+        _currentUser = currentUser;
     }
 
     [HttpPatch("{bookingId}/status")]
@@ -21,9 +26,10 @@ public class VendorBookingsController : ControllerBase
         Guid bookingId,
         [FromBody] UpdateVendorBookingStatusRequest request)
     {
+        var vendorId = _currentUser.UserId;
         var bookingDetail = await _bookingService.UpdateVendorBookingStatusAsync(
             bookingId,
-            request.VendorId,
+            vendorId,
             request.NewStatus);
 
         if (bookingDetail == null)
@@ -32,20 +38,21 @@ public class VendorBookingsController : ControllerBase
         return Ok(bookingDetail);
     }
 // get vendor bookings with status filter
-    [HttpGet("vendor-booking")]
-    public async Task<IActionResult> GetVendorBookings(
-        [FromQuery] Guid vendorId , 
+    [HttpGet]
+    public async Task<IActionResult> GetVendorBookings( 
         [FromQuery] BookingsRequest request
          )
     {
+        var vendorId = _currentUser.UserId;
         var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, request);
         return Ok(bookings);
     }
 
-    [HttpGet("booking-detail/{bookingId}")]
+    [HttpGet("{bookingId}")]
     public async Task<IActionResult> GetBookingDetail(
-        Guid bookingId,[FromQuery] Guid vendorId)
+        Guid bookingId)
     {
+        var vendorId = _currentUser.UserId;
         var bookingDetail = await _bookingService.GetBookingDetailAsync(bookingId, vendorId);
         if(bookingDetail == null)
             return NotFound("Booking not found or you don't have access to it.");

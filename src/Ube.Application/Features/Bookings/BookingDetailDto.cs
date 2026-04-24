@@ -3,6 +3,7 @@ using Ube.Domain.Enums.Bookings;
 namespace Ube.Application.Features.Bookings;
 public class BookingDetailDto
 {
+    public Guid BookingId { get; set;}
     public string BookingNumber { get; set; } = string.Empty;
     public string ListingTitle { get; set; } = string.Empty;
     public string CustomerName { get;set; } =string.Empty;

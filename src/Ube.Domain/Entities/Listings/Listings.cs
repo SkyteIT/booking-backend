@@ -1,3 +1,4 @@
+using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Listings;
 
 namespace Ube.Domain.Entities.Listings;
@@ -7,6 +8,8 @@ public class Listing
     public Guid Id { get; set; }
 
     public Guid VendorProfileId { get; set; }
+
+    public VendorProfile VendorProfile { get; set; } = null!;
 
     public Guid CategoryId { get; set; }
 

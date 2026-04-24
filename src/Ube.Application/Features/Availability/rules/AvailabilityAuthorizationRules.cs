@@ -7,7 +7,7 @@ public static class AvailabilityAuthorizationRules
     // Check if listing belongs to vendor
     public static bool BelongsToVendor(Listing listing, Guid vendorId)
     {
-        return listing.VendorProfileId == vendorId;
+        return listing.VendorProfile.UserId == vendorId;
     }
     // Check if user can modify availability (listing must belong to vendor)
     public static Result CanModifyAvailability(Listing listing, Guid vendorId)
@@ -15,7 +15,7 @@ public static class AvailabilityAuthorizationRules
         if (listing == null)
             return Result.Failure("Listing not found");
 
-        if (listing.VendorProfileId != vendorId)
+        if (listing.VendorProfile.UserId != vendorId)
             return Result.Failure("You are not allowed to modify this listing");
 
         return Result.Success();

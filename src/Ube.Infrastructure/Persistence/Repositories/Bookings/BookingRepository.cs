@@ -21,6 +21,8 @@ public class BookingRepository : IBookingRepository
     {
         return await _db.Bookings
             .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile) // include vendor profile through listing
+            .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
     // Get next booking sequence number for generating booking reference number
@@ -39,13 +41,23 @@ public class BookingRepository : IBookingRepository
     {
         var query = _db.Bookings
             .Include(b => b.Customer)// get customer details for the booking
-            .Include(b => b.Listing)// get Vendor Id through listing
-            .Where(b => b.Listing.VendorProfileId == vendorId)
+            .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile) // include vendor profile through listing
+            .Where(b => b.Listing.VendorProfile.UserId == vendorId)
             .AsQueryable();
             if (request.Status.HasValue)
             {
                 //filter by status
                 query = query.Where(b => b.Status ==request.Status.Value);
+            }
+            if (request.StartDate.HasValue)
+            {
+                query = query.Where(b => b.StartDateTime.Date >= request.StartDate.Value.Date);
+            }
+
+            if (request.EndDate.HasValue)
+            {
+                query = query.Where(b => b.EndDateTime.Date <= request.EndDate.Value.Date);
             }
             query = request.SortBy switch
             {
@@ -69,13 +81,22 @@ public class BookingRepository : IBookingRepository
         };
 
     }
+
+    public async Task<List<Booking>> GetAllBookingsByVendorIdAsync(Guid vendorId)
+    {
+        return await _db.Bookings
+            .Where(b => b.Listing.VendorProfile.UserId == vendorId)
+            .ToListAsync();
+    }
+
     // Get a specific booking for a vendor (used for booking details page)
     public async Task<Booking?> GetBookingAsync(Guid BookingId, Guid vendorId){
 
         var query = _db.Bookings
             .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile) // include vendor profile through listing
             .Include(b => b.Customer)
-            .FirstOrDefaultAsync(b => b.Id == BookingId && b.Listing.VendorProfileId == vendorId);
+            .FirstOrDefaultAsync(b => b.Id == BookingId && b.Listing.VendorProfile.UserId == vendorId);
         return await query;
 
     }

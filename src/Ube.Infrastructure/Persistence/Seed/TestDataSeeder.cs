@@ -15,7 +15,7 @@ public static class TestDataSeeder
     public static readonly Guid UserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
     public static readonly Guid OtherVendorUserId = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
-    public static readonly Guid VendorProfileId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    public static readonly Guid VendorProfileId = UserId;
     public static readonly Guid OtherVendorProfileId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
     public static readonly Guid CategoryPhotographyId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
@@ -76,7 +76,10 @@ public static class TestDataSeeder
             });
         }
 
-        if (!await dbContext.VendorProfiles.AnyAsync(x => x.Id == VendorProfileId, cancellationToken))
+        var mainVendorProfile = await dbContext.VendorProfiles
+            .FirstOrDefaultAsync(x => x.UserId == UserId, cancellationToken);
+
+        if (mainVendorProfile == null)
         {
             dbContext.VendorProfiles.Add(new VendorProfile
             {
@@ -90,8 +93,20 @@ public static class TestDataSeeder
                 CreatedAt = now
             });
         }
+        else
+        {
+            mainVendorProfile.BusinessName = "Main Vendor Studio";
+            mainVendorProfile.BusinessType = "Photography";
+            mainVendorProfile.Description = "Seeded vendor profile for booking status tests.";
+            mainVendorProfile.ContactNumber = "+94770000002";
+            mainVendorProfile.IsActive = true;
+            dbContext.VendorProfiles.Update(mainVendorProfile);
+        }
 
-        if (!await dbContext.VendorProfiles.AnyAsync(x => x.Id == OtherVendorProfileId, cancellationToken))
+        var otherVendorProfile = await dbContext.VendorProfiles
+            .FirstOrDefaultAsync(x => x.UserId == OtherVendorUserId, cancellationToken);
+
+        if (otherVendorProfile == null)
         {
             dbContext.VendorProfiles.Add(new VendorProfile
             {
@@ -104,6 +119,15 @@ public static class TestDataSeeder
                 IsActive = true,
                 CreatedAt = now
             });
+        }
+        else
+        {
+            otherVendorProfile.BusinessName = "Other Vendor Co";
+            otherVendorProfile.BusinessType = "Catering";
+            otherVendorProfile.Description = "Second vendor profile for authorization rule tests.";
+            otherVendorProfile.ContactNumber = "+94770000003";
+            otherVendorProfile.IsActive = true;
+            dbContext.VendorProfiles.Update(otherVendorProfile);
         }
 
         if (!await dbContext.Categories.AnyAsync(x => x.Id == CategoryPhotographyId, cancellationToken))
@@ -118,7 +142,9 @@ public static class TestDataSeeder
             });
         }
 
-        // Ensure listing exists and has correct Capacity
+        var resolvedMainVendorProfileId = mainVendorProfile?.Id ?? VendorProfileId;
+
+        // Ensure listing exists and has correct owner/capacity
         var existingListing = await dbContext.Listings.FirstOrDefaultAsync(x => x.Id == ListingId, cancellationToken);
         
         if (existingListing == null)
@@ -126,7 +152,7 @@ public static class TestDataSeeder
             dbContext.Listings.Add(new Listing
             {
                 Id = ListingId,
-                VendorProfileId = VendorProfileId,
+                VendorProfileId = resolvedMainVendorProfileId,
                 CategoryId = CategoryPhotographyId,
                 Title = "Event Photography - Basic",
                 Description = "Seed listing for booking status transition testing.",
@@ -140,9 +166,10 @@ public static class TestDataSeeder
             });
             await dbContext.SaveChangesAsync(cancellationToken);
         }
-        else if (existingListing.Capacity != 5)
+        else
         {
-            // Update capacity if it's not already 5
+            // Keep seeded listing ownership and availability deterministic across reruns.
+            existingListing.VendorProfileId = resolvedMainVendorProfileId;
             existingListing.Capacity = 5;
             existingListing.AvailabilityType = Ube.Domain.Enums.Listings.AvailabilityType.Capacity;
             dbContext.Listings.Update(existingListing);

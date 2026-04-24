@@ -5,6 +5,7 @@ namespace Ube.Application.Features.Bookings;
 
 public class VendorBookingDto
 {
+    public Guid BookingId { get; set;}
     public string BookingNumber { get; set;} = string.Empty;
     public string ListingTitle { get; set;} = string.Empty;
     public string CustomerName { get; set;} = string.Empty;

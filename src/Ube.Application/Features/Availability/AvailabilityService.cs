@@ -32,6 +32,8 @@ public class AvailabilityService : IAvailabilityService
         // Get listing(use this for get availability type)
         var listing = await _listingRepository.GetByIdAsync(listingId);
         if (listing == null) throw new KeyNotFoundException("Listing not found");
+        Console.WriteLine($"Listing VendorId: {listing.VendorProfileId}");
+        Console.WriteLine($"Current UserId: {vendorId}");
         var authResult = AvailabilityAuthorizationRules.CanModifyAvailability(listing, vendorId);
 
         if (!authResult.IsSuccess)

@@ -42,7 +42,7 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
                 .WithMany()
                 .HasForeignKey(x => x.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<VendorProfile>()
+        builder.HasOne(x => x.VendorProfile)
                 .WithMany()
                 .HasForeignKey(x => x.VendorProfileId)
                 .OnDelete(DeleteBehavior.Restrict);

@@ -2,6 +2,7 @@ using Ube.Application.Common.Interfaces.Services;
 using Ube.Domain.Enums.Bookings;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models.Pagination;
+
 namespace Ube.Application.Features.Bookings;
 
 public class BookingService : IBookingService
@@ -38,6 +39,7 @@ public class BookingService : IBookingService
         
         return new BookingDetailDto
         {
+            BookingId = booking.Id,
             BookingNumber = booking.BookingNumber,
             ListingTitle = booking.Listing.Title,
             CustomerName = booking.Customer.FirstName + " " + booking.Customer.LastName,
@@ -56,7 +58,8 @@ public class BookingService : IBookingService
     {
         var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, request);
         var vendorBookings = bookings.Items.Select(b => new VendorBookingDto
-        {
+        {   
+            BookingId = b.Id,
             BookingNumber = b.BookingNumber,
             ListingTitle = b.Listing.Title,
             CustomerName = b.Customer.FirstName + " " + b.Customer.LastName,
@@ -85,6 +88,7 @@ public class BookingService : IBookingService
         
         return new BookingDetailDto
         {
+            BookingId = booking.Id,
             BookingNumber = booking.BookingNumber,
             ListingTitle = booking.Listing.Title,
             CustomerName = booking.Customer.FirstName + " " + booking.Customer.LastName,

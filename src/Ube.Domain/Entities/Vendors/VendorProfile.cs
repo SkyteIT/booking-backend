@@ -10,9 +10,16 @@ public class VendorProfile
 
     public string BusinessType { get; set; } = string.Empty;
 
-    public string Description { get; set; } = string.Empty;
+    public string BusinessDescription { get; set; } = string.Empty;
+
+    public string Description
+    {
+        get => BusinessDescription;
+        set => BusinessDescription = value;
+    }
 
     public string ContactNumber { get; set; } = string.Empty;
+
 
     public bool IsActive { get; set; } = true;
 

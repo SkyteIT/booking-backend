@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text.Json;
 using Ube.Application.Common.Exceptions;
-using Microsoft.OpenApi.Writers;
 
 namespace Ube.Api.Middleware;
 

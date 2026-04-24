@@ -8,7 +8,7 @@ public static class BookingValidationRules
     //this is for vendor side validations
     public static bool BelongsToVendorListing(Booking booking, Guid currentVendorId)
     {
-        return booking.Listing.VendorProfileId == currentVendorId;
+        return booking.Listing.VendorProfile.UserId == currentVendorId;
     }
     public static bool CanVendorConfirm(Booking booking, Guid CurrentVendorId)
     {

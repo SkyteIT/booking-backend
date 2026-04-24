@@ -6,6 +6,7 @@ namespace Ube.Domain.Entities.Users;
 public class User
 {
     public Guid Id { get; set; }
+    public UserRole Role { get; set; } = UserRole.User;
 
     public string Email { get; set; } = string.Empty;
 

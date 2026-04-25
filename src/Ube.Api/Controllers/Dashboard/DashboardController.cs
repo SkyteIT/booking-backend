@@ -4,7 +4,7 @@ using Ube.Application.Common.Interfaces.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 namespace Ube.Api.Controllers.Dashboard;
 
-[Authorize (Roles = "Vendor")]
+[Authorize]
 [ApiController]
 [Route("api/vendor/dashboard")]
 public class DashboardController : ControllerBase

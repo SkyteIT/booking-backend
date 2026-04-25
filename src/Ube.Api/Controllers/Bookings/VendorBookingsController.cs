@@ -7,7 +7,7 @@ using Ube.Application.Common.Interfaces.Services.Auth;
 
 namespace Ube.Api.Controllers.Bookings;
 
-[Authorize(Roles = "Vendor")]
+[Authorize]
 [ApiController]
 [Route("api/vendor/bookings")]
 public class VendorBookingsController : ControllerBase

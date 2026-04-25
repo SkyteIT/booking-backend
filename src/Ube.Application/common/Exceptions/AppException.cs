@@ -26,3 +26,13 @@ public class ForbiddenException : AppException
     public ForbiddenException(string message)
         : base(message, 403) { }
 }
+
+public class ValidationException : AppException
+{
+    public IEnumerable<string> Errors { get; }
+    public ValidationException(IEnumerable<string> errors)
+        : base("Validation failed", 400)
+    {
+        Errors = errors;
+    }
+}

@@ -7,7 +7,7 @@ using Ube.Application.Common.Exceptions;
 
 namespace Ube.API.Controllers;
 
-[Authorize (Roles = "Vendor")]
+[Authorize ]
 [ApiController]
 [Route("api/vendor/profile")]
 public class VendorProfileController : ControllerBase

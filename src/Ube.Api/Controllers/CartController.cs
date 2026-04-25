@@ -116,9 +116,7 @@ public async Task<ActionResult<CartDto>> AddToCart(Guid userId, [FromBody] AddTo
         // TEMPORARY - remove after debugging
         return BadRequest(new { 
             message    = ex.Message,
-            inner      = ex.InnerException?.Message,
-            innerInner = ex.InnerException?.InnerException?.Message,
-            stackTrace = ex.StackTrace
+
         });
     }
 }

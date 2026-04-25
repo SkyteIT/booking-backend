@@ -31,9 +31,18 @@ builder.Services.AddScoped<ICartRepository, CartRepository>();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("DefaultConnection is missing in appsettings.json");
 
-
+/*
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+*/
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+
+
+
+
+
 
 // Add Application Services
 builder.Services.AddScoped<ICartService, CartService>();

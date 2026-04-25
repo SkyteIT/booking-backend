@@ -18,6 +18,8 @@ public class VendorProfile
         set => BusinessDescription = value;
     }
 
+    public string Bio { get; set; } = string.Empty;
+
     public string ContactNumber { get; set; } = string.Empty;
 
 

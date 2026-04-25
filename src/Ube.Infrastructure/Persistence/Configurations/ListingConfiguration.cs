@@ -38,6 +38,7 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
                    .IsRequired()
                    .HasConversion<int>()
                    .HasDefaultValue(AvailabilityType.Capacity); 
+                   
         builder.HasOne<Category>()
                 .WithMany()
                 .HasForeignKey(x => x.CategoryId)

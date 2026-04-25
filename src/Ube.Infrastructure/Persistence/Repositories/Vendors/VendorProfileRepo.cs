@@ -23,4 +23,11 @@ public class VendorProfileRepository : IVendorProfileRepository
         _db.VendorProfiles.Update(profile);
         await _db.SaveChangesAsync();
     }
+
+    public async Task AddAsync(VendorProfile profile)
+    {
+        await _db.VendorProfiles.AddAsync(profile);
+        await _db.SaveChangesAsync();
+    }
+
 }

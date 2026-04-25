@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Ube.Application.Features.Vendors;
 using Ube.Application.Common.Interfaces.Services.Auth;
+using Ube.Application.Common.Exceptions;
 
 
 namespace Ube.API.Controllers;
 
-[Authorize]
+[Authorize (Roles = "Vendor")]
 [ApiController]
 [Route("api/vendor/profile")]
 public class VendorProfileController : ControllerBase
@@ -55,4 +56,32 @@ public class VendorProfileController : ControllerBase
             return BadRequest(ex.Message);
         }
     }
+    [HttpPost("upload-image")]
+public async Task<IActionResult> UploadImage(IFormFile file)
+{
+    var userId = _currentUser.UserId;
+
+    if (file == null || file.Length == 0)
+        throw new BusinessRuleException("Invalid file");
+
+    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+
+    var folderPath = Path.Combine("wwwroot", "images", "profiles");
+
+    if (!Directory.Exists(folderPath))
+        Directory.CreateDirectory(folderPath);
+
+    var filePath = Path.Combine(folderPath, fileName);
+
+    using (var stream = new FileStream(filePath, FileMode.Create))
+    {
+        await file.CopyToAsync(stream);
+    }
+
+    var imageUrl = $"/images/profiles/{fileName}";
+
+    await _service.UpdateProfileImageAsync(userId, imageUrl);
+
+    return Ok(new { imageUrl });
+}
 }

@@ -23,6 +23,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Identity;
+using Ube.Domain.Entities.Users;
+using Ube.Application.Features.Vendors.Payout;
 
 
 
@@ -51,6 +54,8 @@ builder.Services.AddAuthentication(options =>
             Encoding.UTF8.GetBytes(jwtSettings.Key))
     };
 });
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<SecurityService>();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddControllers(); 
 // Add FluentValidation 
@@ -80,7 +85,8 @@ builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IVendorProfileService, VendorProfileService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVendorProfileRepository, VendorProfileRepository>();
-
+builder.Services.AddScoped<IVendorPayoutRepository, VendorPayoutRepository>();
+builder.Services.AddScoped<VendorPayoutService>();
 builder.Services.AddEndpointsApiExplorer();
 
 
@@ -93,8 +99,8 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkxvY2FsIiwiZXhwIjoxNzc3MDY0Nzc0LCJpc3MiOiJVYmVBcHAiLCJhdWQiOiJVYmVBcHBVc2VycyJ9.qF8z0OCxUVOxX6RsweRvcoAtMHzuKaV2fEC45afTF94"
-    });
+        Description = "Enter: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlZlbmRvciIsImV4cCI6MTc3NzA5MTcwNSwiaXNzIjoiVWJlQXBwIiwiYXVkIjoiVWJlQXBwVXNlcnMifQ.1tV3Ku3fZ3YJGYlM8q4F9PZ_6qu8Abb95ClUaK367JQ"
+        });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -139,6 +145,7 @@ app.UseSwagger();
 app.UseSwaggerUI();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseStaticFiles();
 
 
 app.MapControllers();

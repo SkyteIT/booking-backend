@@ -39,7 +39,7 @@ public class ExceptionMiddleware
         else
         {
             statusCode = (int)HttpStatusCode.InternalServerError;
-            message = "An unexpected error occurred.";
+            message = ex.Message;
         }
         var result = JsonSerializer.Serialize(new
         {

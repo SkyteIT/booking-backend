@@ -6,4 +6,5 @@ public interface IVendorProfileRepository
 {
     Task<VendorProfile?> GetVendorIdAsync(Guid userId);
     Task UpdateAsync(VendorProfile profile);
+    Task AddAsync(VendorProfile profile);
 }

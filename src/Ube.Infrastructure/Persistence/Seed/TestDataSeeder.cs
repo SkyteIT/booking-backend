@@ -46,11 +46,13 @@ public static class TestDataSeeder
             });
         }
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == UserId, cancellationToken))
+        var mainVendorUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == UserId, cancellationToken);
+        if (mainVendorUser == null)
         {
             dbContext.Users.Add(new User
             {
                 Id = UserId,
+                Role = UserRole.Vendor,
                 Email = "vendor@testU.local",
                 FirstName = "Main",
                 LastName = "Vendor",
@@ -59,6 +61,11 @@ public static class TestDataSeeder
                 AuthProvider = AuthProvider.Local,
                 CreatedAt = now
             });
+        }
+        else
+        {
+            mainVendorUser.Role = UserRole.Vendor;
+            dbContext.Users.Update(mainVendorUser);
         }
 
         if (!await dbContext.Users.AnyAsync(x => x.Id == OtherVendorUserId, cancellationToken))

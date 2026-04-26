@@ -12,8 +12,8 @@ using Ube.Infrastructure.Persistence;
 namespace Ube.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260424053120_FixListingConfig")]
-    partial class FixListingConfig
+    [Migration("20260426102743_SyncFinal")]
+    partial class SyncFinal
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -100,10 +100,6 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
@@ -204,10 +200,6 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Organizer")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -239,21 +231,23 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<int>("AvailableRooms")
                         .HasColumnType("int");
 
-                    b.Property<TimeSpan>("CheckInTime")
-                        .HasColumnType("time");
+                    b.Property<string>("CheckInTime")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<TimeSpan>("CheckOutTime")
-                        .HasColumnType("time");
+                    b.Property<string>("CheckOutTime")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal>("PricePerNight")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RoomTypes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -268,6 +262,13 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("BasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CancellationPolicy")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
@@ -288,12 +289,16 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<decimal>("Price")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -340,7 +345,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("ListingImage");
+                    b.ToTable("ListingImages", (string)null);
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.RestaurantListingDetails", b =>
@@ -358,10 +363,6 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("OpeningHours")
                         .IsRequired()

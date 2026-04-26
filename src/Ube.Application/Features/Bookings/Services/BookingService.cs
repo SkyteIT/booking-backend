@@ -1,9 +1,9 @@
-using Ube.Application.common.Interfaces.Services;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Bookings.Rules;
 using Ube.Domain.Enums.Bookings;
-using Ube.Application.common.Interfaces.Persistence;
+using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Bookings.DTOs;
-using Ube.Application.common.Models.pagination;
+using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Bookings.Requests;
 namespace Ube.Application.Features.Bookings.Services;
 

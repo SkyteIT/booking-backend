@@ -127,7 +127,7 @@ public static class TestDataSeeder
                 CategoryId = CategoryPhotographyId,
                 Title = "Event Photography - Basic",
                 Description = "Seed listing for booking status transition testing.",
-                Price = 15000m,
+                BasePrice = 15000m,
                 Currency = "LKR",
                 Location = "Colombo",
                 IsActive = true,

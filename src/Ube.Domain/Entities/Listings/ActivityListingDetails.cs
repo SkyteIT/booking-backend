@@ -9,7 +9,6 @@ public class ActivityListingDetails
     public int DurationHours { get; set; }
     public string DifficultyLevel { get; set; } = string.Empty;
     public decimal Price { get; set; }
-    public string Location { get; set; } = string.Empty;
 
     public Listing Listing { get; set; } = default!;
 }

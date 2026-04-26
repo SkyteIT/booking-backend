@@ -36,15 +36,34 @@ public class ListingsController : ControllerBase
             CategoryId = request.CategoryId,
             Title = request.Title,
             Description = request.Description,
-            Price = request.Price,
+            BasePrice = request.BasePrice,
             Currency = request.Currency,
             Location = request.Location,
+            Tags = request.Tags != null ? string.Join(", ", request.Tags) : null,
+            CancellationPolicy = request.CancellationPolicy,
+            IsAvailable = request.IsAvailable,
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
             Type = request.Type
         };
 
         _context.Listings.Add(listing);
+
+        // ================= IMAGES =================
+        if (request.Images != null && request.Images.Any())
+        {
+            foreach (var imageUrl in request.Images)
+            {
+                _context.ListingImages.Add(new ListingImage
+                {
+                    Id = Guid.NewGuid(),
+                    ListingId = listing.Id,
+                    ImageUrl = imageUrl,
+                    IsPrimary = imageUrl == request.Images.First()
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
 
         // ================= HOTEL =================
@@ -57,9 +76,9 @@ public class ListingsController : ControllerBase
                 Id = Guid.NewGuid(),
                 ListingId = listing.Id,
                 PricePerNight = h.PricePerNight,
-                Location = h.Location,
                 AvailableRooms = h.AvailableRooms,
-                Amenities = h.Amenities,
+                Amenities = string.Join(", ", h.Amenities),
+                RoomTypes = string.Join(", ", h.RoomTypes),
                 CheckInTime = h.CheckInTime,
                 CheckOutTime = h.CheckOutTime
             });
@@ -77,8 +96,7 @@ public class ListingsController : ControllerBase
                 CuisineType = r.CuisineType,
                 AverageCost = r.AverageCost,
                 OpeningHours = r.OpeningHours,
-                TableCapacity = r.TableCapacity,
-                Location = r.Location
+                TableCapacity = r.TableCapacity
             });
         }
 
@@ -94,7 +112,6 @@ public class ListingsController : ControllerBase
                 EventName = e.EventName,
                 Organizer = e.Organizer,
                 DateAndTime = e.DateAndTime,
-                Location = e.Location,
                 SeatCount = e.SeatCount,
                 TicketPrice = e.TicketPrice
             });
@@ -131,8 +148,7 @@ public class ListingsController : ControllerBase
                 ActivityType = a.ActivityType,
                 DurationHours = a.DurationHours,
                 DifficultyLevel = a.DifficultyLevel,
-                Price = a.Price,
-                Location = a.Location
+                Price = a.Price
             });
         }
 
@@ -160,7 +176,7 @@ public class ListingsController : ControllerBase
             CategoryId = listing.CategoryId,
             Title = listing.Title,
             Description = listing.Description,
-            Price = listing.Price,
+            BasePrice = listing.BasePrice,
             Currency = listing.Currency,
             Location = listing.Location,
             IsActive = listing.IsActive,
@@ -185,7 +201,7 @@ public class ListingsController : ControllerBase
         listing.CategoryId = request.CategoryId;
         listing.Title = request.Title;
         listing.Description = request.Description;
-        listing.Price = request.Price;
+        listing.BasePrice = request.BasePrice;
         listing.Currency = request.Currency;
         listing.Location = request.Location;
         listing.IsActive = request.IsActive;

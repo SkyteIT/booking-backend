@@ -17,7 +17,7 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
         builder.Property(x => x.Description)
                 .IsRequired()
                 .HasMaxLength(1000);
-        builder.Property(x =>x.Price)
+        builder.Property(x => x.BasePrice)
                 .IsRequired()
                 .HasColumnType("decimal(18,2)");
         builder.Property(x => x.Currency)
@@ -27,6 +27,18 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
                 .HasMaxLength(200);
         builder.Property(x => x.IsActive)
                 .IsRequired();
+        builder.Property(x => x.IsAvailable)
+                .IsRequired();
+        builder.Property(x => x.Tags)
+                .HasMaxLength(500);
+        builder.Property(x => x.CancellationPolicy)
+                .HasMaxLength(1000);
+
+        builder.HasMany(x => x.Images)
+                .WithOne(i => i.Listing)
+                .HasForeignKey(i => i.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasIndex(x => x.VendorProfileId);
         builder.HasIndex(x => x.CategoryId);
         builder.HasIndex(x => x.IsActive);

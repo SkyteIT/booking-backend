@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,7 +8,6 @@ using BCrypt.Net;
 using Google.Apis.Auth;
 using Ube.Domain.Entities.Users;
 using Ube.Application.Common.Interfaces;
-using Ube.Application.Interfaces;
 using Ube.Application.Features.Users;
 
 namespace Ube.Infrastructure.Services

@@ -1,6 +1,6 @@
-﻿using Ube.Application.Features.Users;
+using Ube.Application.Features.Users;
 
-namespace Ube.Application.Interfaces;
+namespace Ube.Application.Common.Interfaces;
 
 public interface IAuthService
 {

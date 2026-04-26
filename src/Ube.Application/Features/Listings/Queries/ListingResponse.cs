@@ -1,4 +1,4 @@
-﻿using Ube.Domain.Enums.Listings;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Application.Features.Listings.Queries;
 
@@ -14,7 +14,7 @@ public class ListingResponse
 
     public string? Description { get; set; }
 
-    public decimal Price { get; set; }
+    public decimal BasePrice { get; set; }
 
     public string Currency { get; set; } = "LKR";
 

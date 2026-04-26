@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<VendorApplication> VendorApplications { get; set; } = default!;
     public DbSet<VendorProfile> VendorProfiles { get; set; } = default!;
     public DbSet<VendorRegisterApplication> VendorRegisterApplications { get; set; } = default!;
+    public DbSet<ListingImage> ListingImages { get; set; } = default!;
 
     // ================= LISTING DETAIL TABLES =================
     public DbSet<HotelListingDetails> HotelListingDetails { get; set; } = default!;

@@ -1,5 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Ube.Application.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+using Ube.Application.Common.Interfaces;
 using Ube.Application.Features.Users;
 
 namespace Ube.Api.Controllers

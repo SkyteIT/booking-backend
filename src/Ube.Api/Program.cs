@@ -6,10 +6,9 @@ using System.Text;
 using System.Text.Json.Serialization;
 
 using Ube.Application.Common.Interfaces;
-using Ube.Application.common.Interfaces.Persistence;
-using Ube.Application.common.Interfaces.Services;
+using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Bookings.Services;
-using Ube.Application.Interfaces;
 
 using Ube.Infrastructure.Persistence;
 using Ube.Infrastructure.Persistence.Repositories.Bookings;
@@ -139,4 +138,4 @@ app.UseAuthorization();
 // Controllers
 app.MapControllers();
 
-app.Run();
+app.Run();          

@@ -16,7 +16,7 @@ public class UpdateListingRequest
     public string? Description { get; set; }
 
     [Range(0, double.MaxValue)]
-    public decimal Price { get; set; }
+    public decimal BasePrice { get; set; }
 
     [Required]
     public string Currency { get; set; } = "LKR";

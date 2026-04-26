@@ -22,7 +22,7 @@ public class CreateListingRequest
     public string? Description { get; set; }
 
     [Range(0, double.MaxValue)]
-    public decimal Price { get; set; }
+    public decimal BasePrice { get; set; }
 
     [Required]
     [MaxLength(10)]
@@ -30,6 +30,12 @@ public class CreateListingRequest
 
     [MaxLength(200)]
     public string? Location { get; set; }
+
+    public string Status { get; set; } = "Active";
+    public bool IsAvailable { get; set; } = true;
+    public List<string> Images { get; set; } = new();
+    public List<string> Tags { get; set; } = new();
+    public string? CancellationPolicy { get; set; }
 
     // Hotel-specific fields
     public HotelDetailsDto? HotelDetails { get; set; }

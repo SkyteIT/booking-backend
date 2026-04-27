@@ -31,5 +31,6 @@ public class ListingResponse
     public ListingType Type { get; set; }
 
     //  NEW � Type-specific data
+    public List<string> Images { get; set; } = new();
     public HotelDetailsResponse? HotelDetails { get; set; }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ube.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Ube.Infrastructure.Persistence;
 namespace Ube.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260427040734_SyncAllListingFieldsFinal")]
+    partial class SyncAllListingFieldsFinal
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -97,9 +100,6 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<int>("DurationHours")
                         .HasColumnType("int");
 
-                    b.Property<string>("Images")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("IncludedServices")
                         .HasColumnType("nvarchar(max)");
 
@@ -152,9 +152,6 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<decimal?>("HourlyRate")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Images")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("InsuranceOptions")
                         .HasColumnType("nvarchar(max)");
@@ -238,9 +235,6 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<string>("EventType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Images")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
 
@@ -290,9 +284,6 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("CheckOutTime")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Images")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ListingId")
@@ -421,9 +412,6 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<string>("CuisineType")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Images")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ListingId")

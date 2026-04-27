@@ -9,6 +9,9 @@ public class RestaurantListingDetails
     public decimal AverageCost { get; set; }
     public string OpeningHours { get; set; } = string.Empty;
     public int TableCapacity { get; set; }
+    public string? TableTypes { get; set; }
+    public string? ReservationRules { get; set; }
+    public string? Images { get; set; }
 
     public Listing Listing { get; set; } = default!;
 }

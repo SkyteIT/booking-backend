@@ -23,7 +23,7 @@ namespace Ube.Api.Controllers
             IFormFile? insuranceCertificate,
             IFormFile? taxDocument)
         {
-            Console.WriteLine("🔥 SubmitApplication API HIT");
+            Console.WriteLine(" SubmitApplication API HIT");
             Console.WriteLine($"BusinessName: {dto.BusinessName}");
 
             // 📁 create upload folder
@@ -48,12 +48,12 @@ namespace Ube.Api.Controllers
                 return fileName;
             }
 
-            // 📁 save files
+            //  save files
             var licensePath = await SaveFile(businessLicense);
             var insurancePath = await SaveFile(insuranceCertificate);
             var taxPath = await SaveFile(taxDocument);
 
-            // 💾 save to DB
+            //  save to DB
             var app = new VendorRegisterApplication
             {
                 BusinessName = dto.BusinessName,

@@ -70,7 +70,6 @@ public class ListingsController : ControllerBase
         if (request.Type == ListingType.Hotel && request.HotelDetails != null)
         {
             var h = request.HotelDetails;
-
             _context.Set<HotelListingDetails>().Add(new HotelListingDetails
             {
                 Id = Guid.NewGuid(),
@@ -80,15 +79,17 @@ public class ListingsController : ControllerBase
                 Amenities = string.Join(", ", h.Amenities),
                 RoomTypes = string.Join(", ", h.RoomTypes),
                 CheckInTime = h.CheckInTime,
-                CheckOutTime = h.CheckOutTime
+                CheckOutTime = h.CheckOutTime,
+                PropertyType = h.PropertyType,
+                PrimaryRoomType = h.PrimaryRoomType,
+                Images = request.Images != null ? string.Join(", ", request.Images) : null
             });
         }
 
         // ================= RESTAURANT =================
-        if (request.Type == ListingType.Restaurant && request.RestaurantDetails != null)
+        else if (request.Type == ListingType.Restaurant && request.RestaurantDetails != null)
         {
             var r = request.RestaurantDetails;
-
             _context.Set<RestaurantListingDetails>().Add(new RestaurantListingDetails
             {
                 Id = Guid.NewGuid(),
@@ -96,15 +97,17 @@ public class ListingsController : ControllerBase
                 CuisineType = r.CuisineType,
                 AverageCost = r.AverageCost,
                 OpeningHours = r.OpeningHours,
-                TableCapacity = r.TableCapacity
+                TableCapacity = r.TableCapacity,
+                TableTypes = r.TableTypes != null ? string.Join(", ", r.TableTypes) : null,
+                ReservationRules = r.ReservationRules,
+                Images = request.Images != null ? string.Join(", ", request.Images) : null
             });
         }
 
         // ================= EVENT =================
-        if (request.Type == ListingType.Event && request.EventDetails != null)
+        else if (request.Type == ListingType.Event && request.EventDetails != null)
         {
             var e = request.EventDetails;
-
             _context.Set<EventListingDetails>().Add(new EventListingDetails
             {
                 Id = Guid.NewGuid(),
@@ -113,15 +116,19 @@ public class ListingsController : ControllerBase
                 Organizer = e.Organizer,
                 DateAndTime = e.DateAndTime,
                 SeatCount = e.SeatCount,
-                TicketPrice = e.TicketPrice
+                TicketPrice = e.TicketPrice,
+                EventType = e.EventType,
+                VenueName = e.VenueName,
+                VenueAddress = e.VenueAddress,
+                TicketTypesJson = e.TicketTypes != null ? System.Text.Json.JsonSerializer.Serialize(e.TicketTypes) : null,
+                Images = request.Images != null ? string.Join(", ", request.Images) : null
             });
         }
 
         // ================= CAR RENTAL =================
-        if (request.Type == ListingType.CarRental && request.CarRentalDetails != null)
+        else if (request.Type == ListingType.CarRental && request.CarRentalDetails != null)
         {
             var c = request.CarRentalDetails;
-
             _context.Set<CarRentalListingDetails>().Add(new CarRentalListingDetails
             {
                 Id = Guid.NewGuid(),
@@ -132,15 +139,20 @@ public class ListingsController : ControllerBase
                 PricePerDay = c.PricePerDay,
                 SeatCount = c.SeatCount,
                 FuelType = c.FuelType,
-                AvailabilityStatus = c.AvailabilityStatus
+                AvailabilityStatus = c.AvailabilityStatus,
+                Year = c.Year,
+                HourlyRate = c.HourlyRate,
+                PickupLocation = c.PickupLocation,
+                ReturnLocation = c.ReturnLocation,
+                InsuranceOptions = c.InsuranceOptions,
+                Images = request.Images != null ? string.Join(", ", request.Images) : null
             });
         }
 
         // ================= ACTIVITY =================
-        if (request.Type == ListingType.Activity && request.ActivityDetails != null)
+        else if (request.Type == ListingType.Activity && request.ActivityDetails != null)
         {
             var a = request.ActivityDetails;
-
             _context.Set<ActivityListingDetails>().Add(new ActivityListingDetails
             {
                 Id = Guid.NewGuid(),
@@ -148,7 +160,15 @@ public class ListingsController : ControllerBase
                 ActivityType = a.ActivityType,
                 DurationHours = a.DurationHours,
                 DifficultyLevel = a.DifficultyLevel,
-                Price = a.Price
+                Price = a.Price,
+                MinGroupSize = a.MinGroupSize,
+                MaxGroupSize = a.MaxGroupSize,
+                MinAge = a.MinAge,
+                MaxAge = a.MaxAge,
+                IncludedServices = a.IncludedServices != null ? string.Join(", ", a.IncludedServices) : null,
+                SafetyRequirements = a.SafetyRequirements,
+                AvailabilitySchedule = a.AvailabilitySchedule,
+                Images = request.Images != null ? string.Join(", ", request.Images) : null
             });
         }
 

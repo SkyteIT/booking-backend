@@ -8,4 +8,6 @@ public class HotelDetailsDto
     public List<string> RoomTypes { get; set; } = new();
     public string CheckInTime { get; set; } = string.Empty;
     public string CheckOutTime { get; set; } = string.Empty;
+    public string? PropertyType { get; set; }
+    public string? PrimaryRoomType { get; set; }
 }

@@ -11,6 +11,9 @@ public class HotelListingDetails
     public string RoomTypes { get; set; } = string.Empty;
     public string CheckInTime { get; set; } = string.Empty;
     public string CheckOutTime { get; set; } = string.Empty;
+    public string? PropertyType { get; set; }
+    public string? PrimaryRoomType { get; set; }
+    public string? Images { get; set; }
 
     public Listing Listing { get; set; } = default!;
 }

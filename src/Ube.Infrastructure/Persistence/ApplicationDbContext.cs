@@ -75,6 +75,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
                 .HasForeignKey<CarRentalListingDetails>(c => c.ListingId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.Property(c => c.PricePerDay).HasColumnType("decimal(18,2)");
+            entity.Property(c => c.HourlyRate).HasColumnType("decimal(18,2)");
         });
 
         modelBuilder.Entity<ActivityListingDetails>(entity =>

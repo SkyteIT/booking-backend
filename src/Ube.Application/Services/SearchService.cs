@@ -20,8 +20,8 @@ public class SearchService : ISearchService
             .Include(x => x.Category)
             .Where(x => x.Status == RecordStatus.Active);
 
-        if (request.CategoryId.HasValue)
-            query = query.Where(x => x.CategoryId == request.CategoryId.Value);
+        if (request.CategoryIds.Count > 0)
+            query = query.Where(x => request.CategoryIds.Contains(x.CategoryId));
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
             query = query.Where(x => x.Title.Contains(request.SearchTerm));
@@ -34,6 +34,9 @@ public class SearchService : ISearchService
 
         if (request.MaxPrice.HasValue)
             query = query.Where(x => x.PriceFrom <= request.MaxPrice.Value);
+
+        if (request.MinRating.HasValue)
+            query = query.Where(x => x.Rating >= request.MinRating.Value);
 
         if (request.IsAvailable.HasValue)
             query = query.Where(x => x.IsAvailable == request.IsAvailable.Value);

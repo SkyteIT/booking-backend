@@ -4,6 +4,7 @@ using Ube.Application.Services;
 using Ube.Infrastructure.Persistence;
 using Ube.Infrastructure.Services;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 // =========================
@@ -59,6 +60,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+}
+// Seed database on startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<UbeDbContext>();
+    await db.Database.MigrateAsync();          // applies any pending migrations
+    await DataSeeder.SeedAsync(db);
 }
 
 app.UseHttpsRedirection();

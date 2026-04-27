@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Carts;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
@@ -20,4 +21,27 @@ public class ApplicationDbContext : DbContext
     public DbSet<Category> Categories {get; set; } = default!;
     public DbSet <VendorApplication> VendorApplications { get; set; } = default!;
     public DbSet <VendorProfile> VendorProfiles {get; set; } = default!;
+    public DbSet<Cart> Carts { get; set; } = default!;
+    public DbSet<CartItem> CartItems { get; set; } = default!;
+
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
 }
+
+protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+{
+    if (!optionsBuilder.IsConfigured) return;
+    
+    optionsBuilder
+        .LogTo(Console.WriteLine, Microsoft.Extensions.Logging.LogLevel.Information)
+        .EnableSensitiveDataLogging()
+        .EnableDetailedErrors();
+}
+
+}
+
+

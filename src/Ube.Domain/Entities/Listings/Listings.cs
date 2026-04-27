@@ -1,5 +1,13 @@
 namespace Ube.Domain.Entities.Listings;
 
+
+using Ube.Domain.Entities.Vendors;
+using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Reviews;
+using Ube.Domain.Entities.Carts;
+
+
+
 public class Listing
 {
     public Guid Id { get; set; }
@@ -23,4 +31,14 @@ public class Listing
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+
+
+
+    public VendorProfile VendorProfile { get; set; } = default!;
+    public Category Category { get; set; } = default!;
+
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+    public ICollection<Review> Reviews { get; set; } = new List<Review>();
+    public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 }

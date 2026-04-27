@@ -1,5 +1,9 @@
 namespace Ube.Domain.Entities.Vendors;
 
+using Ube.Domain.Entities.Users;
+using Ube.Domain.Entities.Listings;
+
+
 public class VendorProfile
 {
     public Guid Id { get; set; }
@@ -19,4 +23,9 @@ public class VendorProfile
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+
+
+    public User User { get; set; } = default!;
+    public ICollection<Listing> Listings { get; set; } = new List<Listing>();
 }

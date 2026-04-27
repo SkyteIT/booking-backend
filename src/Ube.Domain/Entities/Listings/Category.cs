@@ -1,4 +1,5 @@
 namespace Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Listings;
 
 public class Category
 {
@@ -13,4 +14,7 @@ public class Category
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+
+    public ICollection<Listing> Listings { get; set; } = new List<Listing>();
 }

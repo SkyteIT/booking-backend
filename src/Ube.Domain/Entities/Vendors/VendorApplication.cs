@@ -1,6 +1,8 @@
 using Ube.Domain.Enums.Vendors;
 namespace Ube.Domain.Entities.Vendors;
 
+using Ube.Domain.Entities.Users;
+
 public class VendorApplication
 {
     public Guid Id { get; set; }
@@ -22,4 +24,9 @@ public class VendorApplication
     public DateTime? ReviewedAt { get; set; }
 
     public string? RejectionReason { get; set; }
+
+
+
+
+    public User User { get; set; } = default!;
 }

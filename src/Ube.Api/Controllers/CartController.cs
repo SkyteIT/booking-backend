@@ -70,7 +70,7 @@ public class CartController : ControllerBase
     /// <param name="request">The add to cart request containing listing ID and quantity</param>
     /// <returns>The updated cart</returns>
   
-  /*
+ /*
     [HttpPost("{userId}/add-item")]
     public async Task<ActionResult<CartDto>> AddToCart(Guid userId, [FromBody] AddToCartRequest request)
     {
@@ -94,15 +94,15 @@ public class CartController : ControllerBase
         }
     }
 }
-
 */
+
 [HttpPost("{userId}/add-item")]
 public async Task<ActionResult<CartDto>> AddToCart(Guid userId, [FromBody] AddToCartRequest request)
 {
     try
     {
         if (request == null || request.ListingId == Guid.Empty || request.Quantity <= 0)
-            return BadRequest(new { message = "Invalid request." });
+            return BadRequest(new { message = "ListingId must not be empty and Quantity must be greater than 0." });
 
         var cart = await _cartService.AddToCartAsync(userId, request);
         return Ok(cart);

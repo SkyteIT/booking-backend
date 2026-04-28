@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Ube.Application.Features.Listings.Commands;
 using Ube.Application.Features.Listings.Queries;
 using Ube.Domain.Entities.Listings;
@@ -21,10 +23,27 @@ public class ListingsController : ControllerBase
 
     // ================= CREATE =================
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> CreateListing([FromBody] CreateListingRequest request)
     {
-        if (!await _context.VendorProfiles.AnyAsync(v => v.Id == request.VendorId))
-            return BadRequest("Invalid VendorId.");
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized("User ID not found in token.");
+        }
+
+        var vendor = await _context.VendorProfiles
+            .Where(v => v.UserId == userId)
+            .FirstOrDefaultAsync();
+
+        if (vendor == null)
+        {
+            return Forbid("You do not have a vendor profile to create listings.");
+        }
+
+        // We override request.VendorId with the authenticated user's vendor ID
+        var vendorId = vendor.Id;
 
         if (!await _context.Categories.AnyAsync(c => c.Id == request.CategoryId))
             return BadRequest("Invalid CategoryId.");
@@ -32,7 +51,7 @@ public class ListingsController : ControllerBase
         var listing = new Listing
         {
             Id = Guid.NewGuid(),
-            VendorProfileId = request.VendorId,
+            VendorProfileId = vendorId,
             CategoryId = request.CategoryId,
             Title = request.Title,
             Description = request.Description,
@@ -210,14 +229,28 @@ public class ListingsController : ControllerBase
 
     // ================= UPDATE =================
     [HttpPut("{id}")]
+    [Authorize]
     public async Task<IActionResult> UpdateListing(Guid id, [FromBody] UpdateListingRequest request)
     {
-        var listing = await _context.Listings.FindAsync(id);
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized("User ID not found in token.");
+        }
+
+        var listing = await _context.Listings
+            .Include(l => l.Vendor)
+            .FirstOrDefaultAsync(l => l.Id == id);
 
         if (listing == null)
             return NotFound("Listing not found.");
 
-        listing.VendorProfileId = request.VendorId;
+        if (listing.Vendor == null || listing.Vendor.UserId != userId)
+        {
+            return Forbid("You do not have permission to update this listing.");
+        }
+
+        // We ignore request.VendorId and keep the existing ownership
         listing.CategoryId = request.CategoryId;
         listing.Title = request.Title;
         listing.Description = request.Description;
@@ -234,12 +267,26 @@ public class ListingsController : ControllerBase
 
     // ================= DELETE =================
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> DeleteListing(Guid id)
     {
-        var listing = await _context.Listings.FindAsync(id);
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized("User ID not found in token.");
+        }
+
+        var listing = await _context.Listings
+            .Include(l => l.Vendor)
+            .FirstOrDefaultAsync(l => l.Id == id);
 
         if (listing == null)
             return NotFound("Listing not found.");
+
+        if (listing.Vendor == null || listing.Vendor.UserId != userId)
+        {
+            return Forbid("You do not have permission to delete this listing.");
+        }
 
         _context.Listings.Remove(listing);
         await _context.SaveChangesAsync();

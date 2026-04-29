@@ -1,4 +1,7 @@
-using Ube.Domain.Enums.Users;
+
+using Ube.Domain.Enums; 
+using Ube.Domain.Enums.Users;      
+ 
 
 using Ube.Domain.Entities.Carts;
 using Ube.Domain.Entities.Bookings;
@@ -34,7 +37,7 @@ public class User
 
     public DateTime? UpdatedAt { get; set; }
 
-
+    public UserRole Role { get; set; } = UserRole.Customer;
 
 
 

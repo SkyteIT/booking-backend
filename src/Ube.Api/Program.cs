@@ -4,13 +4,13 @@ using Ube.Application.Interfaces.Repositories;
 using Ube.Application.Services.Cart;
 using Ube.Infrastructure.Persistence;
 using Ube.Infrastructure.Persistence.Repositories;
+using Ube.Application.Services.Admin;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -23,7 +23,8 @@ builder.Services.AddSwaggerGen(c =>
 
 
 builder.Services.AddScoped<ICartRepository, CartRepository>();
-
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 
 

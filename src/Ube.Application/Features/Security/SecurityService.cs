@@ -44,7 +44,7 @@ public class SecurityService
     }
     catch (Exception ex)
     {
-        // 🔥 DEBUG HERE
+        // DEBUG HERE
         Console.WriteLine("ERROR: " + ex.Message);
         Console.WriteLine(ex.StackTrace);
 

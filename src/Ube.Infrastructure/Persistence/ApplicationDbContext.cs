@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet <VendorProfile> VendorProfiles {get; set; } = default!;
     public DbSet<VendorPayout> VendorPayouts { get; set; } = default!;
     public DbSet <BlockedDate> BlockedDates {get; set; } = default!;
+    public DbSet <UserLocalizationSettings> UserLocalizationSettings { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

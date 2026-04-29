@@ -26,6 +26,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Identity;
 using Ube.Domain.Entities.Users;
 using Ube.Application.Features.Vendors.Payout;
+using Ube.Application.Features.Localization;
 
 
 
@@ -88,6 +89,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVendorProfileRepository, VendorProfileRepository>();
 builder.Services.AddScoped<IVendorPayoutRepository, VendorPayoutRepository>();
 builder.Services.AddScoped<VendorPayoutService>();
+builder.Services.AddScoped<ILocalizationRepository, LocalizationRepository>();
+builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 builder.Services.AddEndpointsApiExplorer();
 
 

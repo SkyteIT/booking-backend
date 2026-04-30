@@ -8,7 +8,7 @@ using Ube.Application.Common.Models;
 
 namespace Ube.Api.Controllers.Admin;
 
-[Authorize(Roles = "Admin")]
+[Authorize]
 [ApiController]
 [Route("api/admin/vendor-applications")]
 public class VendorApplicationsController : ControllerBase

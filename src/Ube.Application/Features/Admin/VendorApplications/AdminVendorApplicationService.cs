@@ -43,9 +43,12 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                 throw new NotFoundException("Application not found");
 
             //  Rule: Only Pending can be reviewed
+            var selfReviewRule = VendorApplicationRules.CannotBeAdmin(application.UserId, adminId);
+            if (!selfReviewRule.IsSuccess)
+                throw new BusinessRuleException(selfReviewRule.ErrorMessage);
             var reviewRule = VendorApplicationRules.CanReview(application.Status);
             if (!reviewRule.IsSuccess)
-                throw new InvalidOperationException(reviewRule.ErrorMessage);
+                throw new BusinessRuleException(reviewRule.ErrorMessage);
 
             // Get user
             var user = await _userRepo.GetByIdAsync(application.UserId);

@@ -9,7 +9,10 @@ public static class VendorApplicationRules
     {
         if (status != VendorApplicationStatus.Pending)
             return Result.Failure("Application already reviewed");
-
+        if (status == VendorApplicationStatus.Approved)
+            return Result.Failure("Application already approved");
+        if (status == VendorApplicationStatus.Rejected)
+            return Result.Failure("Application already rejected");
         return Result.Success();
     }
 //Use fpr Result pattern to return success or failure with message
@@ -17,7 +20,6 @@ public static class VendorApplicationRules
     {
         if (string.IsNullOrWhiteSpace(reason))
             return Result.Failure("Rejection reason is required");
-
         return Result.Success();
     }
 
@@ -29,6 +31,12 @@ public static class VendorApplicationRules
         if (hasVendorProfile)
             return Result.Failure("Vendor profile already exists");
 
+        return Result.Success();
+    }
+    public static Result CannotBeAdmin(Guid applicationUserId, Guid adminId)
+    {
+        if (applicationUserId == adminId)
+            return Result.Failure("Admin cannot review their own application");
         return Result.Success();
     }
 }

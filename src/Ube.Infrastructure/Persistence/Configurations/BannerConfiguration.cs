@@ -13,6 +13,6 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
 
         builder.Property(x => x.Title).HasMaxLength(150).IsRequired();
         builder.Property(x => x.Subtitle).HasMaxLength(300);
-        builder.Property(x => x.ImageUrl).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.ImageUrl).HasColumnType("nvarchar(max)").IsRequired();
     }
 }

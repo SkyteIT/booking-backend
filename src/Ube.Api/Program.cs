@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Ube.Api.Middleware;
 using Ube.Application.Interfaces;
 using Ube.Application.Services;
 using Ube.Infrastructure.Persistence;
@@ -56,6 +57,10 @@ var app = builder.Build();
 // =========================
 // Middleware pipeline
 // =========================
+
+// ✅ MUST be first — catches all unhandled exceptions from any middleware below
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

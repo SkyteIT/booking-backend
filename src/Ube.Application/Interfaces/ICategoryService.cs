@@ -13,7 +13,7 @@ public interface ICategoryService
     Task<CategoryDto> CreateAsync(CreateCategoryDto dto, CancellationToken cancellationToken);
     Task<CategoryDto?> UpdateAsync(Guid id, UpdateCategoryDto dto, CancellationToken cancellationToken);
 
-    /// <summary>Soft-deletes (sets Status = Deleted) rather than hard-deleting.</summary>
+    /// <summary>Hard-deletes the category and all its listings from the database.</summary>
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>Toggle active/inactive status.</summary>

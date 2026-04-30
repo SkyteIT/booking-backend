@@ -99,6 +99,14 @@ public class CategoryService : ICategoryService
     // ── Create ─────────────────────────────────────────────────────────────
     public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, CancellationToken cancellationToken)
     {
+        // Guard: reject duplicate names up-front with a clear 409 message
+        var nameExists = await _context.Categories
+            .AnyAsync(x => x.Name.ToLower() == dto.Name.ToLower().Trim() &&
+                           x.Status != RecordStatus.Deleted, cancellationToken);
+
+        if (nameExists)
+            throw new InvalidOperationException($"A category named '{dto.Name}' already exists.");
+
         var entity = new Category
         {
             Name = dto.Name,
@@ -157,16 +165,21 @@ public class CategoryService : ICategoryService
         return ToDto(entity, entity.Listings.Count);
     }
 
-    // ── Delete (soft) ──────────────────────────────────────────────────────
+    // ── Delete (hard) ──────────────────────────────────────────────────────
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
         var entity = await _context.Categories
-            .FirstOrDefaultAsync(x => x.Id == id && x.Status != RecordStatus.Deleted, cancellationToken);
+            .Include(x => x.Listings)
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         if (entity is null) return false;
 
-        entity.Status = RecordStatus.Deleted;
-        entity.UpdatedAtUtc = DateTime.UtcNow;
+        // Remove all child listings first (FK is Restrict — must delete children before parent)
+        if (entity.Listings.Any())
+            _context.Listings.RemoveRange(entity.Listings);
+
+        // Hard delete — physically removes the row from the database
+        _context.Categories.Remove(entity);
         await _context.SaveChangesAsync(cancellationToken);
 
         return true;

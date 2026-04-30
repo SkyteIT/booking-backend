@@ -5,6 +5,7 @@ using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Vendors;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
+using System.Security.Cryptography.X509Certificates;
 
 
 namespace Ube.Application.Features.Admin.VendorApplications;
@@ -125,5 +126,51 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             await _unitOfWork.RollbackAsync();
             throw;
         }
+    }
+    // Method to get application details
+    public async Task<ApplicationDetailDto> GetDetailsAsync(Guid applicationId)
+    {
+        var app = await _applicationRepo.GetByIdAsync(applicationId);
+        if(app == null)
+            throw new NotFoundException("Application not found");
+
+        return new ApplicationDetailDto
+        {
+            Id = app.Id,
+            UserId = app.UserId,
+            BusinessName = app.BusinessName,
+            BusinessType = app.BusinessType,
+            Description = app.Description,
+            Address = app.Address,
+            ContactPersonName = app.ContactPersonName,
+            ContactNumber = app.ContactNumber,
+            BusinessLicenseUrl = app.BusinessLicenseUrl,
+            InsurenceCertificateUrl = app.InsurenceCertificateUrl,
+            TaxDocumentUrl = app.TaxDocumentUrl,
+            Status = app.Status,
+            SubmittedAt = app.SubmittedAt,
+            ReviewedAt = app.ReviewedAt,
+            ReviewedBy = app.ReviewedBy,
+            RejectionReason = app.RejectionReason
+        };
+    
+    }
+    // Method to get all applications (for admin listing)
+    public async Task<List<ApplicationDetailDto>> GetAllAsync()
+    {
+        var apps = await _applicationRepo.GetAllAsync();
+        return apps.Select(app => new ApplicationDetailDto
+        {
+            Id = app.Id,
+            UserId = app.UserId,
+            BusinessName = app.BusinessName,
+            BusinessType = app.BusinessType,
+            ContactPersonName = app.ContactPersonName,
+            ContactNumber = app.ContactNumber,
+            Status = app.Status,
+            SubmittedAt = app.SubmittedAt,
+            ReviewedAt = app.ReviewedAt,
+            ReviewedBy = app.ReviewedBy,
+        }).ToList();
     }
 }

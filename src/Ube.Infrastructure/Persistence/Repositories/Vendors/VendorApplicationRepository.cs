@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Vendors;
 
@@ -19,5 +20,12 @@ public class VendorApplicationRepository : IVendorApplicationRepository
     {
         _db.VendorApplications.Update(application);
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<List<VendorApplication>> GetAllAsync()
+    {
+        return await _db.VendorApplications
+            .OrderByDescending(a => a.SubmittedAt)
+            .ToListAsync();
     }
 }

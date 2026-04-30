@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Features.Admin.VendorApplications;
 using Ube.Application.Features.Vendors;
 using Ube.Application.Common.Interfaces.Services.Auth;
+using Ube.Domain.Enums.Vendors;
+using Ube.Application.Common.Models;
 
 namespace Ube.Api.Controllers.Admin;
 
@@ -44,9 +46,11 @@ public class VendorApplicationsController : ControllerBase
         return Ok(result);
     }
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] VendorApplicationStatus? status,
+        [FromQuery] QueryOptions request)
     {
-        var result = await _service.GetAllAsync();
+        var result = await _service.GetAllAsync(status, request);
         return Ok(result);
     }
 }

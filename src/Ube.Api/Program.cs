@@ -89,6 +89,7 @@ builder.Services.AddScoped<IVendorProfileService, VendorProfileService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVendorProfileRepository, VendorProfileRepository>();
 builder.Services.AddScoped<IVendorPayoutRepository, VendorPayoutRepository>();
+builder.Services.AddScoped<IVendorApplicationRepository, VendorApplicationRepository>();
 builder.Services.AddScoped<VendorPayoutService>();
 builder.Services.AddScoped<ILocalizationRepository, LocalizationRepository>();
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();

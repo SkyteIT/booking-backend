@@ -5,7 +5,9 @@ using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Vendors;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
-using System.Security.Cryptography.X509Certificates;
+using Ube.Application.Common.Models;
+using Ube.Application.Common.Models.Pagination;
+
 
 
 namespace Ube.Application.Features.Admin.VendorApplications;
@@ -36,89 +38,89 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         await _unitOfWork.BeginTransactionAsync();
         try{
         // Get application
-        var application = await _applicationRepo.GetByIdAsync(applicationId);
-        if (application == null)
-            throw new NotFoundException("Application not found");
+            var application = await _applicationRepo.GetByIdAsync(applicationId);
+            if (application == null)
+                throw new NotFoundException("Application not found");
 
-        //  Rule: Only Pending can be reviewed
-        var reviewRule = VendorApplicationRules.CanReview(application.Status);
-        if (!reviewRule.IsSuccess)
-            throw new InvalidOperationException(reviewRule.ErrorMessage);
+            //  Rule: Only Pending can be reviewed
+            var reviewRule = VendorApplicationRules.CanReview(application.Status);
+            if (!reviewRule.IsSuccess)
+                throw new InvalidOperationException(reviewRule.ErrorMessage);
 
-        // Get user
-        var user = await _userRepo.GetByIdAsync(application.UserId);
-        if (user == null)
-            throw new NotFoundException("User not found");
+            // Get user
+            var user = await _userRepo.GetByIdAsync(application.UserId);
+            if (user == null)
+                throw new NotFoundException("User not found");
 
-        // Approval Flow
-        if (dto.Status == VendorApplicationStatus.Approved)
-        {
-            var existingVendor = await _vendorRepo.GetVendorIdAsync(user.Id);
+            // Approval Flow
+            if (dto.Status == VendorApplicationStatus.Approved)
+            {
+                var existingVendor = await _vendorRepo.GetVendorIdAsync(user.Id);
 
-            //Rule: Validate approval
-            var approvalRule = VendorApplicationRules.ValidateApproval(
-                user.Role == UserRole.Vendor,
-                existingVendor != null
-            );
+                //Rule: Validate approval
+                var approvalRule = VendorApplicationRules.ValidateApproval(
+                    user.Role == UserRole.Vendor,
+                    existingVendor != null
+                );
 
-            if (!approvalRule.IsSuccess)
-                throw new InvalidOperationException(approvalRule.ErrorMessage);
+                if (!approvalRule.IsSuccess)
+                    throw new InvalidOperationException(approvalRule.ErrorMessage);
 
-            //Update application
-            application.Status = VendorApplicationStatus.Approved;
-            application.ReviewedAt = DateTime.UtcNow;
-            application.ReviewedBy = adminId;
+                //Update application
+                application.Status = VendorApplicationStatus.Approved;
+                application.ReviewedAt = DateTime.UtcNow;
+                application.ReviewedBy = adminId;
 
-            // Create VendorProfile
-            var vendorProfile = new VendorProfile
-            {   
-                //from user
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                //from application
-                BusinessName = application.BusinessName,
-                BusinessType = application.BusinessType,
-                BusinessDescription = application.Description,
-                ContactNumber = application.ContactNumber,
+                // Create VendorProfile
+                var vendorProfile = new VendorProfile
+                {   
+                    //from user
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    //from application
+                    BusinessName = application.BusinessName,
+                    BusinessType = application.BusinessType,
+                    BusinessDescription = application.Description,
+                    ContactNumber = application.ContactNumber,
 
-                //default values
-                Bio = string.Empty,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
+                    //default values
+                    Bio = string.Empty,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                };
 
-            await _vendorRepo.AddAsync(vendorProfile);
+                await _vendorRepo.AddAsync(vendorProfile);
 
-            // Update user role
-            user.Role = UserRole.Vendor;
-            await _userRepo.UpdateAsync(user);
-        }
+                // Update user role
+                user.Role = UserRole.Vendor;
+                await _userRepo.UpdateAsync(user);
+            }
 
-        // Rejection Flow
-        else if (dto.Status == VendorApplicationStatus.Rejected)
-        {
-            //Rule: Validate rejection
-            var rejectRule = VendorApplicationRules.ValidateRejection(dto.RejectionReason);
-            if (!rejectRule.IsSuccess)
-                throw new InvalidOperationException(rejectRule.ErrorMessage);
+            // Rejection Flow
+            else if (dto.Status == VendorApplicationStatus.Rejected)
+            {
+                //Rule: Validate rejection
+                var rejectRule = VendorApplicationRules.ValidateRejection(dto.RejectionReason);
+                if (!rejectRule.IsSuccess)
+                    throw new InvalidOperationException(rejectRule.ErrorMessage);
 
-            //Update application
-            application.Status = VendorApplicationStatus.Rejected;
-            application.ReviewedAt = DateTime.UtcNow;
-            application.ReviewedBy = adminId;
-            application.RejectionReason = dto.RejectionReason;
-        }
+                //Update application
+                application.Status = VendorApplicationStatus.Rejected;
+                application.ReviewedAt = DateTime.UtcNow;
+                application.ReviewedBy = adminId;
+                application.RejectionReason = dto.RejectionReason;
+            }
 
-        // Invalid status
-        else
-        {
-            throw new InvalidOperationException("Invalid application status");
-        }
+            // Invalid status
+            else
+            {
+                throw new InvalidOperationException("Invalid application status");
+            }
 
-        // Save application
-        await _applicationRepo.UpdateAsync(application);
-        // Commit transaction
-        await _unitOfWork.CommitAsync();
+            // Save application
+            await _applicationRepo.UpdateAsync(application);
+            // Commit transaction
+            await _unitOfWork.CommitAsync();
         }
         catch
         {
@@ -156,21 +158,28 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     
     }
     // Method to get all applications (for admin listing)
-    public async Task<List<ApplicationDetailDto>> GetAllAsync()
+    public async Task<PagedResult<ApplicationDetailDto>> GetAllAsync(VendorApplicationStatus? status, QueryOptions request)
     {
-        var apps = await _applicationRepo.GetAllAsync();
-        return apps.Select(app => new ApplicationDetailDto
+        var (apps, totalItems) = await _applicationRepo.GetPagedAsync(status, request);
+        var mapped = apps.Select(app => new ApplicationDetailDto
         {
             Id = app.Id,
-            UserId = app.UserId,
             BusinessName = app.BusinessName,
             BusinessType = app.BusinessType,
-            ContactPersonName = app.ContactPersonName,
             ContactNumber = app.ContactNumber,
             Status = app.Status,
             SubmittedAt = app.SubmittedAt,
             ReviewedAt = app.ReviewedAt,
             ReviewedBy = app.ReviewedBy,
         }).ToList();
+        
+        return new PagedResult<ApplicationDetailDto>
+        {
+            Items = mapped,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalItems,
+            TotalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize)
+        };
     }
 }

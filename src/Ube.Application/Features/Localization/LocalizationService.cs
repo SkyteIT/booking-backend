@@ -10,7 +10,7 @@ public class LocalizationService : ILocalizationService
     {
         _repo = repo;
     }
-
+    //Get localization settings for a user, if not exist create default settings
     public async Task<UserLocalizationSettings?> GetLocalizationAsync(Guid userId)
     {
         var settings = await _repo.GetByUserIdAsync(userId);
@@ -26,7 +26,7 @@ public class LocalizationService : ILocalizationService
         }
         return settings;
     }
-
+    //Update localization settings for a user, if not exist create new settings
     public async Task UpdateLocalizationAsync(Guid userId, UpdateLocalizationDto dto)
     {
         var settings = await _repo.GetByUserIdAsync(userId);

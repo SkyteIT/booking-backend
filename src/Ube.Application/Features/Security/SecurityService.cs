@@ -48,7 +48,7 @@ public class SecurityService
         Console.WriteLine("ERROR: " + ex.Message);
         Console.WriteLine(ex.StackTrace);
 
-        throw; // keep middleware handling
+        throw new BusinessRuleException("Failed to change password"); // keep middleware handling
     }
 }
 }

@@ -1,5 +1,4 @@
 using Ube.Application.Common.Exceptions;
-using Ube.Application.Common.Interfaces;
 using Ube.Application.Common.Interfaces.Persistence;
 
 namespace Ube.Application.Features.Vendors;

@@ -23,10 +23,31 @@ public class VendorApplicationConfiguration : IEntityTypeConfiguration<VendorApp
         builder.Property(x => x.ContactNumber)
                 .IsRequired()
                 .HasMaxLength(20);
+        builder.Property(x => x.Address)
+                .IsRequired()
+                .HasMaxLength(500);
+        builder.Property(x => x.ContactPersonName)
+                .IsRequired()
+                .HasMaxLength(200);
         builder.Property(x => x.Status)
                 .IsRequired();
         builder.Property(x => x.RejectionReason)
                 .HasMaxLength(500);
+        builder.Property(x => x.ReviewedBy)
+                .IsRequired(false);
+        builder.Property(x => x.ReviewedAt)
+                .IsRequired(false);
+        builder.Property(x => x.BusinessLicenseUrl)
+                .IsRequired()
+                .HasMaxLength(500);
+        builder.Property(x => x.InsurenceCertificateUrl)
+                .IsRequired()
+                .HasMaxLength(500);
+
+        builder.Property(x => x.TaxDocumentUrl)
+                .IsRequired()
+                .HasMaxLength(500);
+
         builder.HasOne<User>()
                 .WithMany()
                 .HasForeignKey(x => x.UserId)

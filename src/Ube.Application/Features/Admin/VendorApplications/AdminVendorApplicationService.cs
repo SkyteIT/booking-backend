@@ -14,21 +14,26 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IVendorApplicationRepository _applicationRepo;
     private readonly IUserRepository _userRepo;
     private readonly IVendorProfileRepository _vendorRepo;
+    private readonly IUnitOfWork _unitOfWork;
     
 
     public AdminVendorApplicationService(
         IVendorApplicationRepository applicationRepo,
         IUserRepository userRepo,
-        IVendorProfileRepository vendorRepo)
+        IVendorProfileRepository vendorRepo,
+        IUnitOfWork unitOfWork)
     {
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
         _vendorRepo = vendorRepo;
+        _unitOfWork = unitOfWork;
         
     }
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
     {
+        await _unitOfWork.BeginTransactionAsync();
+        try{
         // Get application
         var application = await _applicationRepo.GetByIdAsync(applicationId);
         if (application == null)
@@ -111,5 +116,14 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
 
         // Save application
         await _applicationRepo.UpdateAsync(application);
+        // Commit transaction
+        await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            // Rollback transaction on error
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
     }
 }

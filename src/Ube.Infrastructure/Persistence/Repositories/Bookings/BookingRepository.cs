@@ -59,7 +59,7 @@ public class BookingRepository : IBookingRepository
             {
                 query = query.Where(b => b.EndDateTime.Date <= request.EndDate.Value.Date);
             }
-            query = request.SortBy switch
+            query = request.SortOptions switch
             {
                 BookingSortBy.Oldest => query.OrderBy(b => b.CreatedAt), //oldest booking first
                 BookingSortBy.StartDateAsc => query.OrderBy(b => b.StartDateTime), //near upcoming booking first

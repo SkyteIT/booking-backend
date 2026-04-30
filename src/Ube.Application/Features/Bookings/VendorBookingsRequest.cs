@@ -1,12 +1,12 @@
-using Ube.Application.Common.Models.Pagination;
+using Ube.Application.Common.Models;
 using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Application.Features.Bookings;
 
-public class BookingsRequest : PagedRequest
+public class BookingsRequest : QueryOptions
 {
     public BookingStatus? Status { get; set; }
-    public BookingSortBy SortBy { get; set; }
+    public BookingSortBy? SortOptions { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
 }

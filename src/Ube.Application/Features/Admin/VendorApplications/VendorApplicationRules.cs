@@ -8,11 +8,7 @@ public static class VendorApplicationRules
     public static Result CanReview(VendorApplicationStatus status)//Use fpr Result pattern to return success or failure with message
     {
         if (status != VendorApplicationStatus.Pending)
-            return Result.Failure("Application already reviewed");
-        if (status == VendorApplicationStatus.Approved)
-            return Result.Failure("Application already approved");
-        if (status == VendorApplicationStatus.Rejected)
-            return Result.Failure("Application already rejected");
+            return Result.Failure("Application already reviewed");       
         return Result.Success();
     }
 //Use fpr Result pattern to return success or failure with message

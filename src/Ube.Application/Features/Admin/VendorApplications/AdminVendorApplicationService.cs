@@ -19,18 +19,12 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly IUnitOfWork _unitOfWork;
     
-
-    public AdminVendorApplicationService(
-        IVendorApplicationRepository applicationRepo,
-        IUserRepository userRepo,
-        IVendorProfileRepository vendorRepo,
-        IUnitOfWork unitOfWork)
+    public AdminVendorApplicationService(IVendorApplicationRepository applicationRepo, IUserRepository userRepo, IVendorProfileRepository vendorRepo, IUnitOfWork unitOfWork)
     {
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
         _vendorRepo = vendorRepo;
         _unitOfWork = unitOfWork;
-        
     }
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
@@ -67,7 +61,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                 );
 
                 if (!approvalRule.IsSuccess)
-                    throw new InvalidOperationException(approvalRule.ErrorMessage);
+                    throw new BusinessRuleException(approvalRule.ErrorMessage);
 
                 //Update application
                 application.Status = VendorApplicationStatus.Approved;
@@ -105,7 +99,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                 //Rule: Validate rejection
                 var rejectRule = VendorApplicationRules.ValidateRejection(dto.RejectionReason);
                 if (!rejectRule.IsSuccess)
-                    throw new InvalidOperationException(rejectRule.ErrorMessage);
+                    throw new BusinessRuleException(rejectRule.ErrorMessage);
 
                 //Update application
                 application.Status = VendorApplicationStatus.Rejected;
@@ -117,7 +111,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             // Invalid status
             else
             {
-                throw new InvalidOperationException("Invalid application status");
+                throw new BusinessRuleException("Invalid application status");
             }
 
             // Save application
@@ -161,7 +155,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     
     }
     // Method to get all applications (for admin listing)
-    public async Task<PagedResult<ApplicationDetailDto>> GetAllAsync(VendorApplicationStatus? status, QueryOptions request)
+    public async Task<PagedResult<ApplicationDetailDto>> GetAllAsync(VendorApplicationStatus? status, VendorApplicationsRequest request)
     {
         var (apps, totalItems) = await _applicationRepo.GetPagedAsync(status, request);
         var mapped = apps.Select(app => new ApplicationDetailDto

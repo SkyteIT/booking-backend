@@ -48,7 +48,7 @@ public class VendorApplicationsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] VendorApplicationStatus? status,
-        [FromQuery] QueryOptions request)
+        [FromQuery] VendorApplicationsRequest request)
     {
         var result = await _service.GetAllAsync(status, request);
         return Ok(result);

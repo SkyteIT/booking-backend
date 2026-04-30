@@ -6,24 +6,42 @@ namespace Ube.Application.Features.Bookings;
 public static class BookingValidationRules
 {
     //this is for vendor side validations
-    public static bool BelongsToVendorListing(Booking booking, Guid currentVendorId)
+    public static Result BelongsToVendorListing(Booking booking, Guid currentVendorId)
     {
-        return booking.Listing.VendorProfile.UserId == currentVendorId;
+        if (booking.Listing.VendorProfile.UserId == currentVendorId)
+            return Result.Success();
+        else
+            return Result.Failure("Booking does not belong to the specified vendor.");
     }
-    public static bool CanVendorConfirm(Booking booking, Guid CurrentVendorId)
+    public static Result CanVendorConfirm(Booking booking, Guid CurrentVendorId)
     {
-        return BelongsToVendorListing(booking, CurrentVendorId) && 
-                BookingTransitionRules.CanVendorTransition(booking.Status , BookingStatus.Confirmed);
+        var belongsToVendor = BelongsToVendorListing(booking, CurrentVendorId);
+        if (!belongsToVendor.IsSuccess)
+            return belongsToVendor;
+
+        if (BookingTransitionRules.CanVendorTransition(booking.Status, BookingStatus.Confirmed))
+            return Result.Success();
+        else
+            return Result.Failure("Cannot confirm booking.");
     }
-    public static bool CanVendorReject(Booking booking, Guid CurrentVendorId)
+    public static Result CanVendorReject(Booking booking, Guid CurrentVendorId)
     {
-        return BelongsToVendorListing(booking, CurrentVendorId) &&
-                BookingTransitionRules.CanVendorTransition(booking.Status, BookingStatus.Rejected);
+        var belongsToVendor = BelongsToVendorListing(booking, CurrentVendorId);
+        if (!belongsToVendor.IsSuccess)
+            return belongsToVendor;
+
+        if (BookingTransitionRules.CanVendorTransition(booking.Status, BookingStatus.Rejected))
+            return Result.Success();
+        else
+            return Result.Failure("Cannot reject booking.");
     }
     // this part  for customer side validation 
     public static bool BelongsToUser(Booking booking, Guid currentUserId)
     {
-        return booking.CustomerId == currentUserId;
+        if (booking.CustomerId == currentUserId)
+            return true;
+        else
+            return false;
     }
     public static bool CanUserCancelPendding(Booking booking, Guid currentUserId)
     {

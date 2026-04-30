@@ -1,5 +1,6 @@
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Models.Pagination;
+using Ube.Application.Features.Admin.VendorApplications;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Vendors;
 
@@ -9,5 +10,5 @@ public interface IVendorApplicationRepository
 {
     Task<VendorApplication?> GetByIdAsync(Guid id);
     Task UpdateAsync(VendorApplication application);
-    Task <(List<VendorApplication> Items, int TotalItems)> GetPagedAsync(VendorApplicationStatus? status, QueryOptions options);
+    Task <(List<VendorApplication> Items, int TotalItems)> GetPagedAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);
 }

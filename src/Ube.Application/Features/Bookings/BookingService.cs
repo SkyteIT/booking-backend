@@ -24,9 +24,9 @@ public class BookingService : IBookingService
         var isAllowed = newStatus switch
         {
             BookingStatus.Confirmed => 
-                BookingValidationRules.CanVendorConfirm(booking, VendorId),
+                BookingValidationRules.CanVendorConfirm(booking, VendorId).IsSuccess,
             BookingStatus.Rejected => 
-                BookingValidationRules.CanVendorReject(booking , VendorId),
+                BookingValidationRules.CanVendorReject(booking , VendorId).IsSuccess,
             
             _ => false
         };
@@ -50,8 +50,8 @@ public class BookingService : IBookingService
             TotalAmount = booking.TotalAmount,
             Currency = booking.Currency,
             CreatedAt = booking.CreatedAt,
-            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, VendorId),
-            CanReject = BookingValidationRules.CanVendorReject(booking, VendorId)
+            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, VendorId).IsSuccess,
+            CanReject = BookingValidationRules.CanVendorReject(booking, VendorId).IsSuccess
         };
     }
     public async Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request)
@@ -99,8 +99,8 @@ public class BookingService : IBookingService
             TotalAmount = booking.TotalAmount,
             Currency = booking.Currency,
             CreatedAt = booking.CreatedAt,
-            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, vendorId),
-            CanReject = BookingValidationRules.CanVendorReject(booking, vendorId)
+            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, vendorId).IsSuccess,
+            CanReject = BookingValidationRules.CanVendorReject(booking, vendorId).IsSuccess
         };
     }
 }

@@ -15,7 +15,7 @@ public class VendorProfileService : IVendorProfileService
         _userRepository = userRepository;
         _vendorProfileRepository = vendorProfileRepository;
     }
-
+    // Method to get vendor profile
     public async Task<VendorProfileDto> GetVendorProfileAsync(Guid userId)
     {
         var user = await _userRepository.GetByIdAsync(userId);
@@ -41,7 +41,7 @@ public class VendorProfileService : IVendorProfileService
             BusinessDescription = vendorProfile.BusinessDescription
         };
     }
-
+    // Method to update vendor profile
     public async Task<VendorProfileDto> UpdateVendorProfileAsync(Guid userId,UpdateVendorProfileDto dto)
     {
         // 1. Get user
@@ -89,6 +89,7 @@ public class VendorProfileService : IVendorProfileService
             BusinessDescription = vendorProfile.BusinessDescription
         };
     }
+    //method to update profile image url in user entity
     public async Task UpdateProfileImageAsync(Guid userId, string imageUrl)
     {
         var user = await _userRepository.GetByIdAsync(userId);

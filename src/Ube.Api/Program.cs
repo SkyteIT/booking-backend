@@ -95,6 +95,9 @@ builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 
 // Admin services
 builder.Services.AddScoped<IAdminVendorApplicationService, AdminVendorApplicationService>();
+
+//add Unit of work (handling transactions in complex operations)
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddEndpointsApiExplorer();
 
 

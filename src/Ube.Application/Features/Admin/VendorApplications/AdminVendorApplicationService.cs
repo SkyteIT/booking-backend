@@ -6,6 +6,7 @@ using Ube.Domain.Enums.Vendors;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
 
+
 namespace Ube.Application.Features.Admin.VendorApplications;
 
 public class AdminVendorApplicationService : IAdminVendorApplicationService
@@ -13,6 +14,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IVendorApplicationRepository _applicationRepo;
     private readonly IUserRepository _userRepo;
     private readonly IVendorProfileRepository _vendorRepo;
+    
 
     public AdminVendorApplicationService(
         IVendorApplicationRepository applicationRepo,
@@ -22,6 +24,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
         _vendorRepo = vendorRepo;
+        
     }
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
@@ -62,13 +65,18 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
 
             // Create VendorProfile
             var vendorProfile = new VendorProfile
-            {
+            {   
+                //from user
                 Id = Guid.NewGuid(),
                 UserId = user.Id,
+                //from application
                 BusinessName = application.BusinessName,
                 BusinessType = application.BusinessType,
                 BusinessDescription = application.Description,
                 ContactNumber = application.ContactNumber,
+
+                //default values
+                Bio = string.Empty,
                 CreatedAt = DateTime.UtcNow,
                 IsActive = true
             };

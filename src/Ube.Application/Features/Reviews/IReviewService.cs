@@ -5,7 +5,7 @@ namespace Ube.Application.Features.Reviews;
 
 public interface IReviewService
 {
-    Task CreeateReviewAsync(CreateReviewDto dto, Guid currentUserId);
+    Task CreateReviewAsync(CreateReviewDto dto, Guid currentUserId);
 
-    Task <PagedResult<ReviewDto>> GetReviewsForVendorAsync(Guid vendorId, int pageNumber, int pageSize);
+    Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request);
 }

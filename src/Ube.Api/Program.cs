@@ -18,6 +18,7 @@ using Ube.Infrastructure.Persistence.Repositories.Users;
 using Ube.Infrastructure.Persistence.Repositories.Vendors;
 using Ube.Application.Features.Vendors;
 using Ube.Application.Common.Models.JWT;
+using Ube.Application.Common.Helpers;
 using Ube.Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -28,6 +29,8 @@ using Ube.Domain.Entities.Users;
 using Ube.Application.Features.Vendors.Payout;
 using Ube.Application.Features.Localization;
 using Ube.Application.Features.Admin.VendorApplications;
+using Ube.Application.Features.Reviews;
+using Ube.Infrastructure.Persistence.Repositories.Reviews;
 
 
 
@@ -74,6 +77,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IListingRepository, ListingRepository>();
+builder.Services.AddScoped<RatingHelper>();
 builder.Services.AddScoped<IBlockedDateRepository, BlockedDateRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
@@ -99,6 +103,10 @@ builder.Services.AddScoped<IAdminVendorApplicationService, AdminVendorApplicatio
 
 //add Unit of work (handling transactions in complex operations)
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+//add Review service
+builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+
 builder.Services.AddEndpointsApiExplorer();
 
 
@@ -111,8 +119,8 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlVzZXIiLCJleHAiOjE3Nzc1ODI1NzUsImlzcyI6IlViZUFwcCIsImF1ZCI6IlViZUFwcFVzZXJzIn0.Xp5MEet2XuoKbbClGN5tmdXm_6BUs1fw1j_wvZEsIYs"
-         });
+        Description = "Enter: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlVzZXIiLCJleHAiOjE3Nzc2NjQ5MjEsImlzcyI6IlViZUFwcCIsImF1ZCI6IlViZUFwcFVzZXJzIn0.1GqlxttdKs8Lx6xEGc-BvRYAT4zm23wPoENEtwVkZEs"
+        });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {

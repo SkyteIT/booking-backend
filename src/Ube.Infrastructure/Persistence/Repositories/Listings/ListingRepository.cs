@@ -21,10 +21,15 @@ public class ListingRepository : IListingRepository
             .FirstOrDefaultAsync(b => b.Id == listingId);
     }
     public async Task<List<Listing>> GetByVendorIdAsync(Guid vendorId)
-{
-    return await _db.Listings
-        .Include(l => l.VendorProfile)
-        .Where(l => l.VendorProfile.UserId == vendorId)
-        .ToListAsync();
-}
+    {
+        return await _db.Listings
+            .Include(l => l.VendorProfile)
+            .Where(l => l.VendorProfile.UserId == vendorId)
+            .ToListAsync();
+    }
+    public async Task UpdateAsync(Listing listing)
+    {
+        _db.Listings.Update(listing);
+        await _db.SaveChangesAsync();
+    }
 }

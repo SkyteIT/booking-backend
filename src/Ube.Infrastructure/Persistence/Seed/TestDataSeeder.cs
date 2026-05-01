@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
@@ -27,6 +28,10 @@ public static class TestDataSeeder
     public static readonly Guid PendingBookingId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
     public static readonly Guid ConfirmedBookingId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
     public static readonly Guid CancelledBookingId = Guid.Parse("99999999-9999-9999-9999-999999999999");
+    public static readonly Guid CompletedBookingId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+
+    public static readonly Guid ReviewId = Guid.Parse("bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb");
+    public static readonly Guid ReplyReviewId = Guid.Parse("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb");
 
     public static async Task SeedAsync(ApplicationDbContext dbContext, ILogger logger, CancellationToken cancellationToken = default)
     {
@@ -276,6 +281,7 @@ public static class TestDataSeeder
         var pendingStart = new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Utc);
         var confirmedStart = new DateTime(2026, 5, 15, 10, 0, 0, DateTimeKind.Utc);
         var cancelledStart = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Utc);
+        var completedStart = new DateTime(2026, 5, 25, 10, 0, 0, DateTimeKind.Utc);
 
         var pendingBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == PendingBookingId, cancellationToken);
         if (pendingBooking == null)
@@ -365,14 +371,108 @@ public static class TestDataSeeder
             dbContext.Bookings.Update(cancelledBooking);
         }
 
+        var completedBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == CompletedBookingId, cancellationToken);
+        if (completedBooking == null)
+        {
+            dbContext.Bookings.Add(new Booking
+            {
+                Id = CompletedBookingId,
+                BookingNumber = "BKG-000004",
+                ListingId = ListingId,
+                CustomerId = CustomerUserId,
+                StartDateTime = completedStart,
+                EndDateTime = completedStart.AddHours(4),
+                Status = BookingStatus.Completed,
+                TotalAmount = 20000m,
+                Currency = "LKR",
+                CreatedAt = now
+            });
+        }
+        else
+        {
+            completedBooking.ListingId = ListingId;
+            completedBooking.CustomerId = CustomerUserId;
+            completedBooking.StartDateTime = completedStart;
+            completedBooking.EndDateTime = completedStart.AddHours(4);
+            completedBooking.Status = BookingStatus.Completed;
+            completedBooking.TotalAmount = 20000m;
+            completedBooking.Currency = "LKR";
+            dbContext.Bookings.Update(completedBooking);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var review = await dbContext.Reviews.FirstOrDefaultAsync(x => x.Id == ReviewId, cancellationToken);
+        if (review == null)
+        {
+            dbContext.Reviews.Add(new Review
+            {
+                Id = ReviewId,
+                BookingId = CompletedBookingId,
+                ListingId = ListingId,
+                CustomerId = CustomerUserId,
+                VendorId = UserId,
+                Rating = 5,
+                Comment = "Great experience, very professional and on time.",
+                CreatedAt = now.AddHours(-6)
+            });
+        }
+        else
+        {
+            review.BookingId = CompletedBookingId;
+            review.ListingId = ListingId;
+            review.CustomerId = CustomerUserId;
+            review.VendorId = UserId;
+            review.Rating = 5;
+            review.Comment = "Great experience, very professional and on time.";
+            review.VendorReply = "Thank you for the feedback.";
+            review.VendorReplyAt = now.AddHours(-5);
+            review.CreatedAt = now.AddHours(-6);
+            dbContext.Reviews.Update(review);
+        }
+
+        var replyReview = await dbContext.Reviews.FirstOrDefaultAsync(x => x.Id == ReplyReviewId, cancellationToken);
+        if (replyReview == null)
+        {
+            dbContext.Reviews.Add(new Review
+            {
+                Id = ReplyReviewId,
+                BookingId = ConfirmedBookingId,
+                ListingId = ListingId,
+                CustomerId = CustomerUserId,
+                VendorId = UserId,
+                Rating = 4,
+                Comment = "Good service and clear communication.",
+                VendorReply = "Appreciate the review.",
+                VendorReplyAt = now.AddHours(-4),
+                CreatedAt = now.AddHours(-3)
+            });
+        }
+        else
+        {
+            replyReview.BookingId = ConfirmedBookingId;
+            replyReview.ListingId = ListingId;
+            replyReview.CustomerId = CustomerUserId;
+            replyReview.VendorId = UserId;
+            replyReview.Rating = 4;
+            replyReview.Comment = "Good service and clear communication.";
+            replyReview.VendorReply = "Appreciate the review.";
+            replyReview.VendorReplyAt = now.AddHours(-4);
+            replyReview.CreatedAt = now.AddHours(-3);
+            dbContext.Reviews.Update(replyReview);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Seed data ready. VendorProfileId={VendorProfileId}, OtherVendorProfileId={OtherVendorProfileId}, PendingBookingId={PendingBookingId}, ConfirmedBookingId={ConfirmedBookingId}, CancelledBookingId={CancelledBookingId}",
+            "Seed data ready. VendorProfileId={VendorProfileId}, OtherVendorProfileId={OtherVendorProfileId}, PendingBookingId={PendingBookingId}, ConfirmedBookingId={ConfirmedBookingId}, CancelledBookingId={CancelledBookingId}, CompletedBookingId={CompletedBookingId}, ReviewId={ReviewId}, ReplyReviewId={ReplyReviewId}",
             VendorProfileId,
             OtherVendorProfileId,
             PendingBookingId,
             ConfirmedBookingId,
-            CancelledBookingId);
+            CancelledBookingId,
+            CompletedBookingId,
+            ReviewId,
+            ReplyReviewId);
     }
 }

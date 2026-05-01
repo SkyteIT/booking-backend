@@ -32,4 +32,6 @@ public class Listing
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+    public double AverageRating { get; set; } = 0;
+    public int TotalReviews { get; set; } = 0;
 }

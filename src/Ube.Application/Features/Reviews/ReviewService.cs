@@ -4,22 +4,26 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Interfaces;
 using Ube.Domain.Entities.Reviews;
-
 using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Helpers;
+
 
 namespace Ube.Application.Features.Reviews;
 
 public class ReviewService : IReviewService
 {
     private readonly IBookingRepository _bookingRepo;
-    private readonly IListingRepository _listingRepo;
     private readonly IReviewRepository _reviewRepo;
+    private readonly RatingHelper _ratingHelper;
 
-    public ReviewService(IBookingRepository bookingRepo, IListingRepository listingRepo, IReviewRepository reviewRepo)
+    public ReviewService(
+        IBookingRepository bookingRepo,
+        IReviewRepository reviewRepo,
+        RatingHelper ratingHelper)
     {
         _bookingRepo = bookingRepo;
-        _listingRepo = listingRepo;
         _reviewRepo = reviewRepo;
+        _ratingHelper = ratingHelper;
     }
 
     public async Task CreateReviewAsync(CreateReviewDto dto, Guid currentUserId)
@@ -57,6 +61,8 @@ public class ReviewService : IReviewService
             Comment = dto.Comment
         };
         await _reviewRepo.AddAsync(review);
+
+        await _ratingHelper.UpdateListingRatingAsync(review.ListingId, null, review.Rating);
     }
 
     public async Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request)
@@ -134,4 +140,5 @@ public class ReviewService : IReviewService
 
         await _reviewRepo.UpdateAsync(review);
     }
+    
 }

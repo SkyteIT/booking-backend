@@ -3,7 +3,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models;
 using Ube.Domain.Entities.Reviews;
 
-namespace Ube.Infrastructure.Persistence.Repositories;
+namespace Ube.Infrastructure.Persistence.Repositories.Reviews;
 
 public class ReviewRepository : IReviewRepository
 {

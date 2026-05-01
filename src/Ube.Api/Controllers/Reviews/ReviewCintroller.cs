@@ -21,9 +21,7 @@ public class ReviewsController : ControllerBase
         _currentUser = currentUser;
     }
 
-    // create a review for a booking - only customers can create reviews and only one review per booking
     [Authorize]
-    [HttpPost("reviews")]
     // get reviews for a vendor with pagination and optional rating filter
     [HttpGet("vendors/{vendorId}/reviews")]
     public async Task<IActionResult> GetByVendor(

@@ -8,6 +8,7 @@ public class User
     public Guid Id { get; set; }
     public UserRole Role { get; set; } = UserRole.User;
 
+    // Should be unique (DB constraint later)
     public string Email { get; set; } = string.Empty;
 
     public string? PasswordHash { get; set; }

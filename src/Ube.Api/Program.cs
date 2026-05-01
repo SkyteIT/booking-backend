@@ -31,34 +31,48 @@ using Ube.Application.Features.Localization;
 using Ube.Application.Features.Admin.VendorApplications;
 using Ube.Application.Features.Reviews;
 using Ube.Infrastructure.Persistence.Repositories.Reviews;
+using Ube.Application.Common.Exceptions;
 
 
 
 var builder = WebApplication.CreateBuilder(args);
 var jwtSettings = builder.Configuration
         .GetSection("Jwt")
-        .Get<JwtSettings>() ?? throw new Exception("JWT settings not found in configuration.");
+        .Get<JwtSettings>();
 
+    if (jwtSettings == null) 
+        throw new BusinessRuleException("JWT settings not found in configuration.");
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    .AddJwtBearer(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
 
-        ValidIssuer = jwtSettings.Issuer,
-        ValidAudience = jwtSettings.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtSettings.Key))
-    };
-});
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSettings.Key)),
+            ClockSkew = TimeSpan.Zero // reduce default clock skew of 5 minutes
+        };
+    }
+);
+//add authorization policies based on roles
+builder.Services.AddAuthentication();
+builder.Services.AddHttpContextAccessor();
+//add authservice and token service
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
@@ -72,9 +86,10 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();//
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)).UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+
 // Register repositories and services
-builder.Services.AddScoped<ITokenService, TokenService>();
+
 builder.Services.AddScoped<IBookingRepository, BookingRepository>();
 builder.Services.AddScoped<IListingRepository, ListingRepository>();
 builder.Services.AddScoped<RatingHelper>();

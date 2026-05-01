@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services.Auth;
-using Ube.Application.Common.Models;
 using Ube.Application.Features.Reviews;
 
 namespace Ube.Api.Controllers.Reviews;

@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ube.Application.Common.Interfaces.Services.Auth;
@@ -28,9 +27,13 @@ public class TokenService : ITokenService
 
         var claims = new[]
         {
+            //using both NameIdentifier and Sub for compatibility with different libraries and conventions
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            // Using email as a claim for easier access in the application
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(ClaimTypes.Email, user.Email), // can be useful for certain libraries that look for this claim type
+            // Adding role claim for authorization purposes
             new Claim(ClaimTypes.Role, user.Role.ToString()) // Assuming all users are vendors for this example
         };
 

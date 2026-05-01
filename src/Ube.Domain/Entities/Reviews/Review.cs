@@ -16,7 +16,7 @@ public class Review
 
     public Guid CustomerId { get; set; }
     public User Customer { get; set; } = default!;
-
+    public Guid VendorId { get; set; }
     public int Rating { get; set; }
 
     public string Comment { get; set; } = string.Empty;

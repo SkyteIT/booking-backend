@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Ube.Application.Interfaces;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Ube.Application.Features.Users;
+using Ube.Application.Interfaces;
+using Ube.Infrastructure.Persistence;
 
 namespace Ube.Api.Controllers
 {
@@ -9,10 +13,12 @@ namespace Ube.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ApplicationDbContext _context;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, ApplicationDbContext context)
         {
             _authService = authService;
+            _context = context;
         }
 
         // =========================
@@ -24,7 +30,7 @@ namespace Ube.Api.Controllers
             try
             {
                 var token = await _authService.RegisterAsync(request);
-                return Ok(new { token }); // ✅ FIXED (important)
+                return Ok(new { token });
             }
             catch (Exception ex)
             {
@@ -41,7 +47,7 @@ namespace Ube.Api.Controllers
             try
             {
                 var token = await _authService.LoginAsync(request);
-                return Ok(new { token }); // ✅ FIXED (important)
+                return Ok(new { token });
             }
             catch (Exception ex)
             {
@@ -50,16 +56,13 @@ namespace Ube.Api.Controllers
         }
 
         // =========================
-        // GOOGLE LOGIN DTO
+        // GOOGLE LOGIN
         // =========================
         public class GoogleLoginRequest
         {
             public string Token { get; set; } = string.Empty;
         }
 
-        // =========================
-        // GOOGLE LOGIN
-        // =========================
         [HttpPost("google")]
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
         {
@@ -72,6 +75,44 @@ namespace Ube.Api.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        // =========================
+        // GET CURRENT USER (SIDEBAR)
+        // =========================
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetMe()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            if (!Guid.TryParse(userId, out var userGuid))
+                return BadRequest("Invalid user id format");
+
+            var user = await _context.Users
+                .Where(x => x.Id == userGuid)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.FirstName,
+                    x.LastName,
+                    x.Email
+                })
+                .FirstOrDefaultAsync();
+
+            if (user == null)
+                return NotFound();
+
+            return Ok(new
+            {
+                name = user.LastName == "User"
+        ? user.FirstName
+        : $"{user.FirstName} {user.LastName}",
+                email = user.Email
+            });
         }
     }
 }

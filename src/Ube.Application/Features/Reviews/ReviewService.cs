@@ -78,4 +78,60 @@ public class ReviewService : IReviewService
             TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
         };
     }
+    // Get average rating and total count for a vendor
+    public async Task<object> GetRatingAsync(Guid vendorId)
+    {
+        var (avg, count) = await _reviewRepo.GetRatingAsync(vendorId);
+        return new {
+            AverageRating = Math.Round(avg, 2),
+            TotalCount = count
+        };
+    }
+
+    // Update review
+    public async Task UpdateReviewAsync(CreateReviewDto dto, Guid currentUserId, Guid reviewId)
+    {
+        var review = await _reviewRepo.GetByIdAsync(reviewId);
+        if (review == null)
+            throw new NotFoundException("Review not found");
+        if(review.CustomerId != currentUserId)
+            throw new BusinessRuleException("You can only update your own reviews");
+        var ratingRule = ReviewRules.ValidateRating(dto.Rating);
+        if (!ratingRule.IsSuccess)
+            throw new BusinessRuleException(ratingRule.ErrorMessage);
+        review.Rating = dto.Rating;
+        review.Comment = dto.Comment;
+        review.UpdatedAt = DateTime.UtcNow;
+
+        await _reviewRepo.UpdateAsync(review);
+    }
+
+    public async Task DeleteReviewAsync(Guid reviewId, Guid userId)
+    {
+        var review = await _reviewRepo.GetByIdAsync(reviewId);
+
+        if (review == null)
+            throw new NotFoundException("Review not found");
+
+        if (review.CustomerId != userId)
+            throw new ForbiddenException("You can only delete your own review");
+
+        await _reviewRepo.DeleteAsync(review);
+    }
+    public async Task AddVendorReplyAsync(Guid reviewId, VendorReplyDto dto, Guid vendorUserId)
+    {
+        var review = await _reviewRepo.GetByIdAsync(reviewId);
+
+        if (review == null)
+            throw new NotFoundException("Review not found");
+
+        // optional: validate vendor owns listing
+        if (review.VendorId != vendorUserId)
+            throw new ForbiddenException("Not your review");
+
+        review.VendorReply = dto.Reply.Trim();
+        review.VendorReplyAt = DateTime.UtcNow;
+
+        await _reviewRepo.UpdateAsync(review);
+    }
 }

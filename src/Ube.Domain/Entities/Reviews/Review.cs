@@ -20,6 +20,8 @@ public class Review
     public int Rating { get; set; }
 
     public string Comment { get; set; } = string.Empty;
+    public string? VendorReply { get; set; }
+    public DateTime? VendorReplyAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -13,4 +13,9 @@ public interface IReviewRepository
         Guid vendorId,
         QueryOptions options
     );
+    Task<(double AverageRating, int TotalCount)> GetRatingAsync(Guid vendorId);
+
+    Task<Review?> GetByIdAsync(Guid id);
+    Task UpdateAsync(Review review);
+    Task DeleteAsync(Review review);
 }

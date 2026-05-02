@@ -4,6 +4,7 @@ using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
+using Ube.Domain.Entities.Auth;
 
 
 namespace Ube.Infrastructure.Persistence;
@@ -23,7 +24,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<VendorPayout> VendorPayouts { get; set; } = default!;
     public DbSet <BlockedDate> BlockedDates {get; set; } = default!;
     public DbSet <UserLocalizationSettings> UserLocalizationSettings { get; set; } = default!;
-
+    public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; } = default!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

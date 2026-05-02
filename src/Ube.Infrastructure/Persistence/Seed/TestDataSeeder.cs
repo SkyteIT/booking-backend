@@ -33,6 +33,94 @@ public static class TestDataSeeder
     public static readonly Guid ReviewId = Guid.Parse("bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb");
     public static readonly Guid ReplyReviewId = Guid.Parse("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb");
 
+    // Auth Endpoint Test Users
+    public static readonly Guid AuthTestLoginUserId = Guid.Parse("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa");
+    public static readonly Guid AuthTestVerifyEmailUserId = Guid.Parse("aaaaaaaa-2222-2222-2222-aaaaaaaaaaaa");
+    public static readonly Guid AuthTestCurrentUserUserId = Guid.Parse("aaaaaaaa-3333-3333-3333-aaaaaaaaaaaa");
+
+    // Test credentials for auth endpoints
+    public const string TestLoginEmail = "testlogin@example.com";
+    public const string TestLoginPassword = "SecurePassword123!";
+    public const string TestVerifyEmail = "testverify@example.com";
+    public const string TestCurrentUserEmail = "testcurrentuser@example.com";
+
+    /// <summary>
+    /// API ENDPOINT TO SEED DATA MAPPING
+    /// 
+    /// This section documents the relationship between AuthController endpoints
+    /// and the test seed data created for testing them.
+    /// 
+    /// ┌─────────────────────────────────────────────────────────────────┐
+    /// │ ENDPOINT: POST /api/auth/register                               │
+    /// ├─────────────────────────────────────────────────────────────────┤
+    /// │ Purpose: Register a new user                                    │
+    /// │ Request Body: { email, password, firstName, lastName }          │
+    /// │ Expected Response: { token, userId, email, role }              │
+    /// │ Test Data: No pre-seeded data needed - create new user         │
+    /// │ Example Request:                                                │
+    /// │ {                                                               │
+    /// │   "email": "newuser@example.com",                              │
+    /// │   "password": "SecurePassword123!",                            │
+    /// │   "firstName": "John",                                         │
+    /// │   "lastName": "Doe"                                            │
+    /// │ }                                                               │
+    /// └─────────────────────────────────────────────────────────────────┘
+    /// 
+    /// ┌─────────────────────────────────────────────────────────────────┐
+    /// │ ENDPOINT: POST /api/auth/login                                  │
+    /// ├─────────────────────────────────────────────────────────────────┤
+    /// │ Purpose: Authenticate user and get token                       │
+    /// │ Request Body: { email, password }                              │
+    /// │ Expected Response: { token, userId, email, role }              │
+    /// │ Test Data: AuthTestLoginUserId                                 │
+    /// │ Test Email: testlogin@example.com                              │
+    /// │ Test Password: SecurePassword123!                              │
+    /// │ Password Hash: $2a$11$zVw9/jXhvdx3QJPNRzKvSu3H7C0PkBfU8yM...   │
+    /// │ Example Request:                                                │
+    /// │ {                                                               │
+    /// │   "email": "testlogin@example.com",                            │
+    /// │   "password": "SecurePassword123!"                             │
+    /// │ }                                                               │
+    /// └─────────────────────────────────────────────────────────────────┘
+    /// 
+    /// ┌─────────────────────────────────────────────────────────────────┐
+    /// │ ENDPOINT: POST /api/auth/verify-email                           │
+    /// ├─────────────────────────────────────────────────────────────────┤
+    /// │ Purpose: Verify user email with token                          │
+    /// │ Query Parameter: token (email verification token)              │
+    /// │ Expected Response: { message: "Email verified successfully" }  │
+    /// │ Test Data: AuthTestVerifyEmailUserId                           │
+    /// │ Test Email: testverify@example.com                             │
+    /// │ Current Status: IsEmailVerified = false                        │
+    /// │ Example Request:                                                │
+    /// │ POST /api/auth/verify-email?token=your-verification-token     │
+    /// └─────────────────────────────────────────────────────────────────┘
+    /// 
+    /// ┌─────────────────────────────────────────────────────────────────┐
+    /// │ ENDPOINT: GET /api/auth/current-user                            │
+    /// ├─────────────────────────────────────────────────────────────────┤
+    /// │ Purpose: Get current authenticated user's information          │
+    /// │ Auth Required: Yes (JWT Token)                                 │
+    /// │ Expected Response: { userId: guid }                            │
+    /// │ Test Data: AuthTestCurrentUserUserId                           │
+    /// │ Test Email: testcurrentuser@example.com                        │
+    /// │ User ID: aaaaaaaa-3333-3333-3333-aaaaaaaaaaaa                 │
+    /// │ Example Request:                                                │
+    /// │ GET /api/auth/current-user                                    │
+    /// │ Headers: { Authorization: "Bearer <token>" }                   │
+    /// └─────────────────────────────────────────────────────────────────┘
+    /// 
+    /// SUMMARY TABLE:
+    /// ┌────────────────────┬──────────────────────┬──────────────────────┐
+    /// │ Endpoint           │ Seed User ID         │ Email                │
+    /// ├────────────────────┼──────────────────────┼──────────────────────┤
+    /// │ POST /register     │ N/A (dynamic)        │ N/A (dynamic)        │
+    /// │ POST /login        │ AuthTestLoginUserId  │ testlogin@...        │
+    /// │ POST /verify-email │ AuthTestVerifyEmail  │ testverify@...       │
+    /// │ GET /current-user  │ AuthTestCurrentUser  │ testcurrentuser@...  │
+    /// └────────────────────┴──────────────────────┴──────────────────────┘
+    /// </summary>
+
     public static async Task SeedAsync(ApplicationDbContext dbContext, ILogger logger, CancellationToken cancellationToken = default)
     {
         await dbContext.Database.MigrateAsync(cancellationToken);
@@ -89,6 +177,103 @@ public static class TestDataSeeder
                 AuthProvider = AuthProvider.Local,
                 CreatedAt = now
             });
+        }
+
+        // Auth Test Users (upsert to keep credentials deterministic across reruns)
+        var authTestLoginUser = await dbContext.Users.FirstOrDefaultAsync(
+            x => x.Id == AuthTestLoginUserId || x.Email == TestLoginEmail,
+            cancellationToken);
+        if (authTestLoginUser == null)
+        {
+            dbContext.Users.Add(new User
+            {
+                Id = AuthTestLoginUserId,
+                Email = TestLoginEmail,
+                FirstName = "Test",
+                LastName = "Login",
+                PhoneNumber = "+94770000010",
+                IsEmailVerified = true,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword),
+                Role = UserRole.User,
+                AuthProvider = AuthProvider.Local,
+                CreatedAt = now
+            });
+        }
+        else
+        {
+            authTestLoginUser.Email = TestLoginEmail;
+            authTestLoginUser.FirstName = "Test";
+            authTestLoginUser.LastName = "Login";
+            authTestLoginUser.PhoneNumber = "+94770000010";
+            authTestLoginUser.IsEmailVerified = true;
+            authTestLoginUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword);
+            authTestLoginUser.Role = UserRole.User;
+            authTestLoginUser.AuthProvider = AuthProvider.Local;
+            dbContext.Users.Update(authTestLoginUser);
+        }
+
+        var authTestVerifyUser = await dbContext.Users.FirstOrDefaultAsync(
+            x => x.Id == AuthTestVerifyEmailUserId || x.Email == TestVerifyEmail,
+            cancellationToken);
+        if (authTestVerifyUser == null)
+        {
+            dbContext.Users.Add(new User
+            {
+                Id = AuthTestVerifyEmailUserId,
+                Email = TestVerifyEmail,
+                FirstName = "Test",
+                LastName = "Verify",
+                PhoneNumber = "+94770000011",
+                IsEmailVerified = false,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword),
+                Role = UserRole.User,
+                AuthProvider = AuthProvider.Local,
+                CreatedAt = now
+            });
+        }
+        else
+        {
+            authTestVerifyUser.Email = TestVerifyEmail;
+            authTestVerifyUser.FirstName = "Test";
+            authTestVerifyUser.LastName = "Verify";
+            authTestVerifyUser.PhoneNumber = "+94770000011";
+            authTestVerifyUser.IsEmailVerified = false;
+            authTestVerifyUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword);
+            authTestVerifyUser.Role = UserRole.User;
+            authTestVerifyUser.AuthProvider = AuthProvider.Local;
+            dbContext.Users.Update(authTestVerifyUser);
+        }
+
+        var authTestCurrentUser = await dbContext.Users.FirstOrDefaultAsync(
+            x => x.Id == AuthTestCurrentUserUserId || x.Email == TestCurrentUserEmail,
+            cancellationToken);
+        if (authTestCurrentUser == null)
+        {
+            dbContext.Users.Add(new User
+            {
+                Id = AuthTestCurrentUserUserId,
+                Email = TestCurrentUserEmail,
+                FirstName = "Test",
+                LastName = "Current",
+                PhoneNumber = "+94770000012",
+                IsEmailVerified = true,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword),
+                Role = UserRole.User,
+                AuthProvider = AuthProvider.Local,
+                CreatedAt = now
+            });
+        }
+        else
+        {
+            authTestCurrentUser.Email = TestCurrentUserEmail;
+            authTestCurrentUser.FirstName = "Test";
+            authTestCurrentUser.LastName = "Current";
+            authTestCurrentUser.PhoneNumber = "+94770000012";
+            authTestCurrentUser.IsEmailVerified = true;
+            authTestCurrentUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword);
+            authTestCurrentUser.Role = UserRole.User;
+            authTestCurrentUser.AuthProvider = AuthProvider.Local;
+            dbContext.Users.Update(authTestCurrentUser);
         }
 
         var pendingVendorApplication = await dbContext.VendorApplications

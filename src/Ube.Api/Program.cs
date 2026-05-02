@@ -17,12 +17,9 @@ using FluentValidation.AspNetCore;
 using Ube.Infrastructure.Persistence.Repositories.Users;
 using Ube.Infrastructure.Persistence.Repositories.Vendors;
 using Ube.Application.Features.Vendors;
-using Ube.Application.Common.Models.JWT;
 using Ube.Application.Common.Helpers;
 using Ube.Infrastructure.Services.Auth;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using Ube.Api.Extensions;
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Identity;
 using Ube.Domain.Entities.Users;
@@ -31,57 +28,34 @@ using Ube.Application.Features.Localization;
 using Ube.Application.Features.Admin.VendorApplications;
 using Ube.Application.Features.Reviews;
 using Ube.Infrastructure.Persistence.Repositories.Reviews;
-using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Models;
+using Ube.Application.Features.Notifications.Email;
+using Ube.Application.Features.Auth;
+
 
 
 
 var builder = WebApplication.CreateBuilder(args);
-var jwtSettings = builder.Configuration
-        .GetSection("Jwt")
-        .Get<JwtSettings>();
 
-    if (jwtSettings == null) 
-        throw new BusinessRuleException("JWT settings not found in configuration.");
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
+// Add JWT Authentication
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
-            ValidIssuer = jwtSettings.Issuer,
-            ValidAudience = jwtSettings.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtSettings.Key)),
-            ClockSkew = TimeSpan.Zero // reduce default clock skew of 5 minutes
-        };
-    }
-);
-//add authorization policies based on roles
-builder.Services.AddAuthentication();
 builder.Services.AddHttpContextAccessor();
-//add authservice and token service
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+
+// Add auth service and token service
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
-builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("Jwt"));
 builder.Services.AddControllers(); 
 // Add FluentValidation 
 builder.Services.AddFluentValidationAutoValidation();
-// Register validators from the assembly containing Program
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();//
+// Register validators from the auth DTO assembly
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestDto>();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)).UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -121,7 +95,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 //add Review service
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
-
+//add email verification token repository
+builder.Services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddEndpointsApiExplorer();
 
 
@@ -134,8 +110,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsInN1YiI6IjIyMjIyMjIyLTIyMjItMjIyMi0yMjIyLTIyMjIyMjIyMjIyMiIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IlVzZXIiLCJleHAiOjE3Nzc2NjQ5MjEsImlzcyI6IlViZUFwcCIsImF1ZCI6IlViZUFwcFVzZXJzIn0.1GqlxttdKs8Lx6xEGc-BvRYAT4zm23wPoENEtwVkZEs"
-        });
+        Description = "Enter: Bearer {your JWT token}" });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {

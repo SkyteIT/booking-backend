@@ -28,6 +28,9 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
         builder.Property(x => x.ThumbnailUrl)
             .HasMaxLength(500);
 
+        builder.Property(x => x.OriginalCategoryName)
+            .HasMaxLength(150);
+
         builder.HasOne(x => x.Category)
             .WithMany(x => x.Listings)
             .HasForeignKey(x => x.CategoryId)

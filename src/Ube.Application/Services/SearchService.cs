@@ -18,16 +18,32 @@ public class SearchService : ISearchService
     {
         var query = _context.Listings
             .Include(x => x.Category)
-            .Where(x => x.Status == RecordStatus.Active);
+            // Only return Active listings whose category is also Active.
+            // Inactive/Deleted listings (e.g. user-created ones with default Status=0)
+            // are intentionally excluded.
+            .Where(x => x.Status == RecordStatus.Active
+                     && x.Category.Status == RecordStatus.Active);
 
         if (request.CategoryIds.Count > 0)
             query = query.Where(x => request.CategoryIds.Contains(x.CategoryId));
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-            query = query.Where(x => x.Title.Contains(request.SearchTerm));
+        {
+            // EF Core translates this to SQL LIKE which is case-insensitive on most
+            // SQL Server collations (CI). We also normalise to lower on both sides as
+            // a defensive measure for CS collations.
+            var term = request.SearchTerm.Trim().ToLower();
+            query = query.Where(x =>
+                x.Title.ToLower().Contains(term) ||
+                x.Category.Name.ToLower().Contains(term) ||
+                x.Location.ToLower().Contains(term));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Location))
-            query = query.Where(x => x.Location.Contains(request.Location));
+        {
+            var loc = request.Location.Trim().ToLower();
+            query = query.Where(x => x.Location.ToLower().Contains(loc));
+        }
 
         if (request.MinPrice.HasValue)
             query = query.Where(x => x.PriceFrom >= request.MinPrice.Value);

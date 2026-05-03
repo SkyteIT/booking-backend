@@ -27,10 +27,18 @@ public class ListingResponse
 
     public string VendorName { get; set; } = string.Empty;
 
-    //  NEW � Listing Type
+    //  NEW  Listing Type
     public ListingType Type { get; set; }
 
-    //  NEW � Type-specific data
+    public string Status { get; set; } = "Live";
+
+    public double Rating { get; set; }
+
+    public int BookingsCount { get; set; }
+
+    public string? PrimaryImage { get; set; }
+
+    //  NEW  Type-specific data
     public List<string> Images { get; set; } = new();
     public HotelDetailsResponse? HotelDetails { get; set; }
 }

@@ -23,8 +23,8 @@ namespace Ube.Api.Controllers
         {
             try
             {
-                var token = await _authService.RegisterAsync(request);
-                return Ok(new { token }); // ✅ FIXED (important)
+                var result = await _authService.RegisterAsync(request);
+                return Ok(result); 
             }
             catch (Exception ex)
             {
@@ -40,8 +40,8 @@ namespace Ube.Api.Controllers
         {
             try
             {
-                var token = await _authService.LoginAsync(request);
-                return Ok(new { token }); // ✅ FIXED (important)
+                var result = await _authService.LoginAsync(request);
+                return Ok(result); 
             }
             catch (Exception ex)
             {
@@ -65,8 +65,8 @@ namespace Ube.Api.Controllers
         {
             try
             {
-                var jwt = await _authService.GoogleLoginAsync(request.Token);
-                return Ok(new { token = jwt });
+                var result = await _authService.GoogleLoginAsync(request.Token);
+                return Ok(result);
             }
             catch (Exception ex)
             {

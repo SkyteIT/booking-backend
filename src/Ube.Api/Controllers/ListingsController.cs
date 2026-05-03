@@ -196,6 +196,51 @@ public class ListingsController : ControllerBase
         return CreatedAtAction(nameof(GetListingById), new { id = listing.Id }, listing.Id);
     }
 
+    // ================= GET MY LISTINGS =================
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetMyListings()
+    {
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out var userId))
+        {
+            return Unauthorized("User ID not found in token.");
+        }
+
+        var vendor = await _context.VendorProfiles
+            .FirstOrDefaultAsync(v => v.UserId == userId);
+
+        if (vendor == null)
+            return Forbid("No vendor profile found.");
+
+        var listings = await _context.Listings
+            .Where(l => l.VendorProfileId == vendor.Id)
+            .Include(l => l.Category)
+            .Include(l => l.Images)
+            .Select(l => new ListingResponse
+            {
+                Id = l.Id,
+                VendorId = l.VendorProfileId,
+                CategoryId = l.CategoryId,
+                Title = l.Title,
+                Description = l.Description,
+                BasePrice = l.BasePrice,
+                Currency = l.Currency,
+                Location = l.Location,
+                IsActive = l.IsActive,
+                CategoryName = l.Category != null ? l.Category.Name : "Other",
+                VendorName = vendor.BusinessName,
+                Type = l.Type,
+                Status = l.IsActive ? "Live" : "Inactive",
+                PrimaryImage = l.Images.OrderByDescending(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault(),
+                BookingsCount = _context.Bookings.Count(b => b.ListingId == l.Id),
+                Rating = _context.Reviews.Where(r => r.ListingId == l.Id).Select(r => (double?)r.Rating).Average() ?? 0
+            })
+            .ToListAsync();
+
+        return Ok(listings);
+    }
+
     // ================= GET =================
     [HttpGet("{id}")]
     public async Task<IActionResult> GetListingById(Guid id)

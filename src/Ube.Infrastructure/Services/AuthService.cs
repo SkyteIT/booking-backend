@@ -26,7 +26,7 @@ namespace Ube.Infrastructure.Services
         // =========================
         // REGISTER
         // =========================
-        public async Task<string> RegisterAsync(RegisterRequest request)
+        public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
         {
             Console.WriteLine("➡ REGISTER STARTED");
 
@@ -81,7 +81,11 @@ namespace Ube.Infrastructure.Services
 
                 Console.WriteLine("✅ USER SAVED");
 
-                return GenerateToken(user);
+                return new AuthResponse 
+                { 
+                    Token = GenerateToken(user),
+                    UserName = $"{user.FirstName} {user.LastName}"
+                };
             }
             catch (Exception ex)
             {
@@ -93,7 +97,7 @@ namespace Ube.Infrastructure.Services
         // =========================
         // LOGIN
         // =========================
-        public async Task<string> LoginAsync(LoginRequest request)
+        public async Task<AuthResponse> LoginAsync(LoginRequest request)
         {
             var email = request.Email?.Trim().ToLower();
 
@@ -108,7 +112,11 @@ namespace Ube.Infrastructure.Services
             if (!isValid)
                 throw new Exception("Invalid credentials");
 
-            return GenerateToken(user);
+            return new AuthResponse 
+            { 
+                Token = GenerateToken(user),
+                UserName = $"{user.FirstName} {user.LastName}"
+            };
         }
 
         // =========================
@@ -120,6 +128,7 @@ namespace Ube.Infrastructure.Services
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"), // Add name claim
                 new Claim(ClaimTypes.Role, user.Role ?? "User")
             };
 
@@ -142,7 +151,7 @@ namespace Ube.Infrastructure.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        public async Task<string> GoogleLoginAsync(string token)
+        public async Task<AuthResponse> GoogleLoginAsync(string token)
         {
             var payload = await GoogleJsonWebSignature.ValidateAsync(token);
 
@@ -167,7 +176,11 @@ namespace Ube.Infrastructure.Services
                 await _context.SaveChangesAsync(CancellationToken.None);
             }
 
-            return GenerateToken(user);
+            return new AuthResponse 
+            { 
+                Token = GenerateToken(user),
+                UserName = $"{user.FirstName} {user.LastName}"
+            };
         }
     }
 }

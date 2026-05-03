@@ -78,7 +78,7 @@ namespace Ube.Api.Controllers
         }
 
         // =========================
-        // GET CURRENT USER (SIDEBAR)
+        // GET CURRENT USER
         // =========================
         [HttpGet("me")]
         [Authorize]
@@ -109,10 +109,11 @@ namespace Ube.Api.Controllers
             return Ok(new
             {
                 name = user.LastName == "User"
-        ? user.FirstName
-        : $"{user.FirstName} {user.LastName}",
+                    ? user.FirstName
+                    : $"{user.FirstName} {user.LastName}",
                 email = user.Email
             });
         }
+       
     }
 }

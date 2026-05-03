@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs;
+using Ube.Application.Features.DTOs;
 using Ube.Domain.Entities;
 using Ube.Infrastructure.Persistence;
 

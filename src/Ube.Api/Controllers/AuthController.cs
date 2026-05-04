@@ -77,9 +77,8 @@ namespace Ube.Api.Controllers
             }
         }
 
-        // =========================
         // GET CURRENT USER
-        // =========================
+      
         [HttpGet("me")]
         [Authorize]
         public async Task<IActionResult> GetMe()
@@ -91,7 +90,7 @@ namespace Ube.Api.Controllers
 
             if (!Guid.TryParse(userId, out var userGuid))
                 return BadRequest("Invalid user id format");
-
+            //Fetch user from DB
             var user = await _context.Users
                 .Where(x => x.Id == userGuid)
                 .Select(x => new
@@ -114,6 +113,6 @@ namespace Ube.Api.Controllers
                 email = user.Email
             });
         }
-       
+
     }
 }

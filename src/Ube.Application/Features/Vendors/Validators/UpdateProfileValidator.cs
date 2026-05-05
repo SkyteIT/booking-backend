@@ -20,7 +20,7 @@ public class UpdateProfileValidator : AbstractValidator<UpdateVendorProfileDto>
         // Phone
         RuleFor(x => x.PhoneNumber)
             .Matches(@"^\d{10}$")
-            .When(x => !string.IsNullOrEmpty(x.PhoneNumber))
+            .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber))
             .WithMessage("Phone number must be 10 digits");
 
         // Business Name
@@ -32,8 +32,6 @@ public class UpdateProfileValidator : AbstractValidator<UpdateVendorProfileDto>
         RuleFor(x => x.Bio)
             .MaximumLength(250);
 
-        // Description
-        RuleFor(x => x.BusinessDescription)
-            .MaximumLength(1000);
+        
     }
 }

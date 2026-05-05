@@ -5,7 +5,7 @@ using Ube.Application.Features.Reviews;
 
 namespace Ube.Api.Controllers.Reviews;
 
-[Authorize]
+[Authorize (Roles = "Vendor")]
 [ApiController]
 [Route("api/vendor/reviews")]
 public class VendorReviewsController : ControllerBase

@@ -7,5 +7,5 @@ public interface IAdminVendorApplicationService
 {
     Task ReviewApplicationAsync(Guid applicationId, Guid adminId, ReviewVendorApplicationDto reviewDto);
     Task <ApplicationDetailDto> GetDetailsAsync(Guid applicationId);
-    Task <PagedResult<ApplicationDetailDto>> GetAllAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);
+    Task <PagedResult<ApplicationTableDto>> GetAllAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);
 }

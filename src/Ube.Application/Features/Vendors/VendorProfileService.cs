@@ -63,8 +63,8 @@ public class VendorProfileService : IVendorProfileService
         user.UpdatedAt = DateTime.UtcNow;
 
         // 4. Update Vendor fields
-        vendorProfile.BusinessName = dto.BusinessName.Trim();
-        vendorProfile.BusinessDescription = dto.BusinessDescription?.Trim() ?? string.Empty;
+        vendorProfile.BusinessName = dto.BusinessName?.Trim() ?? string.Empty;
+        
         vendorProfile.Bio = dto.Bio?.Trim() ?? string.Empty;
         vendorProfile.UpdatedAt = DateTime.UtcNow;
 

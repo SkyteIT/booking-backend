@@ -24,20 +24,20 @@ public class VendorApplicationRepository : IVendorApplicationRepository
         _db.VendorApplications.Update(application);
         await _db.SaveChangesAsync();
     }
-
-    public async Task<(List<VendorApplication> Items, int TotalItems)> GetPagedAsync(VendorApplicationStatus? status, VendorApplicationsRequest options)
+    public async Task<(List<ApplicationTableDto> Items, int TotalItems)> GetPagedTableAsync(VendorApplicationStatus? status, VendorApplicationsRequest options)
     {
         var query = _db.VendorApplications.AsQueryable();
-        // Filter by status if provided
+
         if (status.HasValue)
         {
             query = query.Where(a => a.Status == status.Value);
         }
-        // Apply search filter if provided
+
         if (!string.IsNullOrEmpty(options.Search))
         {
             query = query.Where(a => a.BusinessName.Contains(options.Search));
         }
+
         query = options.SortOptions switch
         {
             VendorApplicationSortBy.BusinessNameAsc => query.OrderBy(a => a.BusinessName),
@@ -48,11 +48,28 @@ public class VendorApplicationRepository : IVendorApplicationRepository
             VendorApplicationSortBy.Newest => query.OrderByDescending(a => a.SubmittedAt),
             _ => query.OrderByDescending(a => a.SubmittedAt)
         };
+
         var totalItems = await query.CountAsync();
+
         var items = await query
+            .Join(
+                _db.Users,
+                application => application.UserId,
+                user => user.Id,
+                (application, user) => new ApplicationTableDto
+                {
+                    Id = application.Id,
+                    userName = user.FirstName + " " + user.LastName,
+                    BusinessName = application.BusinessName,
+                    BusinessType = application.BusinessType,
+                    ContactNumber = application.ContactNumber,
+                    Status = application.Status,
+                    SubmittedAt = application.SubmittedAt,
+                })
             .Skip((options.PageNumber - 1) * options.PageSize)
             .Take(options.PageSize)
             .ToListAsync();
+
         return (items, totalItems);
     }
 }

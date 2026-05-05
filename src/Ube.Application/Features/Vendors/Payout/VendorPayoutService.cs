@@ -34,7 +34,18 @@ public class VendorPayoutService
         if (payout == null)
             throw new NotFoundException("Payout details not found");
 
-        var decryptedAccount = _encryptionService.Decrypt(payout.AccountNumber);
+        var decryptedAccount = string.Empty;
+        if (!string.IsNullOrEmpty(payout.AccountNumber))
+        {
+            try
+            {
+                decryptedAccount = _encryptionService.Decrypt(payout.AccountNumber);
+            }
+            catch
+            {
+                decryptedAccount = "****";
+            }
+        }
 
         return new VendorPayoutDto
         {

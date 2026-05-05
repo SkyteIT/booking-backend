@@ -1,24 +1,18 @@
-using Microsoft.AspNetCore.Identity;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Persistence;
-using Ube.Domain.Entities.Users;
+
 
 public class SecurityService
 {
     private readonly IUserRepository _userRepository;
-    private readonly IPasswordHasher<User> _passwordHasher;
 
     public SecurityService(
-        IUserRepository userRepository,
-        IPasswordHasher<User> passwordHasher)
+        IUserRepository userRepository)
     {
         _userRepository = userRepository;
-        _passwordHasher = passwordHasher;
     }
 
     public async Task ChangePasswordAsync(Guid userId, ChangePasswordDto dto)
-{
-    try
     {
         var user = await _userRepository.GetByIdAsync(userId);
 
@@ -28,27 +22,14 @@ public class SecurityService
         if (string.IsNullOrEmpty(user.PasswordHash))
             throw new BusinessRuleException("Password not set");
 
-        var result = _passwordHasher.VerifyHashedPassword(
-            user,
-            user.PasswordHash,
-            dto.CurrentPassword
-        );
+        var isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash);
 
-        if (result == PasswordVerificationResult.Failed)
+        if (!isCurrentPasswordValid)
             throw new BusinessRuleException("Current password is incorrect");
 
-        user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword);
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
 
         await _userRepository.UpdateAsync(user);
     }
-    catch (Exception ex)
-    {
-        // DEBUG HERE
-        Console.WriteLine("ERROR: " + ex.Message);
-        Console.WriteLine(ex.StackTrace);
-
-        throw new BusinessRuleException("Failed to change password"); // keep middleware handling
-    }
-}
 }

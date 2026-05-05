@@ -4,7 +4,7 @@ using Ube.Application.Common.Interfaces.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 namespace Ube.Api.Controllers.Availability;
     
-[Authorize]
+[Authorize (Roles = "Vendor")]
 [ApiController]
 [Route("api/availability")]
 public class AvailabilityController : ControllerBase

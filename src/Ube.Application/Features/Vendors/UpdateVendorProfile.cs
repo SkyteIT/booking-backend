@@ -8,7 +8,7 @@ public class UpdateVendorProfileDto
     public string? PhoneNumber { get; set; }
 
     // Vendor fields
-    public string BusinessName { get; set; } = string.Empty;
+    public string? BusinessName { get; set; }
     public string? Bio { get; set; }
-    public string? BusinessDescription { get; set; }
+    
 }

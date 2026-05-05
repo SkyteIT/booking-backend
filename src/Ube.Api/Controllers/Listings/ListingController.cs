@@ -3,9 +3,9 @@ using Ube.Application.Common.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
 using Ube.Application.Common.Interfaces.Services.Auth;
 namespace Ube.Api.Controllers.Listings;
-[Authorize]
+[Authorize (Roles = "Vendor")]
 [ApiController]
-[Route("api/listings")]
+[Route("api/listings") ]
 public class ListingController : ControllerBase
 {
     private readonly IListingService _listingService;

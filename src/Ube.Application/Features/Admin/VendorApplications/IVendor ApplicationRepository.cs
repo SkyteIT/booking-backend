@@ -10,5 +10,5 @@ public interface IVendorApplicationRepository
 {
     Task<VendorApplication?> GetByIdAsync(Guid id);
     Task UpdateAsync(VendorApplication application);
-    Task <(List<VendorApplication> Items, int TotalItems)> GetPagedAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);
+    Task<(List<ApplicationTableDto> Items, int TotalItems)> GetPagedTableAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);
 }

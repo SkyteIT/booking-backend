@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
-using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
+using Ube.Domain.Enums.Listings;
 using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Vendors;
 
@@ -13,113 +13,66 @@ namespace Ube.Infrastructure.Persistence.Seed;
 
 public static class TestDataSeeder
 {
-    public static readonly Guid CustomerUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-    public static readonly Guid UserId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    public static readonly Guid OtherVendorUserId = Guid.Parse("33333333-3333-3333-3333-333333333333");
-    public static readonly Guid PendingVendorApplicationId = Guid.Parse("44444444-4444-4444-4444-444444444444");
-    public static readonly Guid RejectedVendorApplicationId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+    public static readonly Guid AdminUserId = Guid.Parse("aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa");
+    public static readonly Guid VendorUserId = Guid.Parse("bbbbbbbb-0000-0000-0000-bbbbbbbbbbbb");
+    public static readonly Guid VendorProfileId = Guid.Parse("bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb");
 
-    public static readonly Guid VendorProfileId = UserId;
-    public static readonly Guid OtherVendorProfileId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+    public static readonly Guid Customer1Id = Guid.Parse("cccccccc-0000-0000-0000-cccccccccccc");
+    public static readonly Guid Customer2Id = Guid.Parse("cccccccc-1111-1111-1111-cccccccccccc");
+    public static readonly Guid Customer3Id = Guid.Parse("cccccccc-2222-2222-2222-cccccccccccc");
+    public static readonly Guid Customer4Id = Guid.Parse("cccccccc-6666-6666-6666-cccccccccccc");
+    public static readonly Guid Customer5Id = Guid.Parse("cccccccc-7777-7777-7777-cccccccccccc");
 
-    public static readonly Guid CategoryPhotographyId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
-    public static readonly Guid ListingId = Guid.Parse("dddddddd-dddd-dddd-dddd-dddddddddddd");
+    public static readonly Guid CategoryId = Guid.Parse("dddddddd-0000-0000-0000-dddddddddddd");
 
-    public static readonly Guid PendingBookingId = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
-    public static readonly Guid ConfirmedBookingId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
-    public static readonly Guid CancelledBookingId = Guid.Parse("99999999-9999-9999-9999-999999999999");
-    public static readonly Guid CompletedBookingId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    public static readonly Guid Listing1Id = Guid.Parse("eeeeeeee-0000-0000-0000-eeeeeeeeeeee");
+    public static readonly Guid Listing2Id = Guid.Parse("eeeeeeee-1111-1111-1111-eeeeeeeeeeee");
+    public static readonly Guid Listing3Id = Guid.Parse("eeeeeeee-2222-2222-2222-eeeeeeeeeeee");
+    public static readonly Guid Listing4Id = Guid.Parse("eeeeeeee-3333-3333-3333-eeeeeeeeeeee");
+    public static readonly Guid Listing5Id = Guid.Parse("eeeeeeee-4444-4444-4444-eeeeeeeeeeee");
 
-    public static readonly Guid ReviewId = Guid.Parse("bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb");
-    public static readonly Guid ReplyReviewId = Guid.Parse("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb");
+    public static readonly Guid VendorPayoutId = Guid.Parse("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb");
 
-    // Auth Endpoint Test Users
-    public static readonly Guid AuthTestLoginUserId = Guid.Parse("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa");
-    public static readonly Guid AuthTestVerifyEmailUserId = Guid.Parse("aaaaaaaa-2222-2222-2222-aaaaaaaaaaaa");
-    public static readonly Guid AuthTestCurrentUserUserId = Guid.Parse("aaaaaaaa-3333-3333-3333-aaaaaaaaaaaa");
+    public static readonly Guid VendorApplication1Id = Guid.Parse("dddddddd-1111-1111-1111-dddddddddddd");
+    public static readonly Guid VendorApplication2Id = Guid.Parse("dddddddd-2222-2222-2222-dddddddddddd");
+    public static readonly Guid VendorApplication3Id = Guid.Parse("dddddddd-3333-3333-3333-dddddddddddd");
+    public static readonly Guid VendorApplication4Id = Guid.Parse("dddddddd-4444-4444-4444-dddddddddddd");
+    public static readonly Guid VendorApplication5Id = Guid.Parse("dddddddd-5555-5555-5555-dddddddddddd");
 
-    // Test credentials for auth endpoints
-    public const string TestLoginEmail = "testlogin@example.com";
-    public const string TestLoginPassword = "SecurePassword123!";
-    public const string TestVerifyEmail = "testverify@example.com";
-    public const string TestCurrentUserEmail = "testcurrentuser@example.com";
+    public static readonly Guid AdminLocalizationId = Guid.Parse("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa");
+    public static readonly Guid VendorLocalizationId = Guid.Parse("bbbbbbbb-3333-3333-3333-bbbbbbbbbbbb");
+    public static readonly Guid Customer1LocalizationId = Guid.Parse("cccccccc-3333-3333-3333-cccccccccccc");
+    public static readonly Guid Customer2LocalizationId = Guid.Parse("cccccccc-4444-4444-4444-cccccccccccc");
+    public static readonly Guid Customer3LocalizationId = Guid.Parse("cccccccc-5555-5555-5555-cccccccccccc");
+    public static readonly Guid Customer4LocalizationId = Guid.Parse("cccccccc-6666-6666-6666-cccccccccccc");
+    public static readonly Guid Customer5LocalizationId = Guid.Parse("cccccccc-7777-7777-7777-cccccccccccc");
 
-    /// <summary>
-    /// API ENDPOINT TO SEED DATA MAPPING
-    /// 
-    /// This section documents the relationship between AuthController endpoints
-    /// and the test seed data created for testing them.
-    /// 
-    /// ┌─────────────────────────────────────────────────────────────────┐
-    /// │ ENDPOINT: POST /api/auth/register                               │
-    /// ├─────────────────────────────────────────────────────────────────┤
-    /// │ Purpose: Register a new user                                    │
-    /// │ Request Body: { email, password, firstName, lastName }          │
-    /// │ Expected Response: { token, userId, email, role }              │
-    /// │ Test Data: No pre-seeded data needed - create new user         │
-    /// │ Example Request:                                                │
-    /// │ {                                                               │
-    /// │   "email": "newuser@example.com",                              │
-    /// │   "password": "SecurePassword123!",                            │
-    /// │   "firstName": "John",                                         │
-    /// │   "lastName": "Doe"                                            │
-    /// │ }                                                               │
-    /// └─────────────────────────────────────────────────────────────────┘
-    /// 
-    /// ┌─────────────────────────────────────────────────────────────────┐
-    /// │ ENDPOINT: POST /api/auth/login                                  │
-    /// ├─────────────────────────────────────────────────────────────────┤
-    /// │ Purpose: Authenticate user and get token                       │
-    /// │ Request Body: { email, password }                              │
-    /// │ Expected Response: { token, userId, email, role }              │
-    /// │ Test Data: AuthTestLoginUserId                                 │
-    /// │ Test Email: testlogin@example.com                              │
-    /// │ Test Password: SecurePassword123!                              │
-    /// │ Password Hash: $2a$11$zVw9/jXhvdx3QJPNRzKvSu3H7C0PkBfU8yM...   │
-    /// │ Example Request:                                                │
-    /// │ {                                                               │
-    /// │   "email": "testlogin@example.com",                            │
-    /// │   "password": "SecurePassword123!"                             │
-    /// │ }                                                               │
-    /// └─────────────────────────────────────────────────────────────────┘
-    /// 
-    /// ┌─────────────────────────────────────────────────────────────────┐
-    /// │ ENDPOINT: POST /api/auth/verify-email                           │
-    /// ├─────────────────────────────────────────────────────────────────┤
-    /// │ Purpose: Verify user email with token                          │
-    /// │ Query Parameter: token (email verification token)              │
-    /// │ Expected Response: { message: "Email verified successfully" }  │
-    /// │ Test Data: AuthTestVerifyEmailUserId                           │
-    /// │ Test Email: testverify@example.com                             │
-    /// │ Current Status: IsEmailVerified = false                        │
-    /// │ Example Request:                                                │
-    /// │ POST /api/auth/verify-email?token=your-verification-token     │
-    /// └─────────────────────────────────────────────────────────────────┘
-    /// 
-    /// ┌─────────────────────────────────────────────────────────────────┐
-    /// │ ENDPOINT: GET /api/auth/current-user                            │
-    /// ├─────────────────────────────────────────────────────────────────┤
-    /// │ Purpose: Get current authenticated user's information          │
-    /// │ Auth Required: Yes (JWT Token)                                 │
-    /// │ Expected Response: { userId: guid }                            │
-    /// │ Test Data: AuthTestCurrentUserUserId                           │
-    /// │ Test Email: testcurrentuser@example.com                        │
-    /// │ User ID: aaaaaaaa-3333-3333-3333-aaaaaaaaaaaa                 │
-    /// │ Example Request:                                                │
-    /// │ GET /api/auth/current-user                                    │
-    /// │ Headers: { Authorization: "Bearer <token>" }                   │
-    /// └─────────────────────────────────────────────────────────────────┘
-    /// 
-    /// SUMMARY TABLE:
-    /// ┌────────────────────┬──────────────────────┬──────────────────────┐
-    /// │ Endpoint           │ Seed User ID         │ Email                │
-    /// ├────────────────────┼──────────────────────┼──────────────────────┤
-    /// │ POST /register     │ N/A (dynamic)        │ N/A (dynamic)        │
-    /// │ POST /login        │ AuthTestLoginUserId  │ testlogin@...        │
-    /// │ POST /verify-email │ AuthTestVerifyEmail  │ testverify@...       │
-    /// │ GET /current-user  │ AuthTestCurrentUser  │ testcurrentuser@...  │
-    /// └────────────────────┴──────────────────────┴──────────────────────┘
-    /// </summary>
+    public static readonly Guid[,] BookingIds = new Guid[3, 5]
+    {
+        {
+            Guid.Parse("f0000000-0000-0000-0000-000000000001"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000002"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000003"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000004"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000005")
+        },
+        {
+            Guid.Parse("f0000000-0000-0000-0000-000000000006"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000007"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000008"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000009"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000010")
+        },
+        {
+            Guid.Parse("f0000000-0000-0000-0000-000000000011"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000012"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000013"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000014"),
+            Guid.Parse("f0000000-0000-0000-0000-000000000015")
+        }
+    };
+
+    public const string SeedPassword = "SecurePassword123!";
 
     public static async Task SeedAsync(ApplicationDbContext dbContext, ILogger logger, CancellationToken cancellationToken = default)
     {
@@ -127,537 +80,488 @@ public static class TestDataSeeder
 
         var now = DateTime.UtcNow;
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == CustomerUserId, cancellationToken))
-        {
-            dbContext.Users.Add(new User
-            {
-                Id = CustomerUserId,
-                Email = "customer@test.local",
-                FirstName = "Isuru",
-                LastName = "Kavinda",
-                PhoneNumber = "+94770000001",
-                IsEmailVerified = true,
-                AuthProvider = AuthProvider.Local,
-                CreatedAt = now
-            });
-        }
+        UpsertUser(dbContext, AdminUserId, UserRole.Admin, "admin@ube.local", "System", "Admin", "+94770000000", true, now, cancellationToken);
+        UpsertUser(dbContext, VendorUserId, UserRole.Vendor, "vendor@ube.local", "Main", "Vendor", "+94770000001", true, now, cancellationToken);
+        UpsertUser(dbContext, Customer1Id, UserRole.User, "customer1@ube.local", "Customer", "One", "+94770000011", true, now, cancellationToken);
+        UpsertUser(dbContext, Customer2Id, UserRole.User, "customer2@ube.local", "Customer", "Two", "+94770000012", true, now, cancellationToken);
+        UpsertUser(dbContext, Customer3Id, UserRole.User, "customer3@ube.local", "Customer", "Three", "+94770000013", true, now, cancellationToken);
+        UpsertUser(dbContext, Customer4Id, UserRole.User, "customer4@ube.local", "Customer", "Four", "+94770000014", true, now, cancellationToken);
+        UpsertUser(dbContext, Customer5Id, UserRole.User, "customer5@ube.local", "Customer", "Five", "+94770000015", true, now, cancellationToken);
 
-        var mainVendorUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == UserId, cancellationToken);
-        if (mainVendorUser == null)
-        {
-            dbContext.Users.Add(new User
-            {
-                Id = UserId,
-                Role = UserRole.Vendor,
-                Email = "vendor@testU.local",
-                FirstName = "Main",
-                LastName = "Vendor",
-                PhoneNumber = "+94770000002",
-                IsEmailVerified = true,
-                AuthProvider = AuthProvider.Local,
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            mainVendorUser.Role = UserRole.Vendor;
-            dbContext.Users.Update(mainVendorUser);
-        }
+        // Ensure each user has localization settings
+        UpsertUserLocalization(dbContext, AdminLocalizationId, AdminUserId, "en", "UTC", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, VendorLocalizationId, VendorUserId, "si-LK", "Asia/Colombo", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, Customer1LocalizationId, Customer1Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, Customer2LocalizationId, Customer2Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, Customer3LocalizationId, Customer3Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, Customer4LocalizationId, Customer4Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, Customer5LocalizationId, Customer5Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == OtherVendorUserId, cancellationToken))
-        {
-            dbContext.Users.Add(new User
-            {
-                Id = OtherVendorUserId,
-                Email = "other-vendor@test.local",
-                FirstName = "Other",
-                LastName = "Vendor",
-                PhoneNumber = "+94770000003",
-                IsEmailVerified = true,
-                AuthProvider = AuthProvider.Local,
-                CreatedAt = now
-            });
-        }
+        UpsertVendorProfile(dbContext, VendorProfileId, VendorUserId, "Main Vendor Studio", "Photography", "Simple seeded vendor profile.", "+94770000001", now, cancellationToken);
+        // Add vendor payout defaults
+        UpsertVendorPayout(dbContext, VendorPayoutId, VendorProfileId, "Seed Bank", "000123456789", "Main Vendor", "Colombo Branch", now, cancellationToken);
+        UpsertCategory(dbContext, CategoryId, "Photography", "Seed category for all listings.", now, cancellationToken);
 
-        // Auth Test Users (upsert to keep credentials deterministic across reruns)
-        var authTestLoginUser = await dbContext.Users.FirstOrDefaultAsync(
-            x => x.Id == AuthTestLoginUserId || x.Email == TestLoginEmail,
+        UpsertVendorApplication(
+            dbContext,
+            VendorApplication1Id,
+            Customer1Id,
+            "Customer One Events",
+            "Events",
+            "Photography for customer one events.",
+            "Colombo",
+            "Customer One",
+            "+94770000011",
+            "https://example.com/license-c1.pdf",
+            "https://example.com/insurance-c1.pdf",
+            "https://example.com/tax-c1.pdf",
+            VendorApplicationStatus.Pending,
+            now,
             cancellationToken);
-        if (authTestLoginUser == null)
-        {
-            dbContext.Users.Add(new User
-            {
-                Id = AuthTestLoginUserId,
-                Email = TestLoginEmail,
-                FirstName = "Test",
-                LastName = "Login",
-                PhoneNumber = "+94770000010",
-                IsEmailVerified = true,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword),
-                Role = UserRole.User,
-                AuthProvider = AuthProvider.Local,
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            authTestLoginUser.Email = TestLoginEmail;
-            authTestLoginUser.FirstName = "Test";
-            authTestLoginUser.LastName = "Login";
-            authTestLoginUser.PhoneNumber = "+94770000010";
-            authTestLoginUser.IsEmailVerified = true;
-            authTestLoginUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword);
-            authTestLoginUser.Role = UserRole.User;
-            authTestLoginUser.AuthProvider = AuthProvider.Local;
-            dbContext.Users.Update(authTestLoginUser);
-        }
 
-        var authTestVerifyUser = await dbContext.Users.FirstOrDefaultAsync(
-            x => x.Id == AuthTestVerifyEmailUserId || x.Email == TestVerifyEmail,
+        UpsertVendorApplication(
+            dbContext,
+            VendorApplication2Id,
+            Customer2Id,
+            "Customer Two Studio",
+            "Portrait",
+            "Portrait and lifestyle sessions from customer two.",
+            "Kandy",
+            "Customer Two",
+            "+94770000012",
+            "https://example.com/license-c2.pdf",
+            "https://example.com/insurance-c2.pdf",
+            "https://example.com/tax-c2.pdf",
+            VendorApplicationStatus.Pending,
+            now,
             cancellationToken);
-        if (authTestVerifyUser == null)
-        {
-            dbContext.Users.Add(new User
-            {
-                Id = AuthTestVerifyEmailUserId,
-                Email = TestVerifyEmail,
-                FirstName = "Test",
-                LastName = "Verify",
-                PhoneNumber = "+94770000011",
-                IsEmailVerified = false,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword),
-                Role = UserRole.User,
-                AuthProvider = AuthProvider.Local,
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            authTestVerifyUser.Email = TestVerifyEmail;
-            authTestVerifyUser.FirstName = "Test";
-            authTestVerifyUser.LastName = "Verify";
-            authTestVerifyUser.PhoneNumber = "+94770000011";
-            authTestVerifyUser.IsEmailVerified = false;
-            authTestVerifyUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword);
-            authTestVerifyUser.Role = UserRole.User;
-            authTestVerifyUser.AuthProvider = AuthProvider.Local;
-            dbContext.Users.Update(authTestVerifyUser);
-        }
 
-        var authTestCurrentUser = await dbContext.Users.FirstOrDefaultAsync(
-            x => x.Id == AuthTestCurrentUserUserId || x.Email == TestCurrentUserEmail,
+        UpsertVendorApplication(
+            dbContext,
+            VendorApplication3Id,
+            Customer3Id,
+            "Customer Three Media",
+            "Corporate",
+            "Corporate and product work from customer three.",
+            "Galle",
+            "Customer Three",
+            "+94770000013",
+            "https://example.com/license-c3.pdf",
+            "https://example.com/insurance-c3.pdf",
+            "https://example.com/tax-c3.pdf",
+            VendorApplicationStatus.Pending,
+            now,
             cancellationToken);
-        if (authTestCurrentUser == null)
+
+        UpsertVendorApplication(
+            dbContext,
+            VendorApplication4Id,
+            Customer4Id,
+            "Customer Four Solutions",
+            "Videography",
+            "Professional video production and editing services.",
+            "Matara",
+            "Customer Four",
+            "+94770000014",
+            "https://example.com/license-c4.pdf",
+            "https://example.com/insurance-c4.pdf",
+            "https://example.com/tax-c4.pdf",
+            VendorApplicationStatus.Pending,
+            now,
+            cancellationToken);
+
+        UpsertVendorApplication(
+            dbContext,
+            VendorApplication5Id,
+            Customer5Id,
+            "Customer Five Designs",
+            "Graphic Design",
+            "Creative graphic design and branding services.",
+            "Jaffna",
+            "Customer Five",
+            "+94770000015",
+            "https://example.com/license-c5.pdf",
+            "https://example.com/insurance-c5.pdf",
+            "https://example.com/tax-c5.pdf",
+            VendorApplicationStatus.Pending,
+            now,
+            cancellationToken);
+
+        var listings = new[]
         {
-            dbContext.Users.Add(new User
+            new { Id = Listing1Id, Title = "Wedding Photography", Price = 25000m, Location = "Colombo", Description = "Full day wedding photography package." },
+            new { Id = Listing2Id, Title = "Event Photography", Price = 18000m, Location = "Kandy", Description = "Photography for events and functions." },
+            new { Id = Listing3Id, Title = "Portrait Session", Price = 12000m, Location = "Galle", Description = "Outdoor portrait photography session." },
+            new { Id = Listing4Id, Title = "Corporate Photography", Price = 22000m, Location = "Negombo", Description = "Corporate and team photography package." },
+            new { Id = Listing5Id, Title = "Product Photography", Price = 15000m, Location = "Colombo", Description = "Studio product photography package." }
+        };
+
+        foreach (var listing in listings)
+        {
+            UpsertListing(dbContext, listing.Id, VendorProfileId, CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, now, cancellationToken);
+        }
+
+        var customerIds = new[] { Customer1Id, Customer2Id, Customer3Id };
+        var customerNames = new[] { "Customer One", "Customer Two", "Customer Three" };
+        var listingIds = new[] { Listing1Id, Listing2Id, Listing3Id, Listing4Id, Listing5Id };
+        var bookingStatuses = new[]
+        {
+            BookingStatus.Confirmed,
+            BookingStatus.Pending,
+            BookingStatus.Completed,
+            BookingStatus.Confirmed,
+            BookingStatus.Pending
+        };
+
+        for (var customerIndex = 0; customerIndex < customerIds.Length; customerIndex++)
+        {
+            for (var listingIndex = 0; listingIndex < listingIds.Length; listingIndex++)
             {
-                Id = AuthTestCurrentUserUserId,
-                Email = TestCurrentUserEmail,
-                FirstName = "Test",
-                LastName = "Current",
-                PhoneNumber = "+94770000012",
-                IsEmailVerified = true,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword),
-                Role = UserRole.User,
-                AuthProvider = AuthProvider.Local,
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            authTestCurrentUser.Email = TestCurrentUserEmail;
-            authTestCurrentUser.FirstName = "Test";
-            authTestCurrentUser.LastName = "Current";
-            authTestCurrentUser.PhoneNumber = "+94770000012";
-            authTestCurrentUser.IsEmailVerified = true;
-            authTestCurrentUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestLoginPassword);
-            authTestCurrentUser.Role = UserRole.User;
-            authTestCurrentUser.AuthProvider = AuthProvider.Local;
-            dbContext.Users.Update(authTestCurrentUser);
-        }
+                var bookingId = BookingIds[customerIndex, listingIndex];
+                var startDate = new DateTime(2026, 5, 10 + (customerIndex * 5) + listingIndex, 10, 0, 0, DateTimeKind.Utc);
+                var amount = 12000m + (listingIndex * 2500m) + (customerIndex * 1000m);
 
-        var pendingVendorApplication = await dbContext.VendorApplications
-            .FirstOrDefaultAsync(x => x.Id == PendingVendorApplicationId, cancellationToken);
-
-        if (pendingVendorApplication == null)
-        {
-            dbContext.VendorApplications.Add(new VendorApplication
-            {
-                Id = PendingVendorApplicationId,
-                UserId = CustomerUserId,
-                BusinessName = "Seeded Events by Isuru",
-                BusinessType = "Events",
-                Description = "Pending vendor application used to exercise the admin review endpoints.",
-                Address = "No. 12, Galle Road, Colombo",
-                ContactPersonName = "Isuru Kavinda",
-                ContactNumber = "+94770000001",
-                BusinessLicenseUrl = "/seed-docs/vendor-application/business-license.pdf",
-                InsurenceCertificateUrl = "/seed-docs/vendor-application/insurance-certificate.pdf",
-                TaxDocumentUrl = "/seed-docs/vendor-application/tax-document.pdf",
-                Status = VendorApplicationStatus.Pending,
-                SubmittedAt = now.AddDays(-2)
-            });
-        }
-        else
-        {
-            pendingVendorApplication.UserId = CustomerUserId;
-            pendingVendorApplication.BusinessName = "Seeded Events by Isuru";
-            pendingVendorApplication.BusinessType = "Events";
-            pendingVendorApplication.Description = "Pending vendor application used to exercise the admin review endpoints.";
-            pendingVendorApplication.Address = "No. 12, Galle Road, Colombo";
-            pendingVendorApplication.ContactPersonName = "Isuru Kavinda";
-            pendingVendorApplication.ContactNumber = "+94770000001";
-            pendingVendorApplication.BusinessLicenseUrl = "/seed-docs/vendor-application/business-license.pdf";
-            pendingVendorApplication.InsurenceCertificateUrl = "/seed-docs/vendor-application/insurance-certificate.pdf";
-            pendingVendorApplication.TaxDocumentUrl = "/seed-docs/vendor-application/tax-document.pdf";
-            pendingVendorApplication.Status = VendorApplicationStatus.Pending;
-            pendingVendorApplication.SubmittedAt = now.AddDays(-2);
-            pendingVendorApplication.ReviewedAt = null;
-            pendingVendorApplication.ReviewedBy = null;
-            pendingVendorApplication.RejectionReason = null;
-            dbContext.VendorApplications.Update(pendingVendorApplication);
-        }
-
-        var rejectedVendorApplication = await dbContext.VendorApplications
-            .FirstOrDefaultAsync(x => x.Id == RejectedVendorApplicationId, cancellationToken);
-
-        if (rejectedVendorApplication == null)
-        {
-            dbContext.VendorApplications.Add(new VendorApplication
-            {
-                Id = RejectedVendorApplicationId,
-                UserId = OtherVendorUserId,
-                BusinessName = "Other Vendor Catering",
-                BusinessType = "Catering",
-                Description = "Rejected vendor application used to exercise status filters.",
-                Address = "No. 25, Duplication Road, Colombo",
-                ContactPersonName = "Other Vendor",
-                ContactNumber = "+94770000003",
-                BusinessLicenseUrl = "/seed-docs/vendor-application/rejected-business-license.pdf",
-                InsurenceCertificateUrl = "/seed-docs/vendor-application/rejected-insurance-certificate.pdf",
-                TaxDocumentUrl = "/seed-docs/vendor-application/rejected-tax-document.pdf",
-                Status = VendorApplicationStatus.Rejected,
-                SubmittedAt = now.AddDays(-5),
-                ReviewedAt = now.AddDays(-4),
-                ReviewedBy = UserId,
-                RejectionReason = "Insufficient supporting documents"
-            });
-        }
-        else
-        {
-            rejectedVendorApplication.UserId = OtherVendorUserId;
-            rejectedVendorApplication.BusinessName = "Other Vendor Catering";
-            rejectedVendorApplication.BusinessType = "Catering";
-            rejectedVendorApplication.Description = "Rejected vendor application used to exercise status filters.";
-            rejectedVendorApplication.Address = "No. 25, Duplication Road, Colombo";
-            rejectedVendorApplication.ContactPersonName = "Other Vendor";
-            rejectedVendorApplication.ContactNumber = "+94770000003";
-            rejectedVendorApplication.BusinessLicenseUrl = "/seed-docs/vendor-application/rejected-business-license.pdf";
-            rejectedVendorApplication.InsurenceCertificateUrl = "/seed-docs/vendor-application/rejected-insurance-certificate.pdf";
-            rejectedVendorApplication.TaxDocumentUrl = "/seed-docs/vendor-application/rejected-tax-document.pdf";
-            rejectedVendorApplication.Status = VendorApplicationStatus.Rejected;
-            rejectedVendorApplication.SubmittedAt = now.AddDays(-5);
-            rejectedVendorApplication.ReviewedAt = now.AddDays(-4);
-            rejectedVendorApplication.ReviewedBy = UserId;
-            rejectedVendorApplication.RejectionReason = "Insufficient supporting documents";
-            dbContext.VendorApplications.Update(rejectedVendorApplication);
-        }
-
-        var mainVendorProfile = await dbContext.VendorProfiles
-            .FirstOrDefaultAsync(x => x.UserId == UserId, cancellationToken);
-
-        if (mainVendorProfile == null)
-        {
-            dbContext.VendorProfiles.Add(new VendorProfile
-            {
-                Id = VendorProfileId,
-                UserId = UserId,
-                BusinessName = "Main Vendor Studio",
-                BusinessType = "Photography",
-                Description = "Seeded vendor profile for booking status tests.",
-                ContactNumber = "+94770000002",
-                IsActive = true,
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            mainVendorProfile.BusinessName = "Main Vendor Studio";
-            mainVendorProfile.BusinessType = "Photography";
-            mainVendorProfile.Description = "Seeded vendor profile for booking status tests.";
-            mainVendorProfile.ContactNumber = "+94770000002";
-            mainVendorProfile.IsActive = true;
-            dbContext.VendorProfiles.Update(mainVendorProfile);
-        }
-
-        var otherVendorProfile = await dbContext.VendorProfiles
-            .FirstOrDefaultAsync(x => x.UserId == OtherVendorUserId, cancellationToken);
-
-        if (otherVendorProfile == null)
-        {
-            dbContext.VendorProfiles.Add(new VendorProfile
-            {
-                Id = OtherVendorProfileId,
-                UserId = OtherVendorUserId,
-                BusinessName = "Other Vendor Co",
-                BusinessType = "Catering",
-                Description = "Second vendor profile for authorization rule tests.",
-                ContactNumber = "+94770000003",
-                IsActive = true,
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            otherVendorProfile.BusinessName = "Other Vendor Co";
-            otherVendorProfile.BusinessType = "Catering";
-            otherVendorProfile.Description = "Second vendor profile for authorization rule tests.";
-            otherVendorProfile.ContactNumber = "+94770000003";
-            otherVendorProfile.IsActive = true;
-            dbContext.VendorProfiles.Update(otherVendorProfile);
-        }
-
-        if (!await dbContext.Categories.AnyAsync(x => x.Id == CategoryPhotographyId, cancellationToken))
-        {
-            dbContext.Categories.Add(new Category
-            {
-                Id = CategoryPhotographyId,
-                Name = "Photography",
-                Description = "Seed category",
-                IsActive = true,
-                CreatedAt = now
-            });
-        }
-
-        var resolvedMainVendorProfileId = mainVendorProfile?.Id ?? VendorProfileId;
-
-        // Ensure listing exists and has correct owner/capacity
-        var existingListing = await dbContext.Listings.FirstOrDefaultAsync(x => x.Id == ListingId, cancellationToken);
-        
-        if (existingListing == null)
-        {
-            dbContext.Listings.Add(new Listing
-            {
-                Id = ListingId,
-                VendorProfileId = resolvedMainVendorProfileId,
-                CategoryId = CategoryPhotographyId,
-                Title = "Event Photography - Basic",
-                Description = "Seed listing for booking status transition testing.",
-                Price = 15000m,
-                Currency = "LKR",
-                Location = "Colombo",
-                IsActive = true,
-                Capacity = 5,
-                AvailabilityType = Ube.Domain.Enums.Listings.AvailabilityType.Capacity,
-                CreatedAt = now
-            });
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-        else
-        {
-            // Keep seeded listing ownership and availability deterministic across reruns.
-            existingListing.VendorProfileId = resolvedMainVendorProfileId;
-            existingListing.Capacity = 5;
-            existingListing.AvailabilityType = Ube.Domain.Enums.Listings.AvailabilityType.Capacity;
-            dbContext.Listings.Update(existingListing);
-            await dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        var pendingStart = new DateTime(2026, 5, 10, 10, 0, 0, DateTimeKind.Utc);
-        var confirmedStart = new DateTime(2026, 5, 15, 10, 0, 0, DateTimeKind.Utc);
-        var cancelledStart = new DateTime(2026, 5, 20, 10, 0, 0, DateTimeKind.Utc);
-        var completedStart = new DateTime(2026, 5, 25, 10, 0, 0, DateTimeKind.Utc);
-
-        var pendingBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == PendingBookingId, cancellationToken);
-        if (pendingBooking == null)
-        {
-            dbContext.Bookings.Add(new Booking
-            {
-                Id = PendingBookingId,
-                BookingNumber = "BKG-000001",
-                ListingId = ListingId,
-                CustomerId = CustomerUserId,
-                StartDateTime = pendingStart,
-                EndDateTime = pendingStart.AddHours(4),
-                Status = BookingStatus.Pending,
-                TotalAmount = 15000m,
-                Currency = "LKR",
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            pendingBooking.ListingId = ListingId;
-            pendingBooking.CustomerId = CustomerUserId;
-            pendingBooking.StartDateTime = pendingStart;
-            pendingBooking.EndDateTime = pendingStart.AddHours(4);
-            pendingBooking.Status = BookingStatus.Pending;
-            pendingBooking.TotalAmount = 15000m;
-            pendingBooking.Currency = "LKR";
-            pendingBooking.CreatedAt = now;
-            dbContext.Bookings.Update(pendingBooking);
-        }
-
-        var confirmedBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == ConfirmedBookingId, cancellationToken);
-        if (confirmedBooking == null)
-        {
-            dbContext.Bookings.Add(new Booking
-            {
-                Id = ConfirmedBookingId,
-                BookingNumber = "BKG-000002",
-                ListingId = ListingId,
-                CustomerId = CustomerUserId,
-                StartDateTime = confirmedStart,
-                EndDateTime = confirmedStart.AddHours(4),
-                Status = BookingStatus.Confirmed,
-                TotalAmount = 18000m,
-                Currency = "LKR",
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            confirmedBooking.ListingId = ListingId;
-            confirmedBooking.CustomerId = CustomerUserId;
-            confirmedBooking.StartDateTime = confirmedStart;
-            confirmedBooking.EndDateTime = confirmedStart.AddHours(4);
-            confirmedBooking.Status = BookingStatus.Confirmed;
-            confirmedBooking.TotalAmount = 18000m;
-            confirmedBooking.Currency = "LKR";
-            dbContext.Bookings.Update(confirmedBooking);
-        }
-
-        var cancelledBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == CancelledBookingId, cancellationToken);
-        if (cancelledBooking == null)
-        {
-            dbContext.Bookings.Add(new Booking
-            {
-                Id = CancelledBookingId,
-                BookingNumber = "BKG-000003",
-                ListingId = ListingId,
-                CustomerId = CustomerUserId,
-                StartDateTime = cancelledStart,
-                EndDateTime = cancelledStart.AddHours(4),
-                Status = BookingStatus.Cancelled,
-                TotalAmount = 15000m,
-                Currency = "LKR",
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            cancelledBooking.ListingId = ListingId;
-            cancelledBooking.CustomerId = CustomerUserId;
-            cancelledBooking.StartDateTime = cancelledStart;
-            cancelledBooking.EndDateTime = cancelledStart.AddHours(4);
-            cancelledBooking.Status = BookingStatus.Cancelled;
-            cancelledBooking.TotalAmount = 15000m;
-            cancelledBooking.Currency = "LKR";
-            dbContext.Bookings.Update(cancelledBooking);
-        }
-
-        var completedBooking = await dbContext.Bookings.FirstOrDefaultAsync(x => x.Id == CompletedBookingId, cancellationToken);
-        if (completedBooking == null)
-        {
-            dbContext.Bookings.Add(new Booking
-            {
-                Id = CompletedBookingId,
-                BookingNumber = "BKG-000004",
-                ListingId = ListingId,
-                CustomerId = CustomerUserId,
-                StartDateTime = completedStart,
-                EndDateTime = completedStart.AddHours(4),
-                Status = BookingStatus.Completed,
-                TotalAmount = 20000m,
-                Currency = "LKR",
-                CreatedAt = now
-            });
-        }
-        else
-        {
-            completedBooking.ListingId = ListingId;
-            completedBooking.CustomerId = CustomerUserId;
-            completedBooking.StartDateTime = completedStart;
-            completedBooking.EndDateTime = completedStart.AddHours(4);
-            completedBooking.Status = BookingStatus.Completed;
-            completedBooking.TotalAmount = 20000m;
-            completedBooking.Currency = "LKR";
-            dbContext.Bookings.Update(completedBooking);
-        }
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        var review = await dbContext.Reviews.FirstOrDefaultAsync(x => x.Id == ReviewId, cancellationToken);
-        if (review == null)
-        {
-            dbContext.Reviews.Add(new Review
-            {
-                Id = ReviewId,
-                BookingId = CompletedBookingId,
-                ListingId = ListingId,
-                CustomerId = CustomerUserId,
-                VendorId = UserId,
-                Rating = 5,
-                Comment = "Great experience, very professional and on time.",
-                CreatedAt = now.AddHours(-6)
-            });
-        }
-        else
-        {
-            review.BookingId = CompletedBookingId;
-            review.ListingId = ListingId;
-            review.CustomerId = CustomerUserId;
-            review.VendorId = UserId;
-            review.Rating = 5;
-            review.Comment = "Great experience, very professional and on time.";
-            review.VendorReply = "Thank you for the feedback.";
-            review.VendorReplyAt = now.AddHours(-5);
-            review.CreatedAt = now.AddHours(-6);
-            dbContext.Reviews.Update(review);
-        }
-
-        var replyReview = await dbContext.Reviews.FirstOrDefaultAsync(x => x.Id == ReplyReviewId, cancellationToken);
-        if (replyReview == null)
-        {
-            dbContext.Reviews.Add(new Review
-            {
-                Id = ReplyReviewId,
-                BookingId = ConfirmedBookingId,
-                ListingId = ListingId,
-                CustomerId = CustomerUserId,
-                VendorId = UserId,
-                Rating = 4,
-                Comment = "Good service and clear communication.",
-                VendorReply = "Appreciate the review.",
-                VendorReplyAt = now.AddHours(-4),
-                CreatedAt = now.AddHours(-3)
-            });
-        }
-        else
-        {
-            replyReview.BookingId = ConfirmedBookingId;
-            replyReview.ListingId = ListingId;
-            replyReview.CustomerId = CustomerUserId;
-            replyReview.VendorId = UserId;
-            replyReview.Rating = 4;
-            replyReview.Comment = "Good service and clear communication.";
-            replyReview.VendorReply = "Appreciate the review.";
-            replyReview.VendorReplyAt = now.AddHours(-4);
-            replyReview.CreatedAt = now.AddHours(-3);
-            dbContext.Reviews.Update(replyReview);
+                UpsertBooking(
+                    dbContext,
+                    bookingId,
+                    listingIds[listingIndex],
+                    customerIds[customerIndex],
+                    $"BKG-{customerIndex + 1:00}{listingIndex + 1:00}",
+                    startDate,
+                    startDate.AddHours(4),
+                    bookingStatuses[listingIndex],
+                    amount,
+                    now,
+                    cancellationToken);
+            }
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Seed data ready. VendorProfileId={VendorProfileId}, OtherVendorProfileId={OtherVendorProfileId}, PendingBookingId={PendingBookingId}, ConfirmedBookingId={ConfirmedBookingId}, CancelledBookingId={CancelledBookingId}, CompletedBookingId={CompletedBookingId}, ReviewId={ReviewId}, ReplyReviewId={ReplyReviewId}",
-            VendorProfileId,
-            OtherVendorProfileId,
-            PendingBookingId,
-            ConfirmedBookingId,
-            CancelledBookingId,
-            CompletedBookingId,
-            ReviewId,
-            ReplyReviewId);
+            "Seeded test dataset: 1 admin, 1 vendor, 5 customers, 5 pending vendor applications, 5 listings, 15 bookings.");
+
+    }
+
+    private static void UpsertUser(
+        ApplicationDbContext dbContext,
+        Guid id,
+        UserRole role,
+        string email,
+        string firstName,
+        string lastName,
+        string phoneNumber,
+        bool isEmailVerified,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var user = dbContext.Users.FirstOrDefault(x => x.Id == id);
+        if (user == null)
+        {
+            dbContext.Users.Add(new User
+            {
+                Id = id,
+                Role = role,
+                Email = email,
+                FirstName = firstName,
+                LastName = lastName,
+                PhoneNumber = phoneNumber,
+                IsEmailVerified = isEmailVerified,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(SeedPassword),
+                AuthProvider = AuthProvider.Local,
+                CreatedAt = now
+            });
+            return;
+        }
+
+        user.Role = role;
+        user.Email = email;
+        user.FirstName = firstName;
+        user.LastName = lastName;
+        user.PhoneNumber = phoneNumber;
+        user.IsEmailVerified = isEmailVerified;
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(SeedPassword);
+        user.AuthProvider = AuthProvider.Local;
+        user.UpdatedAt = now;
+        dbContext.Users.Update(user);
+    }
+
+    private static void UpsertVendorProfile(
+        ApplicationDbContext dbContext,
+        Guid profileId,
+        Guid userId,
+        string businessName,
+        string businessType,
+        string businessDescription,
+        string contactNumber,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var profile = dbContext.VendorProfiles.FirstOrDefault(x => x.Id == profileId || x.UserId == userId);
+        if (profile == null)
+        {
+            dbContext.VendorProfiles.Add(new VendorProfile
+            {
+                Id = profileId,
+                UserId = userId,
+                BusinessName = businessName,
+                BusinessType = businessType,
+                BusinessDescription = businessDescription,
+                Bio = businessDescription,
+                ContactNumber = contactNumber,
+                IsActive = true,
+                CreatedAt = now
+            });
+            return;
+        }
+
+        profile.UserId = userId;
+        profile.BusinessName = businessName;
+        profile.BusinessType = businessType;
+        profile.BusinessDescription = businessDescription;
+        profile.Bio = businessDescription;
+        profile.ContactNumber = contactNumber;
+        profile.IsActive = true;
+        profile.UpdatedAt = now;
+        dbContext.VendorProfiles.Update(profile);
+    }
+
+    private static void UpsertVendorPayout(
+        ApplicationDbContext dbContext,
+        Guid payoutId,
+        Guid vendorProfileId,
+        string bankName,
+        string accountNumber,
+        string accountHolderName,
+        string branch,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var payout = dbContext.VendorPayouts.FirstOrDefault(x => x.Id == payoutId || x.VendorProfileId == vendorProfileId);
+        if (payout == null)
+        {
+            dbContext.VendorPayouts.Add(new VendorPayout
+            {
+                Id = payoutId,
+                VendorProfileId = vendorProfileId,
+                BankName = bankName,
+                AccountNumber = accountNumber,
+                AccountHolderName = accountHolderName,
+                Branch = branch,
+                CreatedAt = now
+            });
+            return;
+        }
+
+        payout.BankName = bankName;
+        payout.AccountNumber = accountNumber;
+        payout.AccountHolderName = accountHolderName;
+        payout.Branch = branch;
+        payout.UpdatedAt = now;
+        dbContext.VendorPayouts.Update(payout);
+    }
+
+    private static void UpsertUserLocalization(
+        ApplicationDbContext dbContext,
+        Guid localizationId,
+        Guid userId,
+        string language,
+        string timeZone,
+        string currency,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var settings = dbContext.UserLocalizationSettings.FirstOrDefault(x => x.UserId == userId);
+        if (settings == null)
+        {
+            dbContext.UserLocalizationSettings.Add(new UserLocalizationSettings
+            {
+                Id = localizationId,
+                UserId = userId,
+                Language = language,
+                TimeZone = timeZone,
+                Currency = currency,
+                CreatedAt = now
+            });
+            return;
+        }
+
+        settings.Language = language;
+        settings.TimeZone = timeZone;
+        settings.Currency = currency;
+        dbContext.UserLocalizationSettings.Update(settings);
+    }
+
+    private static void UpsertCategory(
+        ApplicationDbContext dbContext,
+        Guid categoryId,
+        string name,
+        string description,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var category = dbContext.Categories.FirstOrDefault(x => x.Id == categoryId);
+        if (category == null)
+        {
+            dbContext.Categories.Add(new Category
+            {
+                Id = categoryId,
+                Name = name,
+                Description = description,
+                IsActive = true,
+                CreatedAt = now
+            });
+            return;
+        }
+
+        category.Name = name;
+        category.Description = description;
+        category.IsActive = true;
+        dbContext.Categories.Update(category);
+    }
+
+    private static void UpsertListing(
+        ApplicationDbContext dbContext,
+        Guid listingId,
+        Guid vendorProfileId,
+        Guid categoryId,
+        string title,
+        string description,
+        decimal price,
+        string location,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var listing = dbContext.Listings.FirstOrDefault(x => x.Id == listingId);
+        if (listing == null)
+        {
+            dbContext.Listings.Add(new Listing
+            {
+                Id = listingId,
+                VendorProfileId = vendorProfileId,
+                CategoryId = categoryId,
+                Title = title,
+                Description = description,
+                Price = price,
+                Currency = "LKR",
+                Location = location,
+                IsActive = true,
+                AvailabilityType = AvailabilityType.Capacity,
+                Capacity = 1,
+                CreatedAt = now
+            });
+            return;
+        }
+
+        listing.VendorProfileId = vendorProfileId;
+        listing.CategoryId = categoryId;
+        listing.Title = title;
+        listing.Description = description;
+        listing.Price = price;
+        listing.Currency = "LKR";
+        listing.Location = location;
+        listing.IsActive = true;
+        listing.AvailabilityType = AvailabilityType.Capacity;
+        listing.Capacity = 1;
+        listing.UpdatedAt = now;
+        dbContext.Listings.Update(listing);
+    }
+
+    private static void UpsertVendorApplication(
+        ApplicationDbContext dbContext,
+        Guid applicationId,
+        Guid userId,
+        string businessName,
+        string businessType,
+        string description,
+        string address,
+        string contactPersonName,
+        string contactNumber,
+        string businessLicenseUrl,
+        string insurenceCertificateUrl,
+        string taxDocumentUrl,
+        VendorApplicationStatus status,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var application = dbContext.VendorApplications.FirstOrDefault(x => x.Id == applicationId);
+        if (application == null)
+        {
+            dbContext.VendorApplications.Add(new VendorApplication
+            {
+                Id = applicationId,
+                UserId = userId,
+                BusinessName = businessName,
+                BusinessType = businessType,
+                Description = description,
+                Address = address,
+                ContactPersonName = contactPersonName,
+                ContactNumber = contactNumber,
+                BusinessLicenseUrl = businessLicenseUrl,
+                InsurenceCertificateUrl = insurenceCertificateUrl,
+                TaxDocumentUrl = taxDocumentUrl,
+                Status = status,
+                SubmittedAt = now
+            });
+            return;
+        }
+
+        application.UserId = userId;
+        application.BusinessName = businessName;
+        application.BusinessType = businessType;
+        application.Description = description;
+        application.Address = address;
+        application.ContactPersonName = contactPersonName;
+        application.ContactNumber = contactNumber;
+        application.BusinessLicenseUrl = businessLicenseUrl;
+        application.InsurenceCertificateUrl = insurenceCertificateUrl;
+        application.TaxDocumentUrl = taxDocumentUrl;
+        application.Status = status;
+        application.SubmittedAt = now;
+        dbContext.VendorApplications.Update(application);
+    }
+
+    private static void UpsertBooking(
+        ApplicationDbContext dbContext,
+        Guid bookingId,
+        Guid listingId,
+        Guid customerId,
+        string bookingNumber,
+        DateTime startDateTime,
+        DateTime endDateTime,
+        BookingStatus status,
+        decimal totalAmount,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var booking = dbContext.Bookings.FirstOrDefault(x => x.Id == bookingId);
+        if (booking == null)
+        {
+            dbContext.Bookings.Add(new Booking
+            {
+                Id = bookingId,
+                BookingNumber = bookingNumber,
+                ListingId = listingId,
+                CustomerId = customerId,
+                StartDateTime = startDateTime,
+                EndDateTime = endDateTime,
+                Status = status,
+                TotalAmount = totalAmount,
+                Currency = "LKR",
+                CreatedAt = now
+            });
+            return;
+        }
+
+        booking.BookingNumber = bookingNumber;
+        booking.ListingId = listingId;
+        booking.CustomerId = customerId;
+        booking.StartDateTime = startDateTime;
+        booking.EndDateTime = endDateTime;
+        booking.Status = status;
+        booking.TotalAmount = totalAmount;
+        booking.Currency = "LKR";
+        booking.UpdatedAt = now;
+        dbContext.Bookings.Update(booking);
     }
 }

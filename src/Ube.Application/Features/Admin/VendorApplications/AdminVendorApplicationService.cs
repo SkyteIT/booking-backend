@@ -155,22 +155,11 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     
     }
     // Method to get all applications (for admin listing)
-    public async Task<PagedResult<ApplicationDetailDto>> GetAllAsync(VendorApplicationStatus? status, VendorApplicationsRequest request)
+    public async Task<PagedResult<ApplicationTableDto>> GetAllAsync(VendorApplicationStatus? status, VendorApplicationsRequest request)
     {
-        var (apps, totalItems) = await _applicationRepo.GetPagedAsync(status, request);
-        var mapped = apps.Select(app => new ApplicationDetailDto
-        {
-            Id = app.Id,
-            BusinessName = app.BusinessName,
-            BusinessType = app.BusinessType,
-            ContactNumber = app.ContactNumber,
-            Status = app.Status,
-            SubmittedAt = app.SubmittedAt,
-            ReviewedAt = app.ReviewedAt,
-            ReviewedBy = app.ReviewedBy,
-        }).ToList();
+        var (mapped, totalItems) = await _applicationRepo.GetPagedTableAsync(status, request);
         
-        return new PagedResult<ApplicationDetailDto>
+        return new PagedResult<ApplicationTableDto>
         {
             Items = mapped,
             PageNumber = request.PageNumber,

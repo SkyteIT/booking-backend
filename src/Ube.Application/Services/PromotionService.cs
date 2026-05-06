@@ -15,6 +15,7 @@ public class PromotionService : IPromotionService
         _context = context;
     }
 
+    // Get all promotions (latest first)
     public async Task<IReadOnlyList<PromotionDto>> GetAllAsync(CancellationToken cancellationToken)
     {
         return await _context.Promotions
@@ -23,7 +24,7 @@ public class PromotionService : IPromotionService
             {
                 Id = x.Id,
                 PromoCode = x.PromoCode,
-                Type = x.Type.ToString(),
+                Type = x.Type.ToString(), // enum → string
                 Value = x.Value,
                 UsageCount = x.UsageCount,
                 UsageLimit = x.UsageLimit,
@@ -34,6 +35,7 @@ public class PromotionService : IPromotionService
             .ToListAsync(cancellationToken);
     }
 
+    // Get promotion by ID
     public async Task<PromotionDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         return await _context.Promotions
@@ -50,9 +52,10 @@ public class PromotionService : IPromotionService
                 EndDate = x.EndDate,
                 Status = x.Status.ToString()
             })
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefaultAsync(cancellationToken); // null if not found
     }
 
+    // Create new promotion
     public async Task<PromotionDto> CreateAsync(CreatePromotionDto dto, CancellationToken cancellationToken)
     {
         var promotion = new Promotion
@@ -61,7 +64,7 @@ public class PromotionService : IPromotionService
             Type = (PromotionType)dto.Type,
             Value = dto.Value,
             UsageLimit = dto.UsageLimit,
-            UsageCount = 0,
+            UsageCount = 0, // default
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
             Status = RecordStatus.Active
@@ -84,9 +87,12 @@ public class PromotionService : IPromotionService
         };
     }
 
+    // Update existing promotion
     public async Task<PromotionDto?> UpdateAsync(Guid id, UpdatePromotionDto dto, CancellationToken cancellationToken)
     {
-        var promotion = await _context.Promotions.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var promotion = await _context.Promotions
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
         if (promotion is null) return null;
 
         promotion.PromoCode = dto.PromoCode;
@@ -97,7 +103,7 @@ public class PromotionService : IPromotionService
         promotion.StartDate = dto.StartDate;
         promotion.EndDate = dto.EndDate;
         promotion.Status = (RecordStatus)dto.Status;
-        promotion.UpdatedAtUtc = DateTime.UtcNow;
+        promotion.UpdatedAtUtc = DateTime.UtcNow; // track update time
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -115,13 +121,17 @@ public class PromotionService : IPromotionService
         };
     }
 
+    // Delete promotion
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        var promotion = await _context.Promotions.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var promotion = await _context.Promotions
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
         if (promotion is null) return false;
 
         _context.Promotions.Remove(promotion);
         await _context.SaveChangesAsync(cancellationToken);
+
         return true;
     }
 }

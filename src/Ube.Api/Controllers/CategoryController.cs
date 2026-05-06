@@ -5,7 +5,7 @@ using Ube.Application.Interfaces;
 namespace Ube.Api.Controllers;
 
 [ApiController]
-[Route("api/categories")]
+[Route("api/categories")] // Base route
 public class CategoryController : ControllerBase
 {
     private readonly ICategoryService _service;
@@ -15,7 +15,7 @@ public class CategoryController : ControllerBase
         _service = service;
     }
 
-    /// <summary>Get all non-deleted categories (no filter).</summary>
+    // GET: api/categories
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
@@ -23,11 +23,7 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Get categories with optional search and status filter.
-    /// Matches the frontend search/filter bar on the redesigned Content Management page.
-    /// Query params: ?status=Active|Inactive &amp; search=hotels
-    /// </summary>
+    // GET: api/categories/filter?status=Active&search=hotels
     [HttpGet("filter")]
     public async Task<IActionResult> GetFiltered(
         [FromQuery] string? status,
@@ -38,7 +34,7 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Get a single category by id.</summary>
+    // GET: api/categories/{id}
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
@@ -46,23 +42,19 @@ public class CategoryController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
-    /// <summary>
-    /// Create a new category.
-    /// Body maps directly to the AddCategory form fields.
-    /// </summary>
+    // POST: api/categories
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CreateCategoryDto dto,
         CancellationToken cancellationToken)
     {
         var result = await _service.CreateAsync(dto, cancellationToken);
+
+        // 201 Created with location
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
-    /// <summary>
-    /// Update an existing category.
-    /// All fields are optional — only provided fields are changed (PATCH semantics over PUT route).
-    /// </summary>
+    // PUT: api/categories/{id}
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -73,22 +65,15 @@ public class CategoryController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
-    /// <summary>
-    /// Soft-delete a category (sets Status = Deleted, data is preserved).
-    /// Triggered by the delete confirmation dialog on the frontend.
-    /// </summary>
+    // DELETE: api/categories/{id}
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var deleted = await _service.DeleteAsync(id, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        return deleted ? NoContent() : NotFound(); // 204 or 404
     }
 
-    /// <summary>
-    /// Toggle a category Active/Inactive.
-    /// Triggered by the Switch toggle on each CategoryCard.
-    /// Body: { "isActive": true|false }
-    /// </summary>
+    // PATCH: api/categories/{id}/status
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> ToggleStatus(
         Guid id,
@@ -100,5 +85,5 @@ public class CategoryController : ControllerBase
     }
 }
 
-/// <summary>Request body for the PATCH /status endpoint.</summary>
+// Request body for status toggle
 public record ToggleCategoryStatusDto(bool IsActive);

@@ -61,21 +61,19 @@ public static class DataSeeder
             .ToDictionaryAsync(c => c.Name, c => c.Id);
 
         // ── Step 3: Re-link any listings currently parked in __Uncategorized__
-        // This runs every startup so that: delete Hotels → restart → re-add Hotels
-        // → restart again will re-link the hotel listings automatically.
+        // Uses OriginalCategoryName so any listing (seed or admin-created) is
+        // correctly restored when its category is re-created — no hardcoded
+        // title lookup needed.
         var orphanedListings = await db.Listings
-            .Where(l => l.CategoryId == uncategorized.Id)
+            .Where(l => l.CategoryId == uncategorized.Id
+                     && l.OriginalCategoryName != null)
             .ToListAsync();
-
-        // Build a title → desired category name lookup from our seed data
-        var titleToCategoryName = Listings.ToDictionary(l => l.Title, l => l.Category);
 
         foreach (var listing in orphanedListings)
         {
-            if (!titleToCategoryName.TryGetValue(listing.Title, out var desiredCategoryName))
-                continue;
+            if (listing.OriginalCategoryName is null) continue;
 
-            if (!categoryMap.TryGetValue(desiredCategoryName, out var correctCatId))
+            if (!categoryMap.TryGetValue(listing.OriginalCategoryName, out var correctCatId))
                 continue; // desired category still doesn't exist yet — leave it parked
 
             // Re-link to the correct category and make it active again
@@ -102,6 +100,7 @@ public static class DataSeeder
                 Id = Guid.NewGuid(),
                 Title = item.Title,
                 CategoryId = catId,
+                OriginalCategoryName = item.Category,   // stored so re-link works after delete/recreate
                 Location = item.Location,
                 PriceFrom = item.Price,
                 Rating = item.Rating,

@@ -100,62 +100,92 @@ public class CategoryService : ICategoryService
     // ── Create ─────────────────────────────────────────────────────────────
     public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, CancellationToken cancellationToken)
     {
-        var nameExists = await _context.Categories
-            .AnyAsync(x => x.Name.ToLower() == dto.Name.ToLower().Trim() &&
+        var trimmedName = dto.Name.Trim();
+
+        // Block if an active (non-deleted) category with this name already exists
+        var activeExists = await _context.Categories
+            .AnyAsync(x => x.Name.ToLower() == trimmedName.ToLower() &&
                            x.Status != RecordStatus.Deleted, cancellationToken);
 
-        if (nameExists)
+        if (activeExists)
             throw new InvalidOperationException($"A category named '{dto.Name}' already exists.");
 
-        var entity = new Category
-        {
-            Name = dto.Name.Trim(),
-            Description = dto.Description,
-            BookingType = dto.BookingType,
-            ServiceModel = dto.ServiceModel,
-            DateSelectionEnabled = dto.DateSelectionEnabled,
-            TimeSlotEnabled = dto.TimeSlotEnabled,
-            AvailabilityCalendarEnabled = dto.AvailabilityCalendarEnabled,
-            DefaultCommissionPercent = dto.DefaultCommissionPercent,
-            PlatformServiceFee = dto.PlatformServiceFee,
-            TaxApplicable = dto.TaxApplicable,
-            Icon = dto.Icon,
-            BannerImageUrl = dto.BannerImageUrl,
-            DisplayOrder = dto.DisplayOrder,
-            IsFeatured = dto.IsFeatured,
-            RequiresAdminApproval = dto.RequiresAdminApproval,
-            Status = ParseStatus(dto.Status),
-        };
+        // Check if a previously soft-deleted category with the same name exists
+        var deletedEntity = await _context.Categories
+            .Include(x => x.Listings)
+            .FirstOrDefaultAsync(x => x.Name.ToLower() == trimmedName.ToLower() &&
+                                      x.Status == RecordStatus.Deleted, cancellationToken);
 
-        _context.Categories.Add(entity);
+        Category entity;
+
+        if (deletedEntity is not null)
+        {
+            // ── RESTORE path: reuse the same row so all FK references are preserved ──
+            entity = deletedEntity;
+            entity.Description = dto.Description ?? entity.Description;
+            entity.BookingType = dto.BookingType ?? entity.BookingType;
+            entity.ServiceModel = dto.ServiceModel ?? entity.ServiceModel;
+            entity.DateSelectionEnabled = dto.DateSelectionEnabled;
+            entity.TimeSlotEnabled = dto.TimeSlotEnabled;
+            entity.AvailabilityCalendarEnabled = dto.AvailabilityCalendarEnabled;
+            entity.DefaultCommissionPercent = dto.DefaultCommissionPercent;
+            entity.PlatformServiceFee = dto.PlatformServiceFee ?? entity.PlatformServiceFee;
+            entity.TaxApplicable = dto.TaxApplicable;
+            entity.Icon = dto.Icon ?? entity.Icon;
+            entity.BannerImageUrl = dto.BannerImageUrl ?? entity.BannerImageUrl;
+            entity.DisplayOrder = dto.DisplayOrder;
+            entity.IsFeatured = dto.IsFeatured;
+            entity.RequiresAdminApproval = dto.RequiresAdminApproval;
+            entity.Status = ParseStatus(dto.Status);
+            entity.UpdatedAtUtc = DateTime.UtcNow;
+        }
+        else
+        {
+            // ── CREATE path: brand new category ──
+            entity = new Category
+            {
+                Name = trimmedName,
+                Description = dto.Description,
+                BookingType = dto.BookingType,
+                ServiceModel = dto.ServiceModel,
+                DateSelectionEnabled = dto.DateSelectionEnabled,
+                TimeSlotEnabled = dto.TimeSlotEnabled,
+                AvailabilityCalendarEnabled = dto.AvailabilityCalendarEnabled,
+                DefaultCommissionPercent = dto.DefaultCommissionPercent,
+                PlatformServiceFee = dto.PlatformServiceFee,
+                TaxApplicable = dto.TaxApplicable,
+                Icon = dto.Icon,
+                BannerImageUrl = dto.BannerImageUrl,
+                DisplayOrder = dto.DisplayOrder,
+                IsFeatured = dto.IsFeatured,
+                RequiresAdminApproval = dto.RequiresAdminApproval,
+                Status = ParseStatus(dto.Status),
+            };
+            _context.Categories.Add(entity);
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        // ── Re-link any listings parked in __Uncategorized__ that belong here ──
-        // This runs immediately when a category is created, so listings are
-        // restored without needing a server restart.
+        // ── Re-link all orphaned listings that belong to this category ──────
         var uncategorized = await _context.Categories
             .FirstOrDefaultAsync(c => c.Name == CategoryConstants.UncategorizedName, cancellationToken);
 
         if (uncategorized is not null)
         {
             var orphaned = await _context.Listings
-                .Where(l => l.CategoryId == uncategorized.Id)
+                .Where(l => l.CategoryId == uncategorized.Id
+                         && l.OriginalCategoryName != null
+                         && l.OriginalCategoryName.ToLower() == trimmedName.ToLower())
                 .ToListAsync(cancellationToken);
 
             foreach (var listing in orphaned)
             {
-                if (listing.Title != null &&
-                    dto.Name.Trim().Equals(
-                        GetExpectedCategoryName(listing.Title),
-                        StringComparison.OrdinalIgnoreCase))
-                {
-                    listing.CategoryId = entity.Id;
-                    listing.Status = RecordStatus.Active;
-                }
+                listing.CategoryId = entity.Id;
+                listing.Status = RecordStatus.Active;
             }
 
-          
-            await _context.SaveChangesAsync(cancellationToken);
+            if (orphaned.Count > 0)
+                await _context.SaveChangesAsync(cancellationToken);
         }
 
         var listingCount = await _context.Listings
@@ -163,25 +193,6 @@ public class CategoryService : ICategoryService
 
         return ToDto(entity, listingCount);
     }
-
-    // Maps a listing title back to its expected category name.
-    // Mirrors the seed data in DataSeeder so re-linking works correctly.
-    private static string? GetExpectedCategoryName(string title) => title switch
-    {
-        "Araliya Beach Resort" => "Hotels",
-        "Grand Plaza Hotel" => "Hotels",
-        "Boutique Riverside Hotel" => "Hotels",
-        "City Center Apartment" => "Apartments",
-        "Mountain Escape Cabin" => "Apartments",
-        "Desert Safari Adventure" => "Activities",
-        "Kayaking Kitulgala" => "Activities",
-        "Snorkeling Reef Experience" => "Activities",
-        "Ocean View Restaurant" => "Restaurants",
-        "Jazz Night Live Event" => "Events",
-        "BMW 5 Series Rental" => "Car Rentals",
-        "Professional Camera Kit" => "Equipment",
-        _ => null,
-    };
 
     // ── Update ─────────────────────────────────────────────────────────────
     public async Task<CategoryDto?> UpdateAsync(Guid id, UpdateCategoryDto dto, CancellationToken cancellationToken)
@@ -192,7 +203,20 @@ public class CategoryService : ICategoryService
 
         if (entity is null) return null;
 
-        if (dto.Name is not null) entity.Name = dto.Name;
+        // If the category name is being changed, update OriginalCategoryName
+        // on all its listings so re-linking still works if it's later deleted.
+        if (dto.Name is not null && !dto.Name.Trim().Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            var affectedListings = await _context.Listings
+                .Where(l => l.CategoryId == entity.Id)
+                .ToListAsync(cancellationToken);
+
+            foreach (var listing in affectedListings)
+                listing.OriginalCategoryName = dto.Name.Trim();
+
+            entity.Name = dto.Name.Trim();
+        }
+
         if (dto.Description is not null) entity.Description = dto.Description;
         if (dto.BookingType is not null) entity.BookingType = dto.BookingType;
         if (dto.ServiceModel is not null) entity.ServiceModel = dto.ServiceModel;
@@ -226,6 +250,7 @@ public class CategoryService : ICategoryService
 
         if (entity.Listings.Any())
         {
+            // Ensure the __Uncategorized__ holding category exists
             var uncategorized = await _context.Categories
                 .FirstOrDefaultAsync(c => c.Name == CategoryConstants.UncategorizedName, cancellationToken);
 
@@ -242,16 +267,23 @@ public class CategoryService : ICategoryService
                 await _context.SaveChangesAsync(cancellationToken);
             }
 
+            // Park listings under __Uncategorized__ and stamp OriginalCategoryName
+            // so they can be re-linked automatically when this category is re-created.
             foreach (var listing in entity.Listings)
             {
+                if (string.IsNullOrEmpty(listing.OriginalCategoryName))
+                    listing.OriginalCategoryName = entity.Name;
+
                 listing.CategoryId = uncategorized.Id;
                 listing.Status = RecordStatus.Inactive;
             }
         }
 
-        _context.Categories.Remove(entity);
-        await _context.SaveChangesAsync(cancellationToken);
+        // Soft-delete the category
+        entity.Status = RecordStatus.Deleted;
+        entity.UpdatedAtUtc = DateTime.UtcNow;
 
+        await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
 

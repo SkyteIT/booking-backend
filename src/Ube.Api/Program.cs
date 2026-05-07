@@ -140,4 +140,6 @@ app.UseAuthorization();
 // Map controllers
 app.MapControllers();
 
+app.UseStaticFiles();
+
 app.Run();

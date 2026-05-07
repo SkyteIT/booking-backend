@@ -21,9 +21,8 @@ namespace Ube.Api.Controllers
             _context = context;
         }
 
-        // =========================
         // REGISTER
-        // =========================
+        
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
@@ -38,9 +37,9 @@ namespace Ube.Api.Controllers
             }
         }
 
-        // =========================
+       
         // LOGIN
-        // =========================
+      
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
@@ -55,9 +54,8 @@ namespace Ube.Api.Controllers
             }
         }
 
-        // =========================
         // GOOGLE LOGIN
-        // =========================
+      
         public class GoogleLoginRequest
         {
             public string Token { get; set; } = string.Empty;
@@ -67,8 +65,9 @@ namespace Ube.Api.Controllers
         public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request)
         {
             try
-            {
-                var jwt = await _authService.GoogleLoginAsync(request.Token);
+            { 
+                //pass  token to service
+                var jwt =await _authService.GoogleLoginAsync(request.Token);
                 return Ok(new { token = jwt });
             }
             catch (Exception ex)

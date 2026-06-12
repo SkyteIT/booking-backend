@@ -4,9 +4,11 @@ namespace Ube.Application.Common.Interfaces.Persistence
 {
     public interface IListingRepository
     {
-        //Get listing by id (used in availability)
         Task<Listing?> GetByIdAsync(Guid listingId);
         Task<List<Listing>> GetByVendorIdAsync(Guid vendorId);
         Task UpdateAsync(Listing listing);
+
+        Task<List<Listing>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default);
+        Task<List<Listing>> GetOrphanedByCategoryNameAsync(Guid uncategorizedId, string originalName, CancellationToken ct = default);
     }
 }

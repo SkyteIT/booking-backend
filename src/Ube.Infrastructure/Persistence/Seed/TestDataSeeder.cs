@@ -408,7 +408,7 @@ public static class TestDataSeeder
                 Id = categoryId,
                 Name = name,
                 Description = description,
-                IsActive = true,
+                Status = Ube.Domain.Enums.RecordStatus.Active,
                 CreatedAt = now
             });
             return;
@@ -416,7 +416,7 @@ public static class TestDataSeeder
 
         category.Name = name;
         category.Description = description;
-        category.IsActive = true;
+        category.Status = Ube.Domain.Enums.RecordStatus.Active;
         dbContext.Categories.Update(category);
     }
 

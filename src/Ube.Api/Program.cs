@@ -34,8 +34,13 @@ using Ube.Application.Features.Auth;
 using Ube.Application.Features.Security;
 using Ube.Infrastructure.Persistence.Repositories.Auth;
 using Microsoft.AspNetCore.RateLimiting;
-
-
+using Ube.Application.Features.Content;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Interfaces;
+using Ube.Application.Services;
+using Ube.Infrastructure.Persistence.Repositories.Content;
+using Ube.Infrastructure.Persistence.Repositories.Notifications;
+using Ube.Infrastructure.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,8 +59,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
-builder.Services.AddControllers(); 
-// Add FluentValidation 
+// Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 // Register validators from the auth DTO assembly
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestDto>();
@@ -103,6 +107,21 @@ builder.Services.AddScoped<IEmailVerificationRepository, EmailVerificationReposi
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
+// Wire ApplicationDbContext as IAppDbContext for content/search services
+builder.Services.AddScoped<IAppDbContext>(p => p.GetRequiredService<ApplicationDbContext>());
+// Content & notification repositories
+builder.Services.AddScoped<IBannerRepository, BannerRepository>();
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+// Content & search services (from merged branch)
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IBannerService, BannerService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISmsService, SmsService>();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", o =>
@@ -114,7 +133,6 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddEndpointsApiExplorer();
-
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -160,6 +178,7 @@ builder.Services.AddCors(options =>
 });
 var app = builder.Build();
 app.UseCors("AllowFrontend");
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -178,4 +197,3 @@ app.UseStaticFiles();
 app.MapControllers();
 
 app.Run();
-

@@ -25,6 +25,7 @@ public class ApplicationDbContext : DbContext
     public DbSet <BlockedDate> BlockedDates {get; set; } = default!;
     public DbSet <UserLocalizationSettings> UserLocalizationSettings { get; set; } = default!;
     public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; } = default!;
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

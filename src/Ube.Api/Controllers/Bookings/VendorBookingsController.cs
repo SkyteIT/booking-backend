@@ -23,27 +23,17 @@ public class VendorBookingsController : ControllerBase// base class
     }
 
     [HttpPatch("{bookingId}/status")]
-    // Endpoint for vendor to update booking status
     public async Task<IActionResult> UpdateBookingStatus(
         Guid bookingId,
         [FromBody] UpdateVendorBookingStatusRequest request)
     {
         var vendorId = _currentUser.UserId;
-        var bookingDetail = await _bookingService.UpdateVendorBookingStatusAsync(
-            bookingId,
-            vendorId,
-            request.NewStatus);
-
-        if (bookingDetail == null)
-            return BadRequest("Booking status update failed.");
-
-        return Ok(bookingDetail);
+        var result = await _bookingService.UpdateVendorBookingStatusAsync(bookingId, vendorId, request.NewStatus);
+        return Ok(result);
     }
-// get vendor bookings with status filter
+
     [HttpGet]
-    public async Task<IActionResult> GetVendorBookings( 
-        [FromQuery] BookingsRequest request
-         )
+    public async Task<IActionResult> GetVendorBookings([FromQuery] BookingsRequest request)
     {
         var vendorId = _currentUser.UserId;
         var bookings = await _bookingService.GetVendorBookingsAsync(vendorId, request);
@@ -51,14 +41,10 @@ public class VendorBookingsController : ControllerBase// base class
     }
 
     [HttpGet("{bookingId}")]
-    public async Task<IActionResult> GetBookingDetail(
-        Guid bookingId)
+    public async Task<IActionResult> GetBookingDetail(Guid bookingId)
     {
         var vendorId = _currentUser.UserId;
-        var bookingDetail = await _bookingService.GetBookingDetailAsync(bookingId, vendorId);
-        if(bookingDetail == null)
-            return NotFound("Booking not found or you don't have access to it.");
-        return Ok(bookingDetail);
-
+        var result = await _bookingService.GetBookingDetailAsync(bookingId, vendorId);
+        return Ok(result);
     }
 }

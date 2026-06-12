@@ -4,5 +4,5 @@ namespace Ube.Application.Common.Interfaces.Services.Auth;
 
 public interface ITokenService
 {
-    string GenerateToken(User user);
+    (string token, DateTime expiresAt) GenerateToken(User user);
 }

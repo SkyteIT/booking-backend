@@ -48,7 +48,8 @@ public class AvailabilityServiceTests
             blockedRepo.Object,
             CreateStrategySelector(),
             listingRepo.Object,
-            bookingRepo.Object
+            bookingRepo.Object,
+            new Mock<IUnitOfWork>().Object
         );
     }
 

@@ -31,6 +31,9 @@ using Ube.Infrastructure.Persistence.Repositories.Reviews;
 using Ube.Application.Common.Models;
 using Ube.Application.Features.Notifications.Email;
 using Ube.Application.Features.Auth;
+using Ube.Application.Features.Security;
+using Ube.Infrastructure.Persistence.Repositories.Auth;
+using Microsoft.AspNetCore.RateLimiting;
 
 
 
@@ -49,7 +52,7 @@ builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddScoped<SecurityService>();
+builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddControllers(); 
 // Add FluentValidation 
@@ -98,6 +101,18 @@ builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 //add email verification token repository
 builder.Services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("auth", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 builder.Services.AddEndpointsApiExplorer();
 
 
@@ -152,6 +167,7 @@ if (app.Environment.IsDevelopment())
     await TestDataSeeder.SeedAsync(dbContext, app.Logger);
 }
 app.UseMiddleware<Ube.Api.Middleware.ExceptionMiddleware>();
+app.UseRateLimiter();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseAuthentication();

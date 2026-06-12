@@ -28,4 +28,7 @@ public class Booking
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    // Optimistic concurrency — prevents two simultaneous status updates from both succeeding
+    public byte[] RowVersion { get; set; } = [];
 }

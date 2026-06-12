@@ -2,65 +2,58 @@ using Ube.Application.Common.Interfaces.Services;
 using Ube.Domain.Enums.Bookings;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models.Pagination;
+using Ube.Application.Common.Exceptions;
 
 namespace Ube.Application.Features.Bookings;
 
 public class BookingService : IBookingService
 {
-    public readonly IBookingRepository _bookingRepository;
+    private readonly IBookingRepository _bookingRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public BookingService(IBookingRepository bookingRepository)
+    public BookingService(IBookingRepository bookingRepository, IUnitOfWork unitOfWork)
     {
         _bookingRepository = bookingRepository;
+        _unitOfWork = unitOfWork;
     }
-    // Method for vendor to update booking status
-    public async Task<BookingDetailDto?> UpdateVendorBookingStatusAsync(Guid BookingId, Guid VendorId, BookingStatus newStatus)
+
+    public async Task<BookingDetailDto> UpdateVendorBookingStatusAsync(Guid bookingId, Guid vendorId, BookingStatus newStatus)
     {
-        //retireve the booking
-        var booking = await _bookingRepository.GetByIdAsync(BookingId);
+        var booking = await _bookingRepository.GetByIdAsync(bookingId)
+            ?? throw new NotFoundException("Booking not found");
 
-        if (booking == null)
-            return null;
-
-        var isAllowed = newStatus switch
+        var validationResult = newStatus switch
         {
-            BookingStatus.Confirmed => 
-                BookingValidationRules.CanVendorConfirm(booking, VendorId).IsSuccess,
-            BookingStatus.Rejected => 
-                BookingValidationRules.CanVendorReject(booking , VendorId).IsSuccess,
-            
-            _ => false
+            BookingStatus.Confirmed => BookingValidationRules.CanVendorConfirm(booking, vendorId),
+            BookingStatus.Rejected  => BookingValidationRules.CanVendorReject(booking, vendorId),
+            _ => Result.Failure("Invalid status transition for vendor")
         };
-        if (!isAllowed)
-            return null;
 
-        booking.Status = newStatus;
+        if (!validationResult.IsSuccess)
+            throw new BusinessRuleException(validationResult.ErrorMessage);
 
-        await _bookingRepository.UpdateAsync(booking);
-        
-        return new BookingDetailDto
+        await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            BookingId = booking.Id,
-            BookingNumber = booking.BookingNumber,
-            ListingTitle = booking.Listing.Title,
-            CustomerName = booking.Customer.FirstName + " " + booking.Customer.LastName,
-            CustomerEmail = booking.Customer.Email,
-            StartDateTime = booking.StartDateTime,
-            EndDateTime = booking.EndDateTime,
-            Status = booking.Status,
-            TotalAmount = booking.TotalAmount,
-            Currency = booking.Currency,
-            CreatedAt = booking.CreatedAt,
-            CanConfirm = BookingValidationRules.CanVendorConfirm(booking, VendorId).IsSuccess,
-            CanReject = BookingValidationRules.CanVendorReject(booking, VendorId).IsSuccess
-        };
+            booking.Status = newStatus;
+            booking.UpdatedAt = DateTime.UtcNow;
+            await _bookingRepository.UpdateAsync(booking);
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+
+        return MapToDetail(booking, vendorId);
     }
-    // Method to get bookings for a vendor with pagination and optional status filter
+
     public async Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request)
     {
         var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, request);
         var vendorBookings = bookings.Items.Select(b => new VendorBookingDto
-        {   
+        {
             BookingId = b.Id,
             BookingNumber = b.BookingNumber,
             ListingTitle = b.Listing.Title,
@@ -72,6 +65,7 @@ public class BookingService : IBookingService
             Currency = b.Currency,
             CreatedAt = b.CreatedAt
         }).ToList();
+
         return new PagedResult<VendorBookingDto>
         {
             Items = vendorBookings,
@@ -82,13 +76,16 @@ public class BookingService : IBookingService
         };
     }
 
-    public async Task<BookingDetailDto?> GetBookingDetailAsync(Guid BookingId, Guid vendorId)
+    public async Task<BookingDetailDto> GetBookingDetailAsync(Guid bookingId, Guid vendorId)
     {
-        var booking = await _bookingRepository.GetBookingAsync(BookingId, vendorId);
-        if(booking ==null)
-            return null;
-        
-        return new BookingDetailDto
+        var booking = await _bookingRepository.GetBookingAsync(bookingId, vendorId)
+            ?? throw new NotFoundException("Booking not found or you do not have access to it");
+
+        return MapToDetail(booking, vendorId);
+    }
+
+    private static BookingDetailDto MapToDetail(Domain.Entities.Bookings.Booking booking, Guid vendorId) =>
+        new BookingDetailDto
         {
             BookingId = booking.Id,
             BookingNumber = booking.BookingNumber,
@@ -104,5 +101,4 @@ public class BookingService : IBookingService
             CanConfirm = BookingValidationRules.CanVendorConfirm(booking, vendorId).IsSuccess,
             CanReject = BookingValidationRules.CanVendorReject(booking, vendorId).IsSuccess
         };
-    }
 }

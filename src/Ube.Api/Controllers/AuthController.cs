@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Auth;
 
 namespace Ube.Api.Controllers;
+
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
@@ -18,20 +20,27 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("register")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Register(RegisterRequestDto request)
     {
         var result = await _authService.RegisterAsync(request);
         return Ok(result);
     }
 
-
     [HttpPost("login")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginRequestDto request)
     {
         var result = await _authService.LoginAsync(request);
         return Ok(result);
     }
 
+    [HttpPost("google-login")]
+    public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginRequest request)
+    {
+        var result = await _authService.GoogleLoginAsync(request.IdToken);
+        return Ok(result);
+    }
 
     [HttpPost("verify-email")]
     public async Task<IActionResult> VerifyEmail([FromQuery] string token)
@@ -41,15 +50,22 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh-token")]
-    [Authorize]
-    public async Task<ActionResult<AuthResponseDto>> RefreshToken()
+    public async Task<ActionResult<AuthResponseDto>> RefreshToken([FromBody] RefreshTokenRequest request)
     {
-        var userId = _currentUserService.UserId;
-        var result = await _authService.RefreshTokenAsync(userId);
+        var result = await _authService.RefreshTokenAsync(request.RefreshToken);
         return Ok(result);
     }
- 
+
+    [HttpPost("logout")]
+    [Authorize]
+    public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
+    {
+        await _authService.LogoutAsync(request.RefreshToken);
+        return Ok(new { message = "Logged out successfully" });
+    }
+
     [HttpGet("current-user")]
+    [Authorize]
     public IActionResult GetCurrentUser()
     {
         var userId = _currentUserService.UserId;

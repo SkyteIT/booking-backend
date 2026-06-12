@@ -7,6 +7,8 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Vendors;
+using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Tests.Availability;
 
@@ -21,14 +23,15 @@ public class AvailabilityBlockingRulesTests
         {
             new Booking
             {
-                StartDateTime = new DateTime(2026, 5, 15),
-                EndDateTime = new DateTime(2026, 5, 15)
+                StartDateTime = new DateTime(2027, 8, 15),
+                EndDateTime = new DateTime(2027, 8, 15),
+                Status = BookingStatus.Confirmed
             }
         };
 
         var dates = new List<DateTime>
         {
-            new DateTime(2026, 5, 15)
+            new DateTime(2027, 8, 15)
         };
 
         // Act
@@ -36,7 +39,7 @@ public class AvailabilityBlockingRulesTests
 
         // Assert
         Assert.False(result.IsSuccess);
-        Assert.Contains("already has a booking", result.ErrorMessage);
+        Assert.Contains("already booked", result.ErrorMessage);
     }
     // Test the date that does not have a booking (should be able to block)
     [Fact]
@@ -47,7 +50,7 @@ public class AvailabilityBlockingRulesTests
 
         var dates = new List<DateTime>
         {
-            new DateTime(2026, 5, 20)
+            new DateTime(2027, 8, 20)
         };
 
         // Act
@@ -65,15 +68,15 @@ public class AvailabilityBlockingRulesTests
         {
             new Booking
             {
-                StartDateTime = new DateTime(2026, 5, 15),
-                EndDateTime = new DateTime(2026, 5, 15)
+                StartDateTime = new DateTime(2027, 8, 15),
+                EndDateTime = new DateTime(2027, 8, 15)
             }
         };
 
         var dates = new List<DateTime>
         {
-            new DateTime(2026, 5, 15), // booked ❌
-            new DateTime(2026, 5, 20)  // free ✔
+            new DateTime(2027, 8, 15), // booked ❌
+            new DateTime(2027, 8, 20)  // free ✔
         };
 
         // Act
@@ -81,7 +84,7 @@ public class AvailabilityBlockingRulesTests
 
         // Assert
         Assert.False(result.IsSuccess);
-        Assert.Contains("2026-05-15", result.ErrorMessage);
+        Assert.Contains("2027-08-15", result.ErrorMessage);
     }
     [Fact]
     public async Task Should_Block_Dates_Successfully_When_Valid()
@@ -116,12 +119,13 @@ public class AvailabilityBlockingRulesTests
             blockedRepo.Object,
             strategySelector,
             listingRepo.Object,
-            bookingRepo.Object
+            bookingRepo.Object,
+            new Mock<IUnitOfWork>().Object
         );
 
         var dates = new List<DateTime>
         {
-            new DateTime(2026, 5, 20)
+            new DateTime(2027, 8, 20)
         };
 
         // Act
@@ -162,7 +166,7 @@ public class AvailabilityBlockingRulesTests
                 new BlockedDate
                 {
                     ListingId = listingId,
-                    Date = new DateTime(2026, 5, 20)
+                    Date = new DateTime(2027, 8, 20)
                 }
             });
 
@@ -170,7 +174,8 @@ public class AvailabilityBlockingRulesTests
             blockedRepo.Object,
             strategySelector,
             listingRepo.Object,
-            bookingRepo.Object
+            bookingRepo.Object,
+            new Mock<IUnitOfWork>().Object
         );
 
         // Act
@@ -178,7 +183,7 @@ public class AvailabilityBlockingRulesTests
             service.BlockdatesAsync(
                 listingId,
                 vendorId,
-                new List<DateTime> { new DateTime(2026,5,20) }
+                new List<DateTime> { new DateTime(2027,8,20) }
             )
         );
 
@@ -216,7 +221,7 @@ public class AvailabilityBlockingRulesTests
                 new BlockedDate
                 {
                     ListingId = listingId,
-                    Date = new DateTime(2026,5,20)
+                    Date = new DateTime(2027,8,20)
                 }
             });
 
@@ -224,12 +229,13 @@ public class AvailabilityBlockingRulesTests
             blockedRepo.Object,
             strategySelector,
             listingRepo.Object,
-            bookingRepo.Object
+            bookingRepo.Object,
+            new Mock<IUnitOfWork>().Object
         );
 
         var dates = new List<DateTime>
         {
-            new DateTime(2026,5,20)
+            new DateTime(2027,8,20)
         };
 
         // Act
@@ -265,12 +271,13 @@ public async Task Should_Throw_When_Unblocking_NonBlocked_Dates()
         blockedRepo.Object,
         strategySelector,
         listingRepo.Object,
-        bookingRepo.Object
+        bookingRepo.Object,
+        new Mock<IUnitOfWork>().Object
     );
 
     var dates = new List<DateTime>
     {
-        new DateTime(2026,5,20)
+        new DateTime(2027,8,20)
     };
 
     // Act

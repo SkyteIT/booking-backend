@@ -1,9 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services.Auth;
-using Microsoft.AspNetCore.Identity;
-using Ube.Application.Common.Interfaces.Persistence;
-using Ube.Domain.Entities.Users;
+using Ube.Application.Features.Security;
 
 namespace Ube.Api.Controllers;
 
@@ -12,30 +10,19 @@ namespace Ube.Api.Controllers;
 [Route("api/security")]
 public class SecurityController : ControllerBase
 {
-    private readonly SecurityService _service;
+    private readonly ISecurityService _service;
     private readonly ICurrentUserService _currentUser;
-    private readonly IUserRepository _userRepository;
-    private readonly IPasswordHasher<User> _passwordHasher;
-    public SecurityController(
-        SecurityService service,
-        ICurrentUserService currentUser,
-        IUserRepository userRepository,
-        IPasswordHasher<User> passwordHasher)
+
+    public SecurityController(ISecurityService service, ICurrentUserService currentUser)
     {
         _service = service;
         _currentUser = currentUser;
-        _userRepository = userRepository;
-        _passwordHasher = passwordHasher;
     }
 
     [HttpPut("change-password")]
-    public async Task<IActionResult> ChangePassword(
-        [FromBody] ChangePasswordDto dto)
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
-        var userId = _currentUser.UserId;
-
-        await _service.ChangePasswordAsync(userId, dto);
-
+        await _service.ChangePasswordAsync(_currentUser.UserId, dto);
         return Ok(new { message = "Password updated successfully" });
     }
 }

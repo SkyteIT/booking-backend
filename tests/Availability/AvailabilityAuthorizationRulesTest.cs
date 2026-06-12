@@ -2,6 +2,7 @@ using Xunit;
 using Ube.Application.Features.Availability.rules;
 
 using Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Vendors;
 
 namespace Ube.Tests.Availability;
 
@@ -14,7 +15,8 @@ public class AvailabilityAuthorizationRulesTests
 
         var listing = new Listing
         {
-            VendorProfileId = vendorId
+            VendorProfileId = vendorId,
+            VendorProfile = new VendorProfile { UserId = vendorId }
         };
 
         var result = AvailabilityAuthorizationRules
@@ -26,9 +28,11 @@ public class AvailabilityAuthorizationRulesTests
     [Fact]
     public void Should_Fail_When_Vendor_Does_Not_Own_Listing()
     {
+        var ownerVendorId = Guid.NewGuid();
         var listing = new Listing
         {
-            VendorProfileId = Guid.NewGuid()
+            VendorProfileId = ownerVendorId,
+            VendorProfile = new VendorProfile { UserId = ownerVendorId }
         };
 
         var wrongVendorId = Guid.NewGuid();

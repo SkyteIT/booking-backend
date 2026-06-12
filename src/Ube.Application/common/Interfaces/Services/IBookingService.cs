@@ -6,9 +6,9 @@ namespace Ube.Application.Common.Interfaces.Services;
 
 public interface IBookingService
 {
-    Task<BookingDetailDto?> UpdateVendorBookingStatusAsync(Guid bookingId,Guid VendorId, BookingStatus newStatus);
-    Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId , BookingsRequest request);
-    Task <BookingDetailDto?> GetBookingDetailAsync(Guid BookingId , Guid vendorId);
+    Task<BookingDetailDto> UpdateVendorBookingStatusAsync(Guid bookingId, Guid vendorId, BookingStatus newStatus);
+    Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request);
+    Task<BookingDetailDto> GetBookingDetailAsync(Guid bookingId, Guid vendorId);
 }
 
 

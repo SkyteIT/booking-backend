@@ -39,22 +39,21 @@ public class VendorProfileController : ControllerBase
         return Ok(result);
     }
     [HttpPost("upload-image")]
-    public async Task<IActionResult> UploadImage([FromForm] IFormFile file)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadImage([FromForm] UploadImageRequest request)
     {
         var userId = _currentUser.UserId;
+        var file = request.File;
 
-        // Validate file
         if (file == null || file.Length == 0)
             throw new BusinessRuleException("Invalid file");
 
-        // Validate file type
         var allowedTypes = new[] { ".jpg", ".jpeg", ".png" };
         var extension = Path.GetExtension(file.FileName).ToLower();
         if (!allowedTypes.Contains(extension))
             throw new BusinessRuleException("Only JPG/PNG files are allowed");
 
-        // Validate file size : 2mb
-        const long maxFileSize = 2 * 1024 * 1024; // 2MB
+        const long maxFileSize = 2 * 1024 * 1024;
         if (file.Length > maxFileSize)
             throw new BusinessRuleException("File size must not exceed 2MB");
 
@@ -66,10 +65,8 @@ public class VendorProfileController : ControllerBase
 
         var filePath = Path.Combine(folderPath, fileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
+        using var stream = new FileStream(filePath, FileMode.Create);
+        await file.CopyToAsync(stream);
 
         var imageUrl = $"/images/profiles/{fileName}";
         await _service.UpdateProfileImageAsync(userId, imageUrl);

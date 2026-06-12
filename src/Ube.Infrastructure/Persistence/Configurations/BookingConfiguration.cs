@@ -33,6 +33,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
                 .IsUnique();
 
         builder.HasIndex(x => x.StartDateTime);
+        builder.Property(x => x.RowVersion)
+               .IsRowVersion();
         builder.HasOne(x => x.Listing)
                 .WithMany()
                 .HasForeignKey(x => x.ListingId)

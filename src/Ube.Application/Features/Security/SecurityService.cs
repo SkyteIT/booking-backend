@@ -21,7 +21,7 @@ public class SecurityService
 
         if (string.IsNullOrEmpty(user.PasswordHash))
             throw new BusinessRuleException("Password not set");
-
+        // compare hash of current password with stored hash
         var isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash);
 
         if (!isCurrentPasswordValid)

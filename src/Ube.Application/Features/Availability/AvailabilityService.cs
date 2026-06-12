@@ -2,11 +2,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Availability.rules;
 using Ube.Application.Features.Availability.Strategies;
 using Ube.Application.Common.Exceptions;
-
-
 using Ube.Domain.Entities.Listings;
-using System.Security.Cryptography.X509Certificates;
-
 namespace Ube.Application.Features.Availability;
 
 public class AvailabilityService : IAvailabilityService
@@ -38,9 +34,9 @@ public class AvailabilityService : IAvailabilityService
         try{
             // Get listing(use this for get availability type)
             var listing = await _listingRepository.GetByIdAsync(listingId);
-            if (listing == null) throw new KeyNotFoundException("Listing not found");
-            Console.WriteLine($"Listing VendorId: {listing.VendorProfileId}");
-            Console.WriteLine($"Current UserId: {vendorId}");
+                if (listing == null) 
+                    throw new KeyNotFoundException("Listing not found");
+                       
             var authResult = AvailabilityAuthorizationRules.CanModifyAvailability(listing, vendorId);
 
             if (!authResult.IsSuccess)
@@ -111,6 +107,7 @@ public class AvailabilityService : IAvailabilityService
             throw;
         }
     }
+    // Method for vendor to block dates for a listing
     public async Task BlockdatesAsync(Guid listingId, Guid vendorId, List<DateTime> dates)
     { 
         await _unitOfWork.BeginTransactionAsync();
@@ -121,14 +118,18 @@ public class AvailabilityService : IAvailabilityService
                 .Select(d => d.Date)
                 .Distinct()
                 .ToList();
-
+            
             var today = DateTime.UtcNow.Date;
+
             if (normalizeDates.Any(d => d <= today))
             {
                 throw new BusinessRuleException("Cannot block past dates");
             }
+
             var listing = await _listingRepository.GetByIdAsync(listingId);
-            if (listing == null) throw new KeyNotFoundException("Listing not found");
+
+            if (listing == null)
+                 throw new KeyNotFoundException("Listing not found");
 
             var authResult = AvailabilityAuthorizationRules
                 .CanModifyAvailability(listing, vendorId);

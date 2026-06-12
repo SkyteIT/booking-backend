@@ -10,7 +10,7 @@ namespace Ube.Infrastructure.Persistence.Repositories.Bookings;
 public class BookingRepository : IBookingRepository
 {
     private readonly ApplicationDbContext _db;
-
+    //inject  DI for database context
     public BookingRepository(ApplicationDbContext context)
     {
         _db = context;
@@ -43,7 +43,7 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.Customer)// get customer details for the booking
             .Include(b => b.Listing)
                 .ThenInclude(l => l.VendorProfile) // include vendor profile through listing
-            .Where(b => b.Listing.VendorProfile.UserId == vendorId)
+            .Where(b => b.Listing.VendorProfile.UserId == vendorId)// filter by vendor id
             .AsQueryable();
             if (request.Status.HasValue)
             {
@@ -81,7 +81,7 @@ public class BookingRepository : IBookingRepository
         };
 
     }
-
+    //use for analytics and reporting for vendors to get all bookings without pagination
     public async Task<List<Booking>> GetAllBookingsByVendorIdAsync(Guid vendorId)
     {
         return await _db.Bookings
@@ -96,7 +96,7 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.Listing)
                 .ThenInclude(l => l.VendorProfile) // include vendor profile through listing
             .Include(b => b.Customer)
-            .FirstOrDefaultAsync(b => b.Id == BookingId && b.Listing.VendorProfile.UserId == vendorId);
+            .FirstOrDefaultAsync(b => b.Id == BookingId && b.Listing.VendorProfile.UserId == vendorId);//ensure booking belongs to vendor
         return await query;
 
     }

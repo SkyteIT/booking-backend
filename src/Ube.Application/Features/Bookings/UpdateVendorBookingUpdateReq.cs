@@ -1,6 +1,6 @@
 using Ube.Domain.Enums.Bookings;
 
-namespace Ube.Api.Contracts.Bookings;
+namespace Ube.Application.Features.Bookings;
 
 public class UpdateVendorBookingStatusRequest
 {

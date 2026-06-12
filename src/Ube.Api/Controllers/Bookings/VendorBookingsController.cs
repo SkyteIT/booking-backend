@@ -1,20 +1,21 @@
 using Ube.Application.Common.Interfaces.Services;
-using Ube.Api.Contracts.Bookings;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Features.Bookings;
 using Microsoft.AspNetCore.Authorization;
 using Ube.Application.Common.Interfaces.Services.Auth;
+
 
 namespace Ube.Api.Controllers.Bookings;
 
 [Authorize (Roles = "Vendor")]
 [ApiController]
 [Route("api/vendor/bookings")]
-public class VendorBookingsController : ControllerBase
+public class VendorBookingsController : ControllerBase// base class
 {
+    //Dependency injection of the booking service and current user service
     private readonly IBookingService _bookingService;
     private readonly ICurrentUserService _currentUser;
-
+    // Inject ICurrentUserService to get the current user's ID (vendor ID)
     public VendorBookingsController(IBookingService bookingService, ICurrentUserService currentUser)
     {
         _bookingService = bookingService;
@@ -22,6 +23,7 @@ public class VendorBookingsController : ControllerBase
     }
 
     [HttpPatch("{bookingId}/status")]
+    // Endpoint for vendor to update booking status
     public async Task<IActionResult> UpdateBookingStatus(
         Guid bookingId,
         [FromBody] UpdateVendorBookingStatusRequest request)

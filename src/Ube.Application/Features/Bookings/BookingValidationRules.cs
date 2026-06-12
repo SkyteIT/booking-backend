@@ -36,29 +36,42 @@ public static class BookingValidationRules
             return Result.Failure("Cannot reject booking.");
     }
     // this part  for customer side validation 
-    public static bool BelongsToUser(Booking booking, Guid currentUserId)
+    public static Result BelongsToUser(Booking booking, Guid currentUserId)
     {
         if (booking.CustomerId == currentUserId)
-            return true;
+            return Result.Success();
         else
-            return false;
+            return Result.Failure("Booking does not belong to the specified user.");
     }
-    public static bool CanUserCancelPendding(Booking booking, Guid currentUserId)
+    public static Result CanUserCancelPendding(Booking booking, Guid currentUserId)
     {
-        return BelongsToUser(booking, currentUserId) &&
-                booking.Status == BookingStatus.Pending &&
-                BookingTransitionRules.CanCustomerTransition(booking.Status, BookingStatus.Cancelled);
+        var belongsToUser = BelongsToUser(booking, currentUserId);
+        if (!belongsToUser.IsSuccess)
+            return belongsToUser;
+
+        if (booking.Status == BookingStatus.Pending && BookingTransitionRules.CanCustomerTransition(booking.Status, BookingStatus.Cancelled))
+            return Result.Success();
+        else
+            return Result.Failure("Cannot cancel pending booking.");
     }
-    public static bool CanUserCancelConfirmed(Booking booking, Guid currentUserId)
+    public static Result CanUserCancelConfirmed(Booking booking, Guid currentUserId)
     {
-        return BelongsToUser(booking, currentUserId) &&
-                booking.Status == BookingStatus.Confirmed &&
-                BookingTransitionRules.CanCustomerTransition(booking.Status, BookingStatus.Cancelled);
+        var belongsToUser = BelongsToUser(booking, currentUserId);
+        if (!belongsToUser.IsSuccess)
+            return belongsToUser;
+
+        if (booking.Status == BookingStatus.Confirmed && BookingTransitionRules.CanCustomerTransition(booking.Status, BookingStatus.Cancelled))
+            return Result.Success();
+        else
+            return Result.Failure("Cannot cancel confirmed booking.");
     }
 
     // this part for system side validation
-    public static bool CanSystemComplete(Booking booking)
+    public static Result CanSystemComplete(Booking booking)
     {
-        return BookingTransitionRules.CanSystemTransition(booking.Status, BookingStatus.Completed);
+        if (BookingTransitionRules.CanSystemTransition(booking.Status, BookingStatus.Completed))
+            return Result.Success();
+        else
+            return Result.Failure("Cannot complete booking.");
     }
 }

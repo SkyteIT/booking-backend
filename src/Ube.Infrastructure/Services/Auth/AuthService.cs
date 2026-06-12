@@ -216,4 +216,21 @@ public class AuthService : IAuthService
 
        
     }
+
+    // REFRESH TOKEN
+    public async Task<AuthResponseDto> RefreshTokenAsync(Guid userId)
+    {
+        var user = await _userRepo.GetByIdAsync(userId);
+
+        if (user == null)
+            throw new NotFoundException("User not found");
+
+        return new AuthResponseDto
+        {
+            Token = _tokenService.GenerateToken(user),
+            UserId = user.Id,
+            Email = user.Email,
+            Role = user.Role.ToString()
+        };
+    }
 }   

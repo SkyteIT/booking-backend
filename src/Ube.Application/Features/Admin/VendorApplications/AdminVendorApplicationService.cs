@@ -29,6 +29,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
     {
+        // traaction
         await _unitOfWork.BeginTransactionAsync();
         try{
         // Get application
@@ -123,7 +124,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         {
             // Rollback transaction on error
             await _unitOfWork.RollbackAsync();
-            throw;
+            throw new BusinessRuleException("An error occurred while reviewing the application");
         }
     }
     // Method to get application details

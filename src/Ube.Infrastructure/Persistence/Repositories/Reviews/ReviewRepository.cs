@@ -18,7 +18,6 @@ public class ReviewRepository : IReviewRepository
     public async Task AddAsync(Review review)
     {
         await _db.Reviews.AddAsync(review);
-        await _db.SaveChangesAsync();
     }
 
     // Check if review exists for booking
@@ -42,7 +41,7 @@ public class ReviewRepository : IReviewRepository
         if (!string.IsNullOrWhiteSpace(options.Search))
         {
             query = query.Where(x =>
-                x.Comment.Contains(options.Search));
+                x.Comment.Contains(options.Search.ToLower()));
         }
 
         // Default sorting (latest first)

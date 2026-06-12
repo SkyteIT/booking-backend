@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Auth;
 
-namespace Ube.API.Controllers;
+namespace Ube.Api.Controllers;
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
@@ -39,6 +40,14 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Email verified successfully" });
     }
 
+    [HttpPost("refresh-token")]
+    [Authorize]
+    public async Task<ActionResult<AuthResponseDto>> RefreshToken()
+    {
+        var userId = _currentUserService.UserId;
+        var result = await _authService.RefreshTokenAsync(userId);
+        return Ok(result);
+    }
  
     [HttpGet("current-user")]
     public IActionResult GetCurrentUser()

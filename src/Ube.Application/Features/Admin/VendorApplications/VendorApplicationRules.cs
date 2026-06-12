@@ -5,13 +5,13 @@ namespace Ube.Application.Features.Admin.VendorApplications;
 public static class VendorApplicationRules
 {
     //Use fpr Result pattern to return success or failure with message
-    public static Result CanReview(VendorApplicationStatus status)//Use fpr Result pattern to return success or failure with message
+    public static Result CanReview(VendorApplicationStatus status)
     {
         if (status != VendorApplicationStatus.Pending)
             return Result.Failure("Application already reviewed");       
         return Result.Success();
     }
-//Use fpr Result pattern to return success or failure with message
+
     public static Result ValidateRejection(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))

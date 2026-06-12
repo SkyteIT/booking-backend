@@ -17,7 +17,7 @@ public class AvailabilityController : ControllerBase
         _as = aService;
         _currentUser = currentUser;
     }
-
+    // get calendar for a listing with month and year filter
     [HttpGet("{listingId}/calendar")]
     public async Task<IActionResult> GetCalendar(
         Guid listingId, 

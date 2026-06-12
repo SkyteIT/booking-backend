@@ -39,12 +39,14 @@ public class VendorApplicationsController : ControllerBase
 
         return Ok(new { message = "Application reviewed successfully" });
     }
+    //application details for admin to review, also used for admin to view application details after review
     [HttpGet("{applicationId}")]
     public async Task<IActionResult> GetDetails(Guid applicationId)
     {
         var result = await _service.GetDetailsAsync(applicationId);
         return Ok(result);
     }
+    // for admin to get all applications to  review.
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] VendorApplicationStatus? status,

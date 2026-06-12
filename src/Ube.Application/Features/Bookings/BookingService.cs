@@ -13,6 +13,7 @@ public class BookingService : IBookingService
     {
         _bookingRepository = bookingRepository;
     }
+    // Method for vendor to update booking status
     public async Task<BookingDetailDto?> UpdateVendorBookingStatusAsync(Guid BookingId, Guid VendorId, BookingStatus newStatus)
     {
         //retireve the booking
@@ -54,6 +55,7 @@ public class BookingService : IBookingService
             CanReject = BookingValidationRules.CanVendorReject(booking, VendorId).IsSuccess
         };
     }
+    // Method to get bookings for a vendor with pagination and optional status filter
     public async Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request)
     {
         var bookings = await _bookingRepository.GetBookingsByVendorIdAsync(vendorId, request);

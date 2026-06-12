@@ -11,19 +11,20 @@ public class VendorProfileRepository : IVendorProfileRepository
     {
         _db = db;
     }
-
+    // Method to get vendor profile by user ID
     public async Task<VendorProfile?> GetVendorIdAsync(Guid userId)
     {
         return await _db.VendorProfiles
-            .FirstOrDefaultAsync(v => v.UserId == userId);
+        .AsNoTracking()
+        .FirstOrDefaultAsync(v => v.UserId == userId);
     }
-
+    // Method to update vendor profile
     public async Task UpdateAsync(VendorProfile profile)
     {
         _db.VendorProfiles.Update(profile);
         await _db.SaveChangesAsync();
     }
-
+    // Method to add new vendor profile
     public async Task AddAsync(VendorProfile profile)
     {
         await _db.VendorProfiles.AddAsync(profile);

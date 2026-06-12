@@ -36,3 +36,9 @@ public class ValidationException : AppException
         Errors = errors;
     }
 }
+
+public class BadRequestException : AppException
+{
+    public BadRequestException(string message)
+        : base(message, 400) { }
+}

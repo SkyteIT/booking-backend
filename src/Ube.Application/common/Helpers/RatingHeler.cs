@@ -43,6 +43,6 @@ public class RatingHelper
             listing.AverageRating = total / listing.TotalReviews;
         }
 
-        await _listingRepo.UpdateAsync(listing);
+        
     }
 }

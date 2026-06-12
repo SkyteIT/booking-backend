@@ -1,8 +1,7 @@
-using System.Linq;
+
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Common.Exceptions;
-using Ube.Application.Common.Models;
-using Ube.Application.Common.Interfaces;
+
 using Ube.Domain.Entities.Reviews;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Helpers;
@@ -15,54 +14,67 @@ public class ReviewService : IReviewService
     private readonly IBookingRepository _bookingRepo;
     private readonly IReviewRepository _reviewRepo;
     private readonly RatingHelper _ratingHelper;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ReviewService(
         IBookingRepository bookingRepo,
         IReviewRepository reviewRepo,
-        RatingHelper ratingHelper)
+        RatingHelper ratingHelper,
+        IUnitOfWork unitOfWork
+        )
     {
         _bookingRepo = bookingRepo;
         _reviewRepo = reviewRepo;
         _ratingHelper = ratingHelper;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task CreateReviewAsync(CreateReviewDto dto, Guid currentUserId)
     {
-        // validate booking exists and belongs to user
-        //1 get booking
-        var booking = await _bookingRepo.GetByIdAsync(dto.BookingId);
-        if (booking == null )
-            throw new NotFoundException("Booking not found");
-        // 2 rules
-        var completedRule = ReviewRules.MustBeCompleted(booking.Status);
-        if (!completedRule.IsSuccess)
-            throw new BusinessRuleException(completedRule.ErrorMessage);
-        
-        var ownerRule = ReviewRules.MustBeBookingOwner(booking.CustomerId, currentUserId);
-        if (!ownerRule.IsSuccess)
-            throw new BusinessRuleException(ownerRule.ErrorMessage);
-        var exists = await _reviewRepo.ExistsByBookingIdAsync(dto.BookingId);
-        var duplicateRule = ReviewRules.CannotReviewTwice(exists);
-        if (!duplicateRule.IsSuccess)
-            throw new BusinessRuleException(duplicateRule.ErrorMessage);
-        var ratingRule = ReviewRules.ValidateRating(dto.Rating);
-        if (!ratingRule.IsSuccess)
-            throw new BusinessRuleException(ratingRule.ErrorMessage);
+        await _unitOfWork.BeginTransactionAsync();
+        try{
 
-        //create review
-        var review = new Review
-        {
-            Id = Guid.NewGuid(),
-            BookingId = dto.BookingId,
-            ListingId = booking.ListingId,
-            VendorId = booking.Listing.VendorProfile.UserId,
-            CustomerId = booking.CustomerId,
-            Rating = dto.Rating,
-            Comment = dto.Comment
-        };
-        await _reviewRepo.AddAsync(review);
+            // validate booking exists and belongs to user
+            //1 get booking
+            var booking = await _bookingRepo.GetByIdAsync(dto.BookingId);
+            if (booking == null )
+                throw new NotFoundException("Booking not found");
+            // 2 rules
+            var completedRule = ReviewRules.MustBeCompleted(booking.Status);
+            if (!completedRule.IsSuccess)
+                throw new BusinessRuleException(completedRule.ErrorMessage);
+            
+            var ownerRule = ReviewRules.MustBeBookingOwner(booking.CustomerId, currentUserId);
+            if (!ownerRule.IsSuccess)
+                throw new BusinessRuleException(ownerRule.ErrorMessage);
+            var exists = await _reviewRepo.ExistsByBookingIdAsync(dto.BookingId);
+            var duplicateRule = ReviewRules.CannotReviewTwice(exists);
+            if (!duplicateRule.IsSuccess)
+                throw new BusinessRuleException(duplicateRule.ErrorMessage);
+            var ratingRule = ReviewRules.ValidateRating(dto.Rating);
+            if (!ratingRule.IsSuccess)
+                throw new BusinessRuleException(ratingRule.ErrorMessage);
 
-        await _ratingHelper.UpdateListingRatingAsync(review.ListingId, null, review.Rating);
+            //create review
+            var review = new Review
+            {
+                Id = Guid.NewGuid(),
+                BookingId = dto.BookingId,
+                ListingId = booking.ListingId,
+                VendorId = booking.Listing.VendorProfile.UserId,
+                CustomerId = booking.CustomerId,
+                Rating = dto.Rating,
+                Comment = dto.Comment
+            };
+            await _reviewRepo.AddAsync(review);
+
+            await _ratingHelper.UpdateListingRatingAsync(review.ListingId, null, review.Rating);
+            await _unitOfWork.CommitAsync();
+        }
+        catch{
+                await _unitOfWork.RollbackAsync();
+                throw;
+        }
     }
 
     public async Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request)

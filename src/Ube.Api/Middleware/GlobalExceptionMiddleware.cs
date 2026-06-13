@@ -27,7 +27,7 @@ public class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception for {Method} {Path}", 
+            _logger.LogError(ex, "Unhandled exception for {Method} {Path}",
                 context.Request.Method, context.Request.Path);
             await HandleExceptionAsync(context, ex);
         }
@@ -39,13 +39,16 @@ public class GlobalExceptionMiddleware
 
         var (statusCode, message) = exception switch
         {
-            // Duplicate name (our own guard)
+            // FIX: InvalidOperationException is our deliberate duplicate-code guard
+            // in PromotionService — must return 409 so the frontend shows the
+            // "already exists" error message instead of a generic crash.
             InvalidOperationException
                 => (HttpStatusCode.Conflict, exception.Message),
 
-            // Unique constraint / DB conflict
+            // Unique constraint / DB conflict — fallback in case a duplicate
+            // somehow slips past our pre-check (e.g. race condition)
             DbUpdateException dbEx when IsUniqueConstraintViolation(dbEx)
-                => (HttpStatusCode.Conflict, "A record with this name already exists."),
+                => (HttpStatusCode.Conflict, ExtractDuplicateMessage(dbEx)),
 
             // Other DB errors
             DbUpdateException
@@ -55,11 +58,11 @@ public class GlobalExceptionMiddleware
             KeyNotFoundException
                 => (HttpStatusCode.NotFound, exception.Message),
 
-            // Validation
+            // Validation / bad arguments
             ArgumentException
                 => (HttpStatusCode.BadRequest, exception.Message),
 
-            // Default
+            // Default: don't leak internals
             _
                 => (HttpStatusCode.InternalServerError, "An unexpected error occurred. Please try again.")
         };
@@ -70,10 +73,8 @@ public class GlobalExceptionMiddleware
         {
             status = (int)statusCode,
             error = message,
-            // Only expose detail in development
-            detail = (statusCode == HttpStatusCode.InternalServerError)
-                ? null
-                : exception.Message
+            // Only expose raw detail for non-500 errors (500 hides stack trace)
+            detail = statusCode == HttpStatusCode.InternalServerError ? null : exception.Message
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions
@@ -85,10 +86,31 @@ public class GlobalExceptionMiddleware
     private static bool IsUniqueConstraintViolation(DbUpdateException ex)
     {
         var inner = ex.InnerException?.Message ?? "";
-        // SQL Server unique constraint messages
-        return inner.Contains("UNIQUE") || 
-               inner.Contains("duplicate key") || 
+        return inner.Contains("UNIQUE") ||
+               inner.Contains("duplicate key") ||
                inner.Contains("Violation of UNIQUE KEY constraint") ||
                inner.Contains("Cannot insert duplicate key");
+    }
+
+    // FIX: extract a user-friendly message from the SQL error instead of
+    // returning the generic "A record with this name already exists."
+    // The PromotionService pre-check will normally handle this, but if a
+    // race condition hits the DB, this gives a cleaner message.
+    private static string ExtractDuplicateMessage(DbUpdateException ex)
+    {
+        var inner = ex.InnerException?.Message ?? "";
+
+        // SQL Server puts the duplicate value in parentheses: "The duplicate key value is (PROMO123)"
+        var start = inner.LastIndexOf('(');
+        var end = inner.LastIndexOf(')');
+
+        if (start >= 0 && end > start)
+        {
+            var value = inner.Substring(start + 1, end - start - 1).Trim();
+            if (!string.IsNullOrEmpty(value))
+                return $"Promo code \"{value}\" already exists. Please use a different code.";
+        }
+
+        return "A record with this value already exists.";
     }
 }

@@ -1,4 +1,5 @@
 using Ube.Domain.Enums.Listings;
+using Ube.Application.Features.Listings.Commands;
 
 namespace Ube.Application.Features.Listings.Queries;
 
@@ -40,5 +41,12 @@ public class ListingResponse
 
     //  NEW  Type-specific data
     public List<string> Images { get; set; } = new();
-    public HotelDetailsResponse? HotelDetails { get; set; }
+    public List<string> Tags { get; set; } = new();
+    public string? CancellationPolicy { get; set; }
+
+    public HotelDetailsDto? HotelDetails { get; set; }
+    public RestaurantDetailsDto? RestaurantDetails { get; set; }
+    public EventDetailsDto? EventDetails { get; set; }
+    public CarRentalDetailsDto? CarRentalDetails { get; set; }
+    public ActivityDetailsDto? ActivityDetails { get; set; }
 }

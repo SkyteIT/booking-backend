@@ -55,3 +55,14 @@ nunit-*.xml
 
 # Visual Studio
 .vs/
+
+# Build output
+bin/
+obj/
+
+# Node
+node_modules/
+
+# User-uploaded files (runtime, not source)
+Uploads/
+**/Uploads/

@@ -10,13 +10,19 @@ namespace Ube.Infrastructure.Persistence.Repositories.Vendors;
 public class VendorApplicationRepository : IVendorApplicationRepository
 {
     private readonly ApplicationDbContext _db;
-    public VendorApplicationRepository(ApplicationDbContext db)    {
+
+    public VendorApplicationRepository(ApplicationDbContext db)
+    {
         _db = db;
     }
 
     public async Task<VendorApplication?> GetByIdAsync(Guid id)
+        => await _db.VendorApplications.FindAsync(id);
+
+    public async Task AddAsync(VendorApplication application)
     {
-        return await _db.VendorApplications.FindAsync(id);
+        _db.VendorApplications.Add(application);
+        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(VendorApplication application)
@@ -24,19 +30,17 @@ public class VendorApplicationRepository : IVendorApplicationRepository
         _db.VendorApplications.Update(application);
         await _db.SaveChangesAsync();
     }
-    public async Task<(List<ApplicationTableDto> Items, int TotalItems)> GetPagedTableAsync(VendorApplicationStatus? status, VendorApplicationsRequest options)
+
+    public async Task<(List<ApplicationTableDto> Items, int TotalItems)> GetPagedTableAsync(
+        VendorApplicationStatus? status, VendorApplicationsRequest options)
     {
         var query = _db.VendorApplications.AsQueryable();
 
         if (status.HasValue)
-        {
             query = query.Where(a => a.Status == status.Value);
-        }
 
         if (!string.IsNullOrEmpty(options.Search))
-        {
             query = query.Where(a => a.BusinessName.Contains(options.Search));
-        }
 
         query = options.SortOptions switch
         {
@@ -52,20 +56,17 @@ public class VendorApplicationRepository : IVendorApplicationRepository
         var totalItems = await query.CountAsync();
 
         var items = await query
-            .Join(
-                _db.Users,
-                application => application.UserId,
-                user => user.Id,
-                (application, user) => new ApplicationTableDto
-                {
-                    Id = application.Id,
-                    userName = user.FirstName + " " + user.LastName,
-                    BusinessName = application.BusinessName,
-                    BusinessType = application.BusinessType,
-                    ContactNumber = application.ContactNumber,
-                    Status = application.Status,
-                    SubmittedAt = application.SubmittedAt,
-                })
+            .Select(a => new ApplicationTableDto
+            {
+                Id = a.Id,
+                ApplicantName = a.FirstName + " " + a.LastName,
+                Email = a.Email,
+                Phone = a.Phone,
+                BusinessName = a.BusinessName,
+                BusinessType = a.BusinessType,
+                Status = a.Status,
+                SubmittedAt = a.SubmittedAt
+            })
             .Skip((options.PageNumber - 1) * options.PageSize)
             .Take(options.PageSize)
             .ToListAsync();

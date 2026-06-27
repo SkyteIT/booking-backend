@@ -475,15 +475,19 @@ public static class TestDataSeeder
         string businessType,
         string description,
         string address,
-        string contactPersonName,
-        string contactNumber,
-        string businessLicenseUrl,
-        string insurenceCertificateUrl,
-        string taxDocumentUrl,
+        string contactName,
+        string phone,
+        string? businessLicensePath,
+        string? insuranceCertificatePath,
+        string? taxDocumentPath,
         VendorApplicationStatus status,
         DateTime now,
         CancellationToken cancellationToken)
     {
+        var nameParts = contactName.Split(' ', 2);
+        var firstName = nameParts[0];
+        var lastName = nameParts.Length > 1 ? nameParts[1] : string.Empty;
+
         var application = dbContext.VendorApplications.FirstOrDefault(x => x.Id == applicationId);
         if (application == null)
         {
@@ -495,13 +499,16 @@ public static class TestDataSeeder
                 BusinessType = businessType,
                 Description = description,
                 Address = address,
-                ContactPersonName = contactPersonName,
-                ContactNumber = contactNumber,
-                BusinessLicenseUrl = businessLicenseUrl,
-                InsurenceCertificateUrl = insurenceCertificateUrl,
-                TaxDocumentUrl = taxDocumentUrl,
+                FirstName = firstName,
+                LastName = lastName,
+                Email = string.Empty,
+                Phone = phone,
+                BusinessLicensePath = businessLicensePath,
+                InsuranceCertificatePath = insuranceCertificatePath,
+                TaxDocumentPath = taxDocumentPath,
                 Status = status,
-                SubmittedAt = now
+                SubmittedAt = now,
+                CreatedAt = now
             });
             return;
         }
@@ -511,11 +518,12 @@ public static class TestDataSeeder
         application.BusinessType = businessType;
         application.Description = description;
         application.Address = address;
-        application.ContactPersonName = contactPersonName;
-        application.ContactNumber = contactNumber;
-        application.BusinessLicenseUrl = businessLicenseUrl;
-        application.InsurenceCertificateUrl = insurenceCertificateUrl;
-        application.TaxDocumentUrl = taxDocumentUrl;
+        application.FirstName = firstName;
+        application.LastName = lastName;
+        application.Phone = phone;
+        application.BusinessLicensePath = businessLicensePath;
+        application.InsuranceCertificatePath = insuranceCertificatePath;
+        application.TaxDocumentPath = taxDocumentPath;
         application.Status = status;
         application.SubmittedAt = now;
         dbContext.VendorApplications.Update(application);

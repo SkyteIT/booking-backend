@@ -79,7 +79,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                     BusinessName = application.BusinessName,
                     BusinessType = application.BusinessType,
                     BusinessDescription = application.Description,
-                    ContactNumber = application.ContactNumber,
+                    ContactNumber = application.Phone,
 
                     //default values
                     Bio = string.Empty,
@@ -142,16 +142,23 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             BusinessType = app.BusinessType,
             Description = app.Description,
             Address = app.Address,
-            ContactPersonName = app.ContactPersonName,
-            ContactNumber = app.ContactNumber,
-            BusinessLicenseUrl = app.BusinessLicenseUrl,
-            InsurenceCertificateUrl = app.InsurenceCertificateUrl,
-            TaxDocumentUrl = app.TaxDocumentUrl,
+            Website = app.Website,
+            TaxId = app.TaxId,
+            FirstName = app.FirstName,
+            LastName = app.LastName,
+            Email = app.Email,
+            Phone = app.Phone,
+            Categories = app.Categories,
+            BusinessLicensePath = app.BusinessLicensePath,
+            InsuranceCertificatePath = app.InsuranceCertificatePath,
+            TaxDocumentPath = app.TaxDocumentPath,
             Status = app.Status,
             SubmittedAt = app.SubmittedAt,
             ReviewedAt = app.ReviewedAt,
             ReviewedBy = app.ReviewedBy,
-            RejectionReason = app.RejectionReason
+            RejectionReason = app.RejectionReason,
+            CreatedAt = app.CreatedAt,
+            UpdatedAt = app.UpdatedAt
         };
     
     }

@@ -5,7 +5,7 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Helpers;
 using Ube.Application.Features.Vendors.Payout;
 using Ube.Application.Common.Interfaces.Services;
-public class VendorPayoutService
+public class VendorPayoutService : IVendorPayoutService
 {
     private readonly IVendorPayoutRepository _repo;
     private readonly IVendorProfileRepository _vendorRepo;

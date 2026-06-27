@@ -66,3 +66,12 @@ node_modules/
 # User-uploaded files (runtime, not source)
 Uploads/
 **/Uploads/
+
+# Claude Code
+.claude/
+
+# Local secrets — never commit these
+appsettings.Development.json
+appsettings.*.Local.json
+**/appsettings.Development.json
+secrets.json

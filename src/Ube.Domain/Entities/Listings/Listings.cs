@@ -32,4 +32,18 @@ public class Listing
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+
+    // Category-specific listing type (Hotel, Restaurant, Event, CarRental, Activity)
+    public ListingType Type { get; set; }
+    public string? Tags { get; set; } // Comma separated
+    public string? CancellationPolicy { get; set; }
+
+    public ICollection<ListingImage> Images { get; set; } = new List<ListingImage>();
+
+    // One of these is populated depending on Type
+    public HotelListingDetails? HotelDetails { get; set; }
+    public RestaurantListingDetails? RestaurantDetails { get; set; }
+    public EventListingDetails? EventDetails { get; set; }
+    public CarRentalListingDetails? CarRentalDetails { get; set; }
+    public ActivityListingDetails? ActivityDetails { get; set; }
 }

@@ -96,4 +96,94 @@ public class ListingRepository : IListingRepository
             })
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<Listing?> GetByIdWithDetailsAsync(Guid listingId, CancellationToken ct = default)
+        => await _db.Listings
+            .Include(l => l.VendorProfile)
+            .Include(l => l.Category)
+            .Include(l => l.Images)
+            .Include(l => l.HotelDetails)
+            .Include(l => l.RestaurantDetails)
+            .Include(l => l.EventDetails)
+            .Include(l => l.CarRentalDetails)
+            .Include(l => l.ActivityDetails)
+            .FirstOrDefaultAsync(l => l.Id == listingId, ct);
+
+    public async Task<List<Listing>> GetAllWithDetailsAsync(CancellationToken ct = default)
+        => await _db.Listings
+            .Include(l => l.VendorProfile)
+            .Include(l => l.Category)
+            .Include(l => l.Images)
+            .Include(l => l.HotelDetails)
+            .Include(l => l.RestaurantDetails)
+            .Include(l => l.EventDetails)
+            .Include(l => l.CarRentalDetails)
+            .Include(l => l.ActivityDetails)
+            .ToListAsync(ct);
+
+    public async Task<List<Listing>> GetByVendorProfileIdWithDetailsAsync(Guid vendorProfileId, CancellationToken ct = default)
+        => await _db.Listings
+            .Where(l => l.VendorProfileId == vendorProfileId)
+            .Include(l => l.Category)
+            .Include(l => l.Images)
+            .Include(l => l.HotelDetails)
+            .Include(l => l.RestaurantDetails)
+            .Include(l => l.EventDetails)
+            .Include(l => l.CarRentalDetails)
+            .Include(l => l.ActivityDetails)
+            .ToListAsync(ct);
+
+    public async Task AddAsync(Listing listing, CancellationToken ct = default)
+    {
+        _db.Listings.Add(listing);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(Listing listing, CancellationToken ct = default)
+    {
+        _db.Listings.Remove(listing);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task ReplaceImagesAsync(Guid listingId, IEnumerable<string> imageUrls, CancellationToken ct = default)
+    {
+        var existing = await _db.ListingImages.Where(i => i.ListingId == listingId).ToListAsync(ct);
+        if (existing.Count > 0)
+            _db.ListingImages.RemoveRange(existing);
+
+        var urls = imageUrls.ToList();
+        for (var i = 0; i < urls.Count; i++)
+        {
+            _db.ListingImages.Add(new ListingImage
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                ImageUrl = urls[i],
+                IsPrimary = i == 0
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<TDetail?> GetDetailsAsync<TDetail>(Guid listingId, CancellationToken ct = default)
+        where TDetail : class, IListingDetail
+        => await _db.Set<TDetail>().FirstOrDefaultAsync(d => d.ListingId == listingId, ct);
+
+    public async Task UpsertDetailsAsync<TDetail>(Guid listingId, TDetail details, CancellationToken ct = default)
+        where TDetail : class, IListingDetail
+    {
+        var existing = await _db.Set<TDetail>().FirstOrDefaultAsync(d => d.ListingId == listingId, ct);
+        if (existing == null)
+        {
+            details.ListingId = listingId;
+            _db.Set<TDetail>().Add(details);
+        }
+        else
+        {
+            _db.Entry(existing).CurrentValues.SetValues(details);
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
 }

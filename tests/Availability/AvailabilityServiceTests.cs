@@ -6,6 +6,8 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Vendors;
+using Ube.Domain.Enums.Bookings;
 
 namespace Ube.Tests.Availability;
 
@@ -55,9 +57,14 @@ public class AvailabilityServiceTests
 
     private static void SetupListingOwner(Mock<IListingRepository> listingRepo, Guid listingId, Guid vendorId)
     {
+        var vendorProfileId = Guid.NewGuid();
         listingRepo
             .Setup(x => x.GetByIdAsync(listingId))
-            .ReturnsAsync(new Listing { VendorProfileId = vendorId });
+            .ReturnsAsync(new Listing
+            {
+                VendorProfileId = vendorProfileId,
+                VendorProfile = new VendorProfile { Id = vendorProfileId, UserId = vendorId }
+            });
     }
 
     private static void SetupNoBlockedDates(Mock<IBlockedDateRepository> blockedRepo, Guid listingId)
@@ -87,7 +94,8 @@ public class AvailabilityServiceTests
                 new Booking
                 {
                     StartDateTime = targetDate,
-                    EndDateTime = targetDate
+                    EndDateTime = targetDate,
+                    Status = BookingStatus.Confirmed
                 }
             });
 
@@ -102,7 +110,7 @@ public class AvailabilityServiceTests
             )
         );
 
-        Assert.Contains("already has a booking", exception.Message);
+        Assert.Contains("already booked", exception.Message);
     }
 
     [Fact]

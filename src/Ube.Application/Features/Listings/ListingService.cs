@@ -12,15 +12,18 @@ public class ListingService : IListingService
     private readonly IListingRepository _listingRepository;
     private readonly IVendorProfileRepository _vendorProfileRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ListingService(
         IListingRepository listingRepository,
         IVendorProfileRepository vendorProfileRepository,
-        ICategoryRepository categoryRepository)
+        ICategoryRepository categoryRepository,
+        IUnitOfWork unitOfWork)
     {
         _listingRepository = listingRepository;
         _vendorProfileRepository = vendorProfileRepository;
         _categoryRepository = categoryRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<Guid> CreateListingAsync(Guid userId, CreateListingRequest request, CancellationToken ct = default)
@@ -48,14 +51,25 @@ public class ListingService : IListingService
             CreatedAt = DateTime.UtcNow
         };
 
-        await _listingRepository.AddAsync(listing, ct);
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            await _listingRepository.AddAsync(listing, ct);
 
-        if (request.Images.Count > 0)
-            await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
+            if (request.Images.Count > 0)
+                await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
 
-        await UpsertTypeDetailsAsync(listing.Id, request.Type,
-            request.HotelDetails, request.RestaurantDetails, request.EventDetails,
-            request.CarRentalDetails, request.ActivityDetails, ct);
+            await UpsertTypeDetailsAsync(listing.Id, request.Type,
+                request.HotelDetails, request.RestaurantDetails, request.EventDetails,
+                request.CarRentalDetails, request.ActivityDetails, ct);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
 
         return listing.Id;
     }
@@ -84,11 +98,22 @@ public class ListingService : IListingService
         listing.CancellationPolicy = request.CancellationPolicy;
         listing.UpdatedAt = DateTime.UtcNow;
 
-        await _listingRepository.UpdateAsync(listing);
-        await _listingRepository.ReplaceImagesAsync(listingId, request.Images, ct);
-        await UpsertTypeDetailsAsync(listingId, request.Type,
-            request.HotelDetails, request.RestaurantDetails, request.EventDetails,
-            request.CarRentalDetails, request.ActivityDetails, ct);
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            await _listingRepository.UpdateAsync(listing);
+            await _listingRepository.ReplaceImagesAsync(listingId, request.Images, ct);
+            await UpsertTypeDetailsAsync(listingId, request.Type,
+                request.HotelDetails, request.RestaurantDetails, request.EventDetails,
+                request.CarRentalDetails, request.ActivityDetails, ct);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task DeleteListingAsync(Guid listingId, Guid userId, CancellationToken ct = default)

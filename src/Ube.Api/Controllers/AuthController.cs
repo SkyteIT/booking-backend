@@ -66,9 +66,11 @@ public class AuthController : ControllerBase
 
     [HttpGet("current-user")]
     [Authorize]
-    public IActionResult GetCurrentUser()
+    public async Task<IActionResult> GetCurrentUser()
     {
-        var userId = _currentUserService.UserId;
-        return Ok(new { userId });
+        var user = await _authService.GetCurrentUserAsync(_currentUserService.UserId);
+        if (user == null) return NotFound();
+
+        return Ok(user);
     }
 }

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Ube.Application.Features.Content.Validators;
+namespace Ube.Application.Features.Content.Category.Validators;
 
 public class CreateCategoryDtoValidator : AbstractValidator<CreateCategoryDto>
 {

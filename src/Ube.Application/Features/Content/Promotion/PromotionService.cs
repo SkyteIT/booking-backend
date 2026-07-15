@@ -2,7 +2,7 @@ using Ube.Domain.Entities.Content;
 using Ube.Domain.Enums;
 using Ube.Domain.Enums.Content;
 
-namespace Ube.Application.Features.Content;
+namespace Ube.Application.Features.Content.Promotion;
 
 public class PromotionService : IPromotionService
 {
@@ -24,7 +24,7 @@ public class PromotionService : IPromotionService
 
     public async Task<PromotionDto> CreateAsync(CreatePromotionDto dto, CancellationToken cancellationToken)
     {
-        var promotion = new Promotion
+        var promotion = new Ube.Domain.Entities.Content.Promotion
         {
             PromoCode = dto.PromoCode,
             Type = (PromotionType)dto.Type,
@@ -72,7 +72,7 @@ public class PromotionService : IPromotionService
         return true;
     }
 
-    private static PromotionDto ToDto(Promotion x) => new()
+    private static PromotionDto ToDto(Ube.Domain.Entities.Content.Promotion x) => new()
     {
         Id = x.Id,
         PromoCode = x.PromoCode,

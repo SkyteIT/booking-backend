@@ -1,5 +1,5 @@
 
-namespace Ube.Application.Features.Content;
+namespace Ube.Application.Features.Content.Category;
 
 public interface ICategoryService
 {

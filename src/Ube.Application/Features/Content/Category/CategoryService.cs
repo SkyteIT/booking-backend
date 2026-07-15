@@ -3,7 +3,7 @@ using Ube.Domain.Constants;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;
 
-namespace Ube.Application.Features.Content;
+namespace Ube.Application.Features.Content.Category;
 
 public class CategoryService : ICategoryService
 {
@@ -16,7 +16,7 @@ public class CategoryService : ICategoryService
         _listingRepo = listingRepo;
     }
 
-    private static CategoryDto ToDto(Category x, int listingCount) => new()
+    private static CategoryDto ToDto(Ube.Domain.Entities.Listings.Category x, int listingCount) => new()
     {
         Id = x.Id,
         Name = x.Name,
@@ -81,7 +81,7 @@ public class CategoryService : ICategoryService
 
         var deletedEntity = await _categoryRepo.GetDeletedByNameAsync(trimmedName, cancellationToken);
 
-        Category entity;
+        Ube.Domain.Entities.Listings.Category entity;
 
         if (deletedEntity is not null)
         {
@@ -105,7 +105,7 @@ public class CategoryService : ICategoryService
         }
         else
         {
-            entity = new Category
+            entity = new Ube.Domain.Entities.Listings.Category
             {
                 Name = trimmedName,
                 Description = dto.Description,
@@ -193,7 +193,7 @@ public class CategoryService : ICategoryService
             var uncategorized = await _categoryRepo.GetUncategorizedAsync(cancellationToken);
             if (uncategorized is null)
             {
-                uncategorized = new Category
+                uncategorized = new Ube.Domain.Entities.Listings.Category
                 {
                     Id = Guid.NewGuid(),
                     Name = CategoryConstants.UncategorizedName,

@@ -2,7 +2,7 @@ using Ube.Domain.Entities.Content;
 using Ube.Domain.Enums;
 using Ube.Domain.Enums.Content;
 
-namespace Ube.Application.Features.Content;
+namespace Ube.Application.Features.Content.Banner;
 
 public class BannerService : IBannerService
 {
@@ -24,7 +24,7 @@ public class BannerService : IBannerService
 
     public async Task<BannerDto> CreateAsync(CreateBannerDto dto, CancellationToken cancellationToken)
     {
-        var banner = new Banner
+        var banner = new Ube.Domain.Entities.Content.Banner
         {
             Title = dto.Title,
             Subtitle = dto.Subtitle,
@@ -70,7 +70,7 @@ public class BannerService : IBannerService
         return true;
     }
 
-    private static BannerDto ToDto(Banner x) => new()
+    private static BannerDto ToDto(Ube.Domain.Entities.Content.Banner x) => new()
     {
         Id = x.Id,
         Title = x.Title,

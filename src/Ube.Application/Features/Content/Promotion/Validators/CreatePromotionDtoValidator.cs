@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace Ube.Application.Features.Content.Validators;
+namespace Ube.Application.Features.Content.Promotion.Validators;
 
 public class CreatePromotionDtoValidator : AbstractValidator<CreatePromotionDto>
 {

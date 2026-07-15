@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.Features.Content;
+using Ube.Application.Features.Content.Banner;
 
 namespace Ube.Api.Controllers;
 

@@ -1,7 +1,7 @@
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
-using Ube.Application.Features.Content;
+using Ube.Application.Features.Content.Category;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums.Listings;

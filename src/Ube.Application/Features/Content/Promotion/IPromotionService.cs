@@ -1,5 +1,5 @@
 
-namespace Ube.Application.Features.Content;
+namespace Ube.Application.Features.Content.Promotion;
 
 public interface IPromotionService
 {

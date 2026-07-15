@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Ube.Application.Features.Content;
+using Ube.Application.Features.Content.Category;
 using Ube.Domain.Constants;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Ube.Application.Interfaces;
 using Ube.Domain.Entities.Auth;
 using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Carts;
 using Ube.Domain.Entities.Content;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Notifications;
@@ -34,6 +35,8 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<Notification> Notifications { get; set; } = default!;
     public DbSet<NotificationPreference> NotificationPreferences { get; set; } = default!;
     public DbSet<ListingImage> ListingImages { get; set; } = default!;
+    public DbSet<Cart> Carts { get; set; } = default!;
+    public DbSet<CartItem> CartItems { get; set; } = default!;
 
     // ================= LISTING DETAIL TABLES =================
     public DbSet<HotelListingDetails> HotelListingDetails { get; set; } = default!;

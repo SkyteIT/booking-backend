@@ -42,6 +42,10 @@ using Ube.Application.Services;
 using Ube.Infrastructure.Persistence.Repositories.Content;
 using Ube.Infrastructure.Persistence.Repositories.Notifications;
 using Ube.Infrastructure.Services;
+using Ube.Application.Features.Cart;
+using Ube.Infrastructure.Persistence.Repositories.Cart;
+using Ube.Application.Features.Admin.Dashboard;
+using Ube.Infrastructure.Persistence.Repositories.Admin;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -123,6 +127,14 @@ builder.Services.AddScoped<IBannerService, BannerService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISmsService, SmsService>();
+
+// Cart
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<ICartService, CartService>();
+
+// Admin dashboard
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 builder.Services.AddRateLimiter(options =>
 {

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ube.Domain.Entities.Bookings;
 
 namespace Ube.Infrastructure.Persistence.Configurations;
+
 public class BookingConfiguration : IEntityTypeConfiguration<Booking>
 {
     public void Configure(EntityTypeBuilder<Booking> builder)
@@ -11,7 +12,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
        builder.Property(x => x.BookingNumber)
                 .IsRequired()
                 .HasMaxLength(20);
-       
+
        builder.Property(x => x.StartDateTime)
               .IsRequired();
         builder.Property(x => x.EndDateTime)
@@ -40,7 +41,7 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
                 .HasForeignKey(x => x.ListingId)
                 .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.Customer)
-                .WithMany()
+                .WithMany(u => u.Bookings)
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
     }

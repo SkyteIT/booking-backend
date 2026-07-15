@@ -27,7 +27,7 @@ public class VendorProfileConfiguration : IEntityTypeConfiguration<VendorProfile
 
         builder.HasIndex(x => x.UserId)
                 .IsUnique();
-        builder.HasOne<User>()
+        builder.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);

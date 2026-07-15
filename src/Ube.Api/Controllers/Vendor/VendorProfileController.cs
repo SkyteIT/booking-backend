@@ -5,7 +5,7 @@ using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Common.Exceptions;
 
 
-namespace Ube.API.Controllers;
+namespace Ube.Api.Controllers.Vendor;
 
 [Authorize(Roles = "Vendor")]
 [ApiController]

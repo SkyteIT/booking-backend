@@ -9,6 +9,7 @@ namespace Ube.Application.Features.Vendors;
 public interface IVendorApplicationRepository
 {
     Task<VendorApplication?> GetByIdAsync(Guid id);
+    Task AddAsync(VendorApplication application);
     Task UpdateAsync(VendorApplication application);
     Task<(List<ApplicationTableDto> Items, int TotalItems)> GetPagedTableAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);
 }

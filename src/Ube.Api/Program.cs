@@ -24,6 +24,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Identity;
 using Ube.Domain.Entities.Users;
 using Ube.Application.Features.Vendors.Payout;
+using Ube.Application.Features.VendorRegistration;
 using Ube.Application.Features.Localization;
 using Ube.Application.Features.Admin.VendorApplications;
 using Ube.Application.Features.Reviews;
@@ -34,8 +35,20 @@ using Ube.Application.Features.Auth;
 using Ube.Application.Features.Security;
 using Ube.Infrastructure.Persistence.Repositories.Auth;
 using Microsoft.AspNetCore.RateLimiting;
-
-
+using Ube.Application.Features.Content.Banner;
+using Ube.Application.Features.Content.Category;
+using Ube.Application.Features.Content.Promotion;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Search;
+using Ube.Infrastructure.Persistence.Repositories.Content;
+using Ube.Infrastructure.Persistence.Repositories.Notifications;
+using Ube.Infrastructure.Integrations.Smtp;
+using Ube.Infrastructure.Integrations.Sms;
+using Ube.Infrastructure.Services;
+using Ube.Application.Features.Cart;
+using Ube.Infrastructure.Persistence.Repositories.Cart;
+using Ube.Application.Features.Admin.Dashboard;
+using Ube.Infrastructure.Persistence.Repositories.Admin;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,8 +67,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
-builder.Services.AddControllers(); 
-// Add FluentValidation 
+// Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 // Register validators from the auth DTO assembly
 builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestDto>();
@@ -86,7 +98,8 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVendorProfileRepository, VendorProfileRepository>();
 builder.Services.AddScoped<IVendorPayoutRepository, VendorPayoutRepository>();
 builder.Services.AddScoped<IVendorApplicationRepository, VendorApplicationRepository>();
-builder.Services.AddScoped<VendorPayoutService>();
+builder.Services.AddScoped<IVendorRegistrationService, VendorRegistrationService>();
+builder.Services.AddScoped<IVendorPayoutService, VendorPayoutService>();
 builder.Services.AddScoped<ILocalizationRepository, LocalizationRepository>();
 builder.Services.AddScoped<ILocalizationService, LocalizationService>();
 
@@ -103,6 +116,29 @@ builder.Services.AddScoped<IEmailVerificationRepository, EmailVerificationReposi
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
+// Wire ApplicationDbContext as IAppDbContext for content/search services
+builder.Services.AddScoped<IAppDbContext>(p => p.GetRequiredService<ApplicationDbContext>());
+// Content & notification repositories
+builder.Services.AddScoped<IBannerRepository, BannerRepository>();
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+// Content & search services (from merged branch)
+builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<ISearchService, SearchService>();
+builder.Services.AddScoped<IBannerService, BannerService>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISmsService, SmsService>();
+
+// Cart
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<ICartService, CartService>();
+
+// Admin dashboard
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", o =>
@@ -114,7 +150,6 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 builder.Services.AddEndpointsApiExplorer();
-
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -147,12 +182,16 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend",
         policy =>
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
+            policy.WithOrigins(allowedOrigins)
                   .AllowCredentials()
                   .AllowAnyHeader()
                   .AllowAnyMethod();
@@ -160,6 +199,7 @@ builder.Services.AddCors(options =>
 });
 var app = builder.Build();
 app.UseCors("AllowFrontend");
+
 if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
@@ -178,4 +218,3 @@ app.UseStaticFiles();
 app.MapControllers();
 
 app.Run();
-

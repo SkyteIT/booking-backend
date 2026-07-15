@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Ube.Domain.Entities.Reviews;
 
 
-namespace Ube.Inrastructure.persistence.Configurations;
+namespace Ube.Infrastructure.Persistence.Configurations;
 
 public class ReviewConfiguration : IEntityTypeConfiguration<Review>
 
@@ -19,7 +19,7 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
         builder.Property(x => x.Comment)
                 .IsRequired()
                 .HasMaxLength(1000);
-        
+
         // indexes
         builder.HasIndex(x => x.BookingId)
                 .IsUnique();

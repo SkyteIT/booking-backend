@@ -69,7 +69,8 @@ public class AvailabilityBlockingRulesTests
             new Booking
             {
                 StartDateTime = new DateTime(2027, 8, 15),
-                EndDateTime = new DateTime(2027, 8, 15)
+                EndDateTime = new DateTime(2027, 8, 15),
+                Status = BookingStatus.Confirmed
             }
         };
 
@@ -98,9 +99,10 @@ public class AvailabilityBlockingRulesTests
 
         var listingId = Guid.NewGuid();
         var vendorId = Guid.NewGuid();
+        var vendorProfileId = Guid.NewGuid();
 
         listingRepo.Setup(x => x.GetByIdAsync(listingId))
-            .ReturnsAsync(new Listing { VendorProfileId = vendorId });
+            .ReturnsAsync(new Listing { VendorProfileId = vendorProfileId, VendorProfile = new VendorProfile { Id = vendorProfileId, UserId = vendorId } });
 
         // no bookings
         bookingRepo.Setup(x => x.GetBookingsByListingAndDateRangeAsync(
@@ -146,9 +148,10 @@ public class AvailabilityBlockingRulesTests
 
         var listingId = Guid.NewGuid();
         var vendorId = Guid.NewGuid();
+        var vendorProfileId = Guid.NewGuid();
 
         listingRepo.Setup(x => x.GetByIdAsync(listingId))
-            .ReturnsAsync(new Listing { VendorProfileId = vendorId });
+            .ReturnsAsync(new Listing { VendorProfileId = vendorProfileId, VendorProfile = new VendorProfile { Id = vendorProfileId, UserId = vendorId } });
 
         // no bookings
         bookingRepo.Setup(x => x.GetBookingsByListingAndDateRangeAsync(
@@ -208,9 +211,10 @@ public class AvailabilityBlockingRulesTests
 
         var listingId = Guid.NewGuid();
         var vendorId = Guid.NewGuid();
+        var vendorProfileId = Guid.NewGuid();
 
         listingRepo.Setup(x => x.GetByIdAsync(listingId))
-            .ReturnsAsync(new Listing { VendorProfileId = vendorId });
+            .ReturnsAsync(new Listing { VendorProfileId = vendorProfileId, VendorProfile = new VendorProfile { Id = vendorProfileId, UserId = vendorId } });
 
         // simulate existing blocked dates
         blockedRepo.Setup(x => x.GetByListingAndDatesAsync(
@@ -257,9 +261,10 @@ public async Task Should_Throw_When_Unblocking_NonBlocked_Dates()
 
     var listingId = Guid.NewGuid();
     var vendorId = Guid.NewGuid();
+        var vendorProfileId = Guid.NewGuid();
 
     listingRepo.Setup(x => x.GetByIdAsync(listingId))
-        .ReturnsAsync(new Listing { VendorProfileId = vendorId });
+        .ReturnsAsync(new Listing { VendorProfileId = vendorProfileId, VendorProfile = new VendorProfile { Id = vendorProfileId, UserId = vendorId } });
 
     // simulate NO blocked dates
     blockedRepo.Setup(x => x.GetByListingAndDatesAsync(

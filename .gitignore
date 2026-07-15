@@ -11,7 +11,7 @@
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
-[Rr]eleases/
+[Rr]Releases/
 x64/
 x86/
 [Ww][Ii][Nn]32/
@@ -52,3 +52,26 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio
+.vs/
+
+# Build output
+bin/
+obj/
+
+# Node
+node_modules/
+
+# User-uploaded files (runtime, not source)
+Uploads/
+**/Uploads/
+
+# Claude Code
+.claude/
+
+# Local secrets — never commit these
+appsettings.Development.json
+appsettings.*.Local.json
+**/appsettings.Development.json
+secrets.json

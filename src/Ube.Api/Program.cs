@@ -42,6 +42,8 @@ using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Search;
 using Ube.Infrastructure.Persistence.Repositories.Content;
 using Ube.Infrastructure.Persistence.Repositories.Notifications;
+using Ube.Infrastructure.Integrations.Smtp;
+using Ube.Infrastructure.Integrations.Sms;
 using Ube.Infrastructure.Services;
 using Ube.Application.Features.Cart;
 using Ube.Infrastructure.Persistence.Repositories.Cart;

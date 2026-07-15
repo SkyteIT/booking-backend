@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Ube.Application.Features.Notifications;
 
-namespace Ube.Infrastructure.Services;
+namespace Ube.Infrastructure.Integrations.Sms;
 
 public class SmsService : ISmsService
 {

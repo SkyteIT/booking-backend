@@ -9,7 +9,7 @@ using System.Security.Cryptography.X509Certificates;
 using Ube.Application.Common.Models;
 using Ube.Application.Features.Notifications.Email;
 
-namespace Ube.Infrastructure.Services;
+namespace Ube.Infrastructure.Integrations.Smtp;
 
 public class EmailService : IEmailService
 {

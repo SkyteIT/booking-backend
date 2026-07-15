@@ -1,4 +1,4 @@
-using Ube.Application.DTOs.Search;
+using Ube.Application.Features.Search;
 using Ube.Domain.Entities.Listings;
 
 namespace Ube.Application.Common.Interfaces.Persistence

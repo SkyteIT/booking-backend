@@ -3,7 +3,7 @@ using Twilio.Rest.Api.V2010.Account;
 using Twilio.Types;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Ube.Application.Interfaces;
+using Ube.Application.Features.Notifications;
 
 namespace Ube.Infrastructure.Services;
 

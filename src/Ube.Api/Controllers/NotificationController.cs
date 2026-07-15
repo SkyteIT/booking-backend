@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs.Notification;
-using Ube.Application.Interfaces;
+using Ube.Application.Features.Notifications;
 
 namespace Ube.Api.Controllers;
 

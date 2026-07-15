@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs.Promotion;
-using Ube.Application.Interfaces;
+using Ube.Application.Features.Content;
 
 namespace Ube.Api.Controllers;
 

@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Ube.Application.Interfaces;
+using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Domain.Entities.Auth;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Carts;

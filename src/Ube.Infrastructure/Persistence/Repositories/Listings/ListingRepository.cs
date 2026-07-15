@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.Common.Interfaces.Persistence;
-using Ube.Application.DTOs.Search;
+using Ube.Application.Features.Search;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;
 

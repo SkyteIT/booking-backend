@@ -5,7 +5,7 @@ using Ube.Application.Common.Interfaces.Services.Auth;
 
 namespace Ube.Api.Controllers.Vendor;
 
-[Authorize]
+[Authorize(Roles = "Vendor")]
 [ApiController]
 [Route("api/vendor/payout")]
 public class VendorPayoutController : ControllerBase

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Features.Content.Promotion;
 
@@ -31,6 +32,7 @@ public class PromotionController : ControllerBase
     }
 
     // POST: api/promotions
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePromotionDto dto, CancellationToken cancellationToken)
     {
@@ -41,6 +43,7 @@ public class PromotionController : ControllerBase
     }
 
     // PUT: api/promotions/{id}
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePromotionDto dto, CancellationToken cancellationToken)
     {
@@ -49,6 +52,7 @@ public class PromotionController : ControllerBase
     }
 
     // DELETE: api/promotions/{id}
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

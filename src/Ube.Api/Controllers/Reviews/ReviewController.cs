@@ -4,7 +4,7 @@ using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Reviews;
 
 namespace Ube.Api.Controllers.Reviews;
-[Authorize (Roles = "Customer,Vendor")]
+[AllowAnonymous]
 [ApiController ]
 [Route("api")]
 public class ReviewsController : ControllerBase
@@ -20,7 +20,6 @@ public class ReviewsController : ControllerBase
         _currentUser = currentUser;
     }
 
-    [Authorize]
     // get reviews for a vendor with pagination and optional rating filter
     [HttpGet("vendors/{vendorId}/reviews")]
     public async Task<IActionResult> GetByVendor(
@@ -37,7 +36,4 @@ public class ReviewsController : ControllerBase
         var result = await _service.GetRatingAsync(vendorId);
         return Ok(result);
     }
-
-    
-    
 }

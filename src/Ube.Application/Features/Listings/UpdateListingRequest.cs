@@ -1,11 +1,10 @@
-using Ube.Domain.Enums.Listings;
-
 namespace Ube.Application.Features.Listings;
 
 public class UpdateListingRequest
 {
+    // ListingType is derived from the chosen Category.Type - the vendor
+    // doesn't pick it separately, so there's no Type field here.
     public Guid CategoryId { get; set; }
-    public ListingType Type { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal Price { get; set; }

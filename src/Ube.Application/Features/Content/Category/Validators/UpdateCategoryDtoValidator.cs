@@ -16,6 +16,10 @@ public class UpdateCategoryDtoValidator : AbstractValidator<UpdateCategoryDto>
             .MaximumLength(500)
             .When(x => x.Description != null);
 
+        RuleFor(x => x.Type)
+            .IsInEnum().WithMessage("A valid listing type is required")
+            .When(x => x.Type.HasValue);
+
         RuleFor(x => x.DefaultCommissionPercent)
             .InclusiveBetween(0, 100).WithMessage("Commission percent must be between 0 and 100")
             .When(x => x.DefaultCommissionPercent.HasValue);

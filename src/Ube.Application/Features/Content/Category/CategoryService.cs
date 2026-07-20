@@ -21,6 +21,7 @@ public class CategoryService : ICategoryService
         Id = x.Id,
         Name = x.Name,
         Description = x.Description,
+        Type = x.Type,
         BookingType = x.BookingType,
         ServiceModel = x.ServiceModel,
         DateSelectionEnabled = x.DateSelectionEnabled,
@@ -87,6 +88,7 @@ public class CategoryService : ICategoryService
         {
             entity = deletedEntity;
             entity.Description = dto.Description ?? entity.Description;
+            entity.Type = dto.Type;
             entity.BookingType = dto.BookingType ?? entity.BookingType;
             entity.ServiceModel = dto.ServiceModel ?? entity.ServiceModel;
             entity.DateSelectionEnabled = dto.DateSelectionEnabled;
@@ -109,6 +111,7 @@ public class CategoryService : ICategoryService
             {
                 Name = trimmedName,
                 Description = dto.Description,
+                Type = dto.Type,
                 BookingType = dto.BookingType,
                 ServiceModel = dto.ServiceModel,
                 DateSelectionEnabled = dto.DateSelectionEnabled,
@@ -162,6 +165,7 @@ public class CategoryService : ICategoryService
         }
 
         if (dto.Description is not null) entity.Description = dto.Description;
+        if (dto.Type.HasValue) entity.Type = dto.Type.Value;
         if (dto.BookingType is not null) entity.BookingType = dto.BookingType;
         if (dto.ServiceModel is not null) entity.ServiceModel = dto.ServiceModel;
         if (dto.DateSelectionEnabled.HasValue) entity.DateSelectionEnabled = dto.DateSelectionEnabled.Value;

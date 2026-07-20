@@ -1,4 +1,5 @@
 using Ube.Domain.Enums;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Domain.Entities.Listings;
 
@@ -7,6 +8,11 @@ public class Category
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+
+    // Which ListingType this category's listings must use. Null only for the
+    // internal "Uncategorized" sentinel category, which can hold listings of
+    // any type; every admin-created category must have a Type.
+    public ListingType? Type { get; set; }
 
     // Configuration
     public string? BookingType { get; set; }

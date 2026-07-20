@@ -1,3 +1,5 @@
+using Ube.Domain.Enums.Listings;
+
 namespace Ube.Application.Features.Content.Category;
 
 public class CategoryDto
@@ -6,6 +8,8 @@ public class CategoryDto
 
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+
+    public ListingType? Type { get; set; }
 
     public string? BookingType { get; set; }
     public string? ServiceModel { get; set; }

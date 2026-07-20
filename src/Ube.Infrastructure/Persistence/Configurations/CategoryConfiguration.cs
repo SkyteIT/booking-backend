@@ -17,6 +17,9 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(x => x.Description)
                 .HasMaxLength(500);
 
+        builder.Property(x => x.Type)
+                .HasConversion<int?>();
+
         builder.Property(x => x.BookingType).HasMaxLength(50);
         builder.Property(x => x.ServiceModel).HasMaxLength(50);
         builder.Property(x => x.DefaultCommissionPercent).HasPrecision(5, 2);

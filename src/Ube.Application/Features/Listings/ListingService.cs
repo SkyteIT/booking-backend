@@ -31,8 +31,12 @@ public class ListingService : IListingService
         var vendorProfile = await _vendorProfileRepository.GetVendorIdAsync(userId)
             ?? throw new NotFoundException("Vendor profile not found for the current user.");
 
-        if (await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct) == null)
-            throw new NotFoundException("Category not found.");
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct)
+            ?? throw new NotFoundException("Category not found.");
+
+        if (category.Type.HasValue && category.Type.Value != request.Type)
+            throw new BusinessRuleException(
+                $"Listing type '{request.Type}' does not match category '{category.Name}', which requires '{category.Type}'.");
 
         var listing = new Listing
         {
@@ -83,8 +87,12 @@ public class ListingService : IListingService
         if (vendorProfile == null || vendorProfile.Id != listing.VendorProfileId)
             throw new ForbiddenException("You do not have permission to update this listing.");
 
-        if (await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct) == null)
-            throw new NotFoundException("Category not found.");
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct)
+            ?? throw new NotFoundException("Category not found.");
+
+        if (category.Type.HasValue && category.Type.Value != request.Type)
+            throw new BusinessRuleException(
+                $"Listing type '{request.Type}' does not match category '{category.Name}', which requires '{category.Type}'.");
 
         listing.CategoryId = request.CategoryId;
         listing.Type = request.Type;

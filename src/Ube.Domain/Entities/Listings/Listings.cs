@@ -46,4 +46,6 @@ public class Listing
     public EventListingDetails? EventDetails { get; set; }
     public CarRentalListingDetails? CarRentalDetails { get; set; }
     public ActivityListingDetails? ActivityDetails { get; set; }
+
+    public ICollection<ListingCustomFieldValue> CustomFieldValues { get; set; } = new List<ListingCustomFieldValue>();
 }

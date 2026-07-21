@@ -35,4 +35,7 @@ public class CreateCategoryDto
     // ── Status ──
     /// <summary>Accepted values: "Active", "Inactive", "Deleted". Defaults to Active.</summary>
     public string Status { get; set; } = "Active";
+
+    // ── Custom Fields ──
+    public List<CategoryCustomFieldInputDto> CustomFields { get; set; } = new();
 }

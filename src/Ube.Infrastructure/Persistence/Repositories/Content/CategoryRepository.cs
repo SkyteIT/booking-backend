@@ -16,6 +16,7 @@ public class CategoryRepository : ICategoryRepository
         => await _db.Categories
             .Where(x => x.Status != RecordStatus.Deleted && x.Name != CategoryConstants.UncategorizedName)
             .Include(x => x.Listings)
+            .Include(x => x.CustomFields)
             .OrderBy(x => x.DisplayOrder)
             .ToListAsync(ct);
 
@@ -24,6 +25,7 @@ public class CategoryRepository : ICategoryRepository
         var query = _db.Categories
             .Where(x => x.Status != RecordStatus.Deleted && x.Name != CategoryConstants.UncategorizedName)
             .Include(x => x.Listings)
+            .Include(x => x.CustomFields)
             .AsQueryable();
 
         if (status.HasValue)
@@ -40,7 +42,8 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task<Category?> GetByIdAsync(Guid id, bool includeListings = false, CancellationToken ct = default)
     {
-        var query = _db.Categories.Where(x => x.Id == id && x.Status != RecordStatus.Deleted);
+        IQueryable<Category> query = _db.Categories.Where(x => x.Id == id && x.Status != RecordStatus.Deleted)
+            .Include(x => x.CustomFields);
         if (includeListings) query = query.Include(x => x.Listings);
         return await query.FirstOrDefaultAsync(ct);
     }
@@ -52,6 +55,7 @@ public class CategoryRepository : ICategoryRepository
     public async Task<Category?> GetDeletedByNameAsync(string name, CancellationToken ct = default)
         => await _db.Categories
             .Include(x => x.Listings)
+            .Include(x => x.CustomFields)
             .FirstOrDefaultAsync(
                 x => x.Name.ToLower() == name.ToLower() && x.Status == RecordStatus.Deleted, ct);
 
@@ -66,4 +70,37 @@ public class CategoryRepository : ICategoryRepository
 
     public async Task SaveChangesAsync(CancellationToken ct = default)
         => await _db.SaveChangesAsync(ct);
+
+    public async Task SyncCustomFieldsAsync(Guid categoryId, IEnumerable<CategoryCustomField> fields, CancellationToken ct = default)
+    {
+        var incoming = fields.ToList();
+        var incomingIds = incoming.Select(f => f.Id).ToHashSet();
+
+        var existing = await _db.CategoryCustomFields
+            .Where(f => f.CategoryId == categoryId)
+            .ToListAsync(ct);
+
+        var toRemove = existing.Where(f => !incomingIds.Contains(f.Id)).ToList();
+        if (toRemove.Count > 0)
+            _db.CategoryCustomFields.RemoveRange(toRemove);
+
+        var existingById = existing.ToDictionary(f => f.Id);
+        foreach (var field in incoming)
+        {
+            if (existingById.TryGetValue(field.Id, out var current))
+            {
+                current.Label = field.Label;
+                current.FieldType = field.FieldType;
+                current.Required = field.Required;
+                current.DisplayOrder = field.DisplayOrder;
+                current.Options = field.Options;
+                current.UpdatedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                field.CategoryId = categoryId;
+                await _db.CategoryCustomFields.AddAsync(field, ct);
+            }
+        }
+    }
 }

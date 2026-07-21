@@ -27,4 +27,8 @@ public class UpdateCategoryDto
     public decimal? DefaultCommissionPercent { get; set; }
     public decimal? PlatformServiceFee { get; set; }
     public bool? TaxApplicable { get; set; }
+
+    // Null = leave existing custom fields untouched. A provided list is
+    // synced in full (see ICategoryRepository.SyncCustomFieldsAsync).
+    public List<CategoryCustomFieldInputDto>? CustomFields { get; set; }
 }

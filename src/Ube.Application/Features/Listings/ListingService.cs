@@ -41,6 +41,8 @@ public class ListingService : IListingService
         EnsureDetailProvided(type, request.HotelDetails, request.RestaurantDetails, request.EventDetails,
             request.CarRentalDetails, request.ActivityDetails);
 
+        EnsureRequiredCustomFieldsProvided(category, request.CustomFieldValues);
+
         var listing = new Listing
         {
             Id = Guid.NewGuid(),
@@ -69,6 +71,8 @@ public class ListingService : IListingService
             await UpsertTypeDetailsAsync(listing.Id, type,
                 request.HotelDetails, request.RestaurantDetails, request.EventDetails,
                 request.CarRentalDetails, request.ActivityDetails, ct);
+
+            await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, MapCustomFieldValues(request.CustomFieldValues), ct);
 
             await _unitOfWork.CommitAsync();
         }
@@ -100,6 +104,8 @@ public class ListingService : IListingService
         EnsureDetailProvided(type, request.HotelDetails, request.RestaurantDetails, request.EventDetails,
             request.CarRentalDetails, request.ActivityDetails);
 
+        EnsureRequiredCustomFieldsProvided(category, request.CustomFieldValues);
+
         listing.CategoryId = request.CategoryId;
         listing.Type = type;
         listing.Title = request.Title;
@@ -120,6 +126,8 @@ public class ListingService : IListingService
             await UpsertTypeDetailsAsync(listingId, type,
                 request.HotelDetails, request.RestaurantDetails, request.EventDetails,
                 request.CarRentalDetails, request.ActivityDetails, ct);
+
+            await _listingRepository.ReplaceCustomFieldValuesAsync(listingId, MapCustomFieldValues(request.CustomFieldValues), ct);
 
             await _unitOfWork.CommitAsync();
         }
@@ -184,6 +192,32 @@ public class ListingService : IListingService
         if (missing)
             throw new BusinessRuleException($"{type} details are required for a {type} listing.");
     }
+
+    private static void EnsureRequiredCustomFieldsProvided(
+        Ube.Domain.Entities.Listings.Category category,
+        List<ListingCustomFieldValueInputDto> values)
+    {
+        var provided = values
+            .Where(v => !string.IsNullOrWhiteSpace(v.Value))
+            .Select(v => v.CategoryCustomFieldId)
+            .ToHashSet();
+
+        var missing = category.CustomFields
+            .Where(f => f.Required && !provided.Contains(f.Id))
+            .Select(f => f.Label)
+            .ToList();
+
+        if (missing.Count > 0)
+            throw new BusinessRuleException($"Missing required field(s): {string.Join(", ", missing)}.");
+    }
+
+    private static List<ListingCustomFieldValue> MapCustomFieldValues(IEnumerable<ListingCustomFieldValueInputDto> values)
+        => values.Select(v => new ListingCustomFieldValue
+        {
+            Id = Guid.NewGuid(),
+            CategoryCustomFieldId = v.CategoryCustomFieldId,
+            Value = v.Value
+        }).ToList();
 
     private Task UpsertTypeDetailsAsync(
         Guid listingId,
@@ -354,6 +388,12 @@ public class ListingService : IListingService
             IncludedServices = l.ActivityDetails.IncludedServices?.Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList(),
             SafetyRequirements = l.ActivityDetails.SafetyRequirements,
             AvailabilitySchedule = l.ActivityDetails.AvailabilitySchedule
-        }
+        },
+        CustomFieldValues = l.CustomFieldValues?.Select(v => new ListingCustomFieldValueDto
+        {
+            CategoryCustomFieldId = v.CategoryCustomFieldId,
+            Label = v.CategoryCustomField.Label,
+            Value = v.Value
+        }).ToList() ?? new List<ListingCustomFieldValueDto>()
     };
 }

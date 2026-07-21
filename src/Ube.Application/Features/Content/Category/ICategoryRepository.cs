@@ -1,3 +1,4 @@
+using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;
 
 namespace Ube.Application.Features.Content.Category;
@@ -13,4 +14,12 @@ public interface ICategoryRepository
     Task<int> CountListingsAsync(Guid categoryId, CancellationToken ct = default);
     Task AddAsync(Ube.Domain.Entities.Listings.Category category, CancellationToken ct = default);
     Task SaveChangesAsync(CancellationToken ct = default);
+
+    // Syncs a category's custom field definitions to the given set: fields
+    // whose Id already exists are updated in place (preserving any listing
+    // values recorded against them), fields with no existing Id are
+    // inserted as new, and existing fields absent from the incoming set are
+    // removed (cascading their recorded listing values, since the field no
+    // longer exists to hold a value for).
+    Task SyncCustomFieldsAsync(Guid categoryId, IEnumerable<CategoryCustomField> fields, CancellationToken ct = default);
 }

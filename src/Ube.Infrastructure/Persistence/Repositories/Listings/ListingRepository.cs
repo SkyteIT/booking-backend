@@ -107,6 +107,8 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.CustomFieldValues)
+                .ThenInclude(v => v.CategoryCustomField)
             .FirstOrDefaultAsync(l => l.Id == listingId, ct);
 
     public async Task<List<Listing>> GetAllWithDetailsAsync(CancellationToken ct = default)
@@ -119,6 +121,8 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.CustomFieldValues)
+                .ThenInclude(v => v.CategoryCustomField)
             .ToListAsync(ct);
 
     public async Task<List<Listing>> GetByVendorProfileIdWithDetailsAsync(Guid vendorProfileId, CancellationToken ct = default)
@@ -131,6 +135,8 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.CustomFieldValues)
+                .ThenInclude(v => v.CategoryCustomField)
             .ToListAsync(ct);
 
     public async Task AddAsync(Listing listing, CancellationToken ct = default)
@@ -182,6 +188,21 @@ public class ListingRepository : IListingRepository
         else
         {
             _db.Entry(existing).CurrentValues.SetValues(details);
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task ReplaceCustomFieldValuesAsync(Guid listingId, IEnumerable<ListingCustomFieldValue> values, CancellationToken ct = default)
+    {
+        var existing = await _db.ListingCustomFieldValues.Where(v => v.ListingId == listingId).ToListAsync(ct);
+        if (existing.Count > 0)
+            _db.ListingCustomFieldValues.RemoveRange(existing);
+
+        foreach (var value in values)
+        {
+            value.ListingId = listingId;
+            _db.ListingCustomFieldValues.Add(value);
         }
 
         await _db.SaveChangesAsync(ct);

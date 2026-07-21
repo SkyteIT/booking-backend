@@ -33,4 +33,6 @@ public class CategoryDto
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    public List<CategoryCustomFieldDto> CustomFields { get; set; } = new();
 }

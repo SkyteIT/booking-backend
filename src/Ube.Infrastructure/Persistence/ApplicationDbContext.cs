@@ -45,6 +45,10 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<CarRentalListingDetails> CarRentalListingDetails { get; set; } = default!;
     public DbSet<ActivityListingDetails> ActivityListingDetails { get; set; } = default!;
 
+    // ================= CUSTOM FIELDS =================
+    public DbSet<CategoryCustomField> CategoryCustomFields { get; set; } = default!;
+    public DbSet<ListingCustomFieldValue> ListingCustomFieldValues { get; set; } = default!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

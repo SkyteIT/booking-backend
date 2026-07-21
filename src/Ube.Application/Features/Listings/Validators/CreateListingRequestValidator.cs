@@ -52,5 +52,8 @@ public class CreateListingRequestValidator : AbstractValidator<CreateListingRequ
         RuleFor(x => x.ActivityDetails)
             .SetValidator(new ActivityDetailsDtoValidator()!)
             .When(x => x.ActivityDetails != null);
+
+        RuleForEach(x => x.CustomFieldValues)
+            .SetValidator(new ListingCustomFieldValueInputDtoValidator());
     }
 }

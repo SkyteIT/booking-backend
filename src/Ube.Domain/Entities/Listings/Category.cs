@@ -42,4 +42,5 @@ public class Category
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<Listing> Listings { get; set; } = new List<Listing>();
+    public ICollection<CategoryCustomField> CustomFields { get; set; } = new List<CategoryCustomField>();
 }

@@ -1,7 +1,9 @@
 using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Exceptions;
 using Ube.Domain.Constants;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Application.Features.Content.Category;
 
@@ -39,6 +41,18 @@ public class CategoryService : ICategoryService
         ListingCount = listingCount,
         CreatedAt = x.CreatedAt,
         UpdatedAt = x.UpdatedAt,
+        CustomFields = x.CustomFields
+            .OrderBy(f => f.DisplayOrder)
+            .Select(f => new CategoryCustomFieldDto
+            {
+                Id = f.Id,
+                Label = f.Label,
+                FieldType = f.FieldType,
+                Required = f.Required,
+                DisplayOrder = f.DisplayOrder,
+                Options = f.Options?.Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList()
+            })
+            .ToList()
     };
 
     private static RecordStatus ParseStatus(string? raw, RecordStatus fallback = RecordStatus.Active)
@@ -46,6 +60,27 @@ public class CategoryService : ICategoryService
         if (Enum.TryParse<RecordStatus>(raw, ignoreCase: true, out var parsed))
             return parsed;
         return fallback;
+    }
+
+    private static List<CategoryCustomField> MapCustomFields(IEnumerable<CategoryCustomFieldInputDto> fields)
+    {
+        return fields.Select(f =>
+        {
+            if (f.FieldType == CustomFieldType.Dropdown && (f.Options == null || f.Options.Count == 0))
+                throw new BusinessRuleException($"Custom field '{f.Label}' is a Dropdown and needs at least one option.");
+
+            return new CategoryCustomField
+            {
+                Id = f.Id ?? Guid.NewGuid(),
+                Label = f.Label,
+                FieldType = f.FieldType,
+                Required = f.Required,
+                DisplayOrder = f.DisplayOrder,
+                Options = f.FieldType == CustomFieldType.Dropdown && f.Options != null
+                    ? string.Join(", ", f.Options)
+                    : null
+            };
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken)
@@ -132,6 +167,12 @@ public class CategoryService : ICategoryService
 
         await _categoryRepo.SaveChangesAsync(cancellationToken);
 
+        if (dto.CustomFields.Count > 0)
+        {
+            await _categoryRepo.SyncCustomFieldsAsync(entity.Id, MapCustomFields(dto.CustomFields), cancellationToken);
+            await _categoryRepo.SaveChangesAsync(cancellationToken);
+        }
+
         var uncategorized = await _categoryRepo.GetUncategorizedAsync(cancellationToken);
         if (uncategorized is not null)
         {
@@ -183,6 +224,16 @@ public class CategoryService : ICategoryService
 
         entity.UpdatedAt = DateTime.UtcNow;
         await _categoryRepo.SaveChangesAsync(cancellationToken);
+
+        if (dto.CustomFields is not null)
+        {
+            await _categoryRepo.SyncCustomFieldsAsync(entity.Id, MapCustomFields(dto.CustomFields), cancellationToken);
+            await _categoryRepo.SaveChangesAsync(cancellationToken);
+
+            // Re-fetch so the response reflects the synced custom fields
+            // rather than the collection loaded before the sync ran.
+            entity = await _categoryRepo.GetByIdAsync(id, includeListings: true, cancellationToken) ?? entity;
+        }
 
         return ToDto(entity, entity.Listings.Count);
     }

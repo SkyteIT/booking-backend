@@ -32,5 +32,8 @@ public class CreateCategoryDtoValidator : AbstractValidator<CreateCategoryDto>
         RuleFor(x => x.Status)
             .Must(s => ValidStatuses.Contains(s))
             .WithMessage("Status must be Active or Inactive");
+
+        RuleForEach(x => x.CustomFields)
+            .SetValidator(new CategoryCustomFieldInputDtoValidator());
     }
 }

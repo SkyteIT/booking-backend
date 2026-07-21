@@ -20,4 +20,8 @@ public class UpdateListingRequest
     public EventDetailsDto? EventDetails { get; set; }
     public CarRentalDetailsDto? CarRentalDetails { get; set; }
     public ActivityDetailsDto? ActivityDetails { get; set; }
+
+    // Answers to the chosen category's admin-defined custom fields
+    // (e.g. Amenities, RoomTypes, TableTypes).
+    public List<ListingCustomFieldValueInputDto> CustomFieldValues { get; set; } = new();
 }

@@ -36,5 +36,9 @@ public class UpdateCategoryDtoValidator : AbstractValidator<UpdateCategoryDto>
             .Must(s => ValidStatuses.Contains(s!))
             .WithMessage("Status must be Active, Inactive or Deleted")
             .When(x => x.Status != null);
+
+        RuleForEach(x => x.CustomFields)
+            .SetValidator(new CategoryCustomFieldInputDtoValidator())
+            .When(x => x.CustomFields != null);
     }
 }

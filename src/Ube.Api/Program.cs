@@ -158,6 +158,8 @@ builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
 builder.Services.AddScoped<IPayoutExportRepository, PayoutExportRepository>();
 builder.Services.AddScoped<IPayoutExportSettingsRepository, PayoutExportSettingsRepository>();
 builder.Services.AddScoped<IPayoutExportService, PayoutExportService>();
+builder.Services.AddScoped<IPaymentDisputeRepository, PaymentDisputeRepository>();
+builder.Services.AddScoped<IPaymentDisputeService, PaymentDisputeService>();
 builder.Services.AddScoped<ICommissionPolicyService, CommissionPolicyService>();
 builder.Services.AddScoped<IVendorAdvanceService, VendorAdvanceService>();
 builder.Services.AddScoped<IVendorCommissionAcknowledgementService, VendorCommissionAcknowledgementService>();

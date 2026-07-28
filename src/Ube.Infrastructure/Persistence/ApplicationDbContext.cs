@@ -62,6 +62,7 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<VendorCommissionInvoice> VendorCommissionInvoices { get; set; } = default!;
     public DbSet<PayoutExportRun> PayoutExportRuns { get; set; } = default!;
     public DbSet<PayoutExportSettings> PayoutExportSettingsRows { get; set; } = default!;
+    public DbSet<PaymentDispute> PaymentDisputes { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,5 +1,4 @@
 using FluentValidation;
-using Ube.Domain.Enums.Listings;
 
 namespace Ube.Application.Features.Listings.Validators;
 
@@ -9,9 +8,6 @@ public class CreateListingRequestValidator : AbstractValidator<CreateListingRequ
     {
         RuleFor(x => x.CategoryId)
             .NotEmpty().WithMessage("Category is required");
-
-        RuleFor(x => x.Type)
-            .IsInEnum().WithMessage("A valid listing type is required");
 
         RuleFor(x => x.Title)
             .NotEmpty().WithMessage("Title is required")
@@ -33,29 +29,31 @@ public class CreateListingRequestValidator : AbstractValidator<CreateListingRequ
         RuleFor(x => x.CancellationPolicy)
             .MaximumLength(1000);
 
+        // Which one of these must be present is determined by the chosen
+        // Category's Type (checked in ListingService, which is the only place
+        // that knows the category) - here we just validate whichever one was
+        // actually sent.
         RuleFor(x => x.HotelDetails)
-            .NotNull().WithMessage("Hotel details are required for a hotel listing")
             .SetValidator(new HotelDetailsDtoValidator()!)
-            .When(x => x.Type == ListingType.Hotel);
+            .When(x => x.HotelDetails != null);
 
         RuleFor(x => x.RestaurantDetails)
-            .NotNull().WithMessage("Restaurant details are required for a restaurant listing")
             .SetValidator(new RestaurantDetailsDtoValidator()!)
-            .When(x => x.Type == ListingType.Restaurant);
+            .When(x => x.RestaurantDetails != null);
 
         RuleFor(x => x.EventDetails)
-            .NotNull().WithMessage("Event details are required for an event listing")
             .SetValidator(new EventDetailsDtoValidator()!)
-            .When(x => x.Type == ListingType.Event);
+            .When(x => x.EventDetails != null);
 
         RuleFor(x => x.CarRentalDetails)
-            .NotNull().WithMessage("Car rental details are required for a car rental listing")
             .SetValidator(new CarRentalDetailsDtoValidator()!)
-            .When(x => x.Type == ListingType.CarRental);
+            .When(x => x.CarRentalDetails != null);
 
         RuleFor(x => x.ActivityDetails)
-            .NotNull().WithMessage("Activity details are required for an activity listing")
             .SetValidator(new ActivityDetailsDtoValidator()!)
-            .When(x => x.Type == ListingType.Activity);
+            .When(x => x.ActivityDetails != null);
+
+        RuleForEach(x => x.CustomFieldValues)
+            .SetValidator(new ListingCustomFieldValueInputDtoValidator());
     }
 }

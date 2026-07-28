@@ -37,7 +37,7 @@ dotnet ef dbcontext info --project src\Ube.Infrastructure --startup-project src\
 dotnet ef dbcontext list --project src\Ube.Infrastructure --startup-project src\Ube.Api
 
 # Scaffold existing database (reverse engineering)
-dotnet ef dbcontext scaffold "Server=localhost;Database=Ube_db;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer --project src\Ube.Infrastructure --startup-project src\Ube.Api --force
+dotnet ef dbcontext scaffold "Server=localhost;Database=UbeDb;Trusted_Connection=True;" Microsoft.EntityFrameworkCore.SqlServer --project src\Ube.Infrastructure --startup-project src\Ube.Api --force
 
 # Optimize the model snapshot
 dotnet ef migrations optimize --project src\Ube.Infrastructure --startup-project src\Ube.Api

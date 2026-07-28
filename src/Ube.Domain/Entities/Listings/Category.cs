@@ -1,4 +1,5 @@
 using Ube.Domain.Enums;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Domain.Entities.Listings;
 
@@ -7,6 +8,11 @@ public class Category
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+
+    // Which ListingType this category's listings must use. Null only for the
+    // internal "Uncategorized" sentinel category, which can hold listings of
+    // any type; every admin-created category must have a Type.
+    public ListingType? Type { get; set; }
 
     // Configuration
     public string? BookingType { get; set; }
@@ -19,6 +25,16 @@ public class Category
     public decimal DefaultCommissionPercent { get; set; } = 15;
     public decimal? PlatformServiceFee { get; set; }
     public bool TaxApplicable { get; set; }
+
+    // Refund policy (SRS 7.4) - time-based tiers relative to booking start
+    public int FullRefundDaysBefore { get; set; }
+    public int PartialRefundDaysBefore { get; set; }
+    public decimal PartialRefundPercent { get; set; }
+    public decimal? RefundAutoApprovalThreshold { get; set; }
+
+    // Vendor advances
+    public bool AllowsVendorAdvance { get; set; }
+    public decimal? AdvancePercent { get; set; }
 
     // Display
     public string? Icon { get; set; }
@@ -36,4 +52,5 @@ public class Category
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<Listing> Listings { get; set; } = new List<Listing>();
+    public ICollection<CategoryCustomField> CustomFields { get; set; } = new List<CategoryCustomField>();
 }

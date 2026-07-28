@@ -445,6 +445,13 @@ namespace Ube.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal?>("AdvancePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<bool>("AllowsVendorAdvance")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("AvailabilityCalendarEnabled")
                         .HasColumnType("bit");
 
@@ -473,6 +480,9 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("int");
 
+                    b.Property<int>("FullRefundDaysBefore")
+                        .HasColumnType("int");
+
                     b.Property<string>("Icon")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -485,7 +495,18 @@ namespace Ube.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int>("PartialRefundDaysBefore")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PartialRefundPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
                     b.Property<decimal?>("PlatformServiceFee")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<decimal?>("RefundAutoApprovalThreshold")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
 
@@ -505,6 +526,9 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<bool>("TimeSlotEnabled")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("Type")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -516,6 +540,46 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("Categories");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.CategoryCustomField", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FieldType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Options")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("CategoryCustomFields");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.EventListingDetails", b =>
@@ -699,6 +763,38 @@ namespace Ube.Infrastructure.Migrations
                     b.ToTable("Listings");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingCustomFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CategoryCustomFieldId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryCustomFieldId");
+
+                    b.HasIndex("ListingId");
+
+                    b.ToTable("ListingCustomFieldValues");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -833,6 +929,457 @@ namespace Ube.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("NotificationPreferences", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.LedgerEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AccountType")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Direction")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EntryType")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("PayoutBatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RefundId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VendorCommissionInvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("PaymentId");
+
+                    b.HasIndex("PayoutBatchId");
+
+                    b.HasIndex("RefundId");
+
+                    b.HasIndex("VendorCommissionInvoiceId");
+
+                    b.HasIndex("VendorProfileId");
+
+                    b.ToTable("LedgerEntries", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.LoyaltyDiscountTier", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<int>("MonthsActive")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MonthsActive")
+                        .IsUnique();
+
+                    b.ToTable("LoyaltyDiscountTiers", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CollectionMethod")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CommissionAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CommissionPercentApplied")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("GatewayReference")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("InitiatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("NetVendorAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("VendorProfileId");
+
+                    b.ToTable("Payments", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.PaymentAuditLogEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("MetadataJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "EntityId");
+
+                    b.ToTable("PaymentAuditLogEntries", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.PayoutBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("SettledAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SettledByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("VendorProfileId");
+
+                    b.ToTable("PayoutBatches", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.PayoutExportRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BatchIdsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileChecksum")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("SecondApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SecondApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("PayoutExportRuns", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.PayoutExportSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LargeExportThreshold")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PayoutExportSettings", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.Refund", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PolicyTierApplied")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("Refunds", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.VendorCommissionAcknowledgement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AcknowledgedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("CommissionPercentShown")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<Guid?>("SourceOverrideId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorProfileId");
+
+                    b.ToTable("VendorCommissionAcknowledgements", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.VendorCommissionInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountOwed")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorProfileId", "Status");
+
+                    b.ToTable("VendorCommissionInvoices", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.VendorCommissionOverride", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("CommissionPercent")
+                        .HasColumnType("decimal(9,4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("RevokedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorProfileId", "CategoryId", "Status");
+
+                    b.ToTable("VendorCommissionOverrides", (string)null);
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -1288,6 +1835,17 @@ namespace Ube.Infrastructure.Migrations
                     b.Navigation("Listing");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.CategoryCustomField", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Category", "Category")
+                        .WithMany("CustomFields")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Listings.EventListingDetails", b =>
                 {
                     b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
@@ -1329,6 +1887,25 @@ namespace Ube.Infrastructure.Migrations
                     b.Navigation("VendorProfile");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingCustomFieldValue", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.CategoryCustomField", "CategoryCustomField")
+                        .WithMany()
+                        .HasForeignKey("CategoryCustomFieldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithMany("CustomFieldValues")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CategoryCustomField");
+
+                    b.Navigation("Listing");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
                 {
                     b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
@@ -1349,6 +1926,15 @@ namespace Ube.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.Refund", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Payments.Payment", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -1425,6 +2011,8 @@ namespace Ube.Infrastructure.Migrations
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Category", b =>
                 {
+                    b.Navigation("CustomFields");
+
                     b.Navigation("Listings");
                 });
 
@@ -1433,6 +2021,8 @@ namespace Ube.Infrastructure.Migrations
                     b.Navigation("ActivityDetails");
 
                     b.Navigation("CarRentalDetails");
+
+                    b.Navigation("CustomFieldValues");
 
                     b.Navigation("EventDetails");
 

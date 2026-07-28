@@ -31,15 +31,24 @@ public class ListingService : IListingService
         var vendorProfile = await _vendorProfileRepository.GetVendorIdAsync(userId)
             ?? throw new NotFoundException("Vendor profile not found for the current user.");
 
-        if (await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct) == null)
-            throw new NotFoundException("Category not found.");
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct)
+            ?? throw new NotFoundException("Category not found.");
+
+        var type = category.Type
+            ?? throw new BusinessRuleException(
+                $"Category '{category.Name}' has no listing type configured yet; an admin must set one before listings can be created under it.");
+
+        EnsureDetailProvided(type, request.HotelDetails, request.RestaurantDetails, request.EventDetails,
+            request.CarRentalDetails, request.ActivityDetails);
+
+        EnsureRequiredCustomFieldsProvided(category, request.CustomFieldValues);
 
         var listing = new Listing
         {
             Id = Guid.NewGuid(),
             VendorProfileId = vendorProfile.Id,
             CategoryId = request.CategoryId,
-            Type = request.Type,
+            Type = type,
             Title = request.Title,
             Description = request.Description ?? string.Empty,
             Price = request.Price,
@@ -59,9 +68,11 @@ public class ListingService : IListingService
             if (request.Images.Count > 0)
                 await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
 
-            await UpsertTypeDetailsAsync(listing.Id, request.Type,
+            await UpsertTypeDetailsAsync(listing.Id, type,
                 request.HotelDetails, request.RestaurantDetails, request.EventDetails,
                 request.CarRentalDetails, request.ActivityDetails, ct);
+
+            await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, MapCustomFieldValues(request.CustomFieldValues), ct);
 
             await _unitOfWork.CommitAsync();
         }
@@ -83,11 +94,20 @@ public class ListingService : IListingService
         if (vendorProfile == null || vendorProfile.Id != listing.VendorProfileId)
             throw new ForbiddenException("You do not have permission to update this listing.");
 
-        if (await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct) == null)
-            throw new NotFoundException("Category not found.");
+        var category = await _categoryRepository.GetByIdAsync(request.CategoryId, ct: ct)
+            ?? throw new NotFoundException("Category not found.");
+
+        var type = category.Type
+            ?? throw new BusinessRuleException(
+                $"Category '{category.Name}' has no listing type configured yet; an admin must set one before listings can use it.");
+
+        EnsureDetailProvided(type, request.HotelDetails, request.RestaurantDetails, request.EventDetails,
+            request.CarRentalDetails, request.ActivityDetails);
+
+        EnsureRequiredCustomFieldsProvided(category, request.CustomFieldValues);
 
         listing.CategoryId = request.CategoryId;
-        listing.Type = request.Type;
+        listing.Type = type;
         listing.Title = request.Title;
         listing.Description = request.Description ?? string.Empty;
         listing.Price = request.Price;
@@ -103,9 +123,11 @@ public class ListingService : IListingService
         {
             await _listingRepository.UpdateAsync(listing);
             await _listingRepository.ReplaceImagesAsync(listingId, request.Images, ct);
-            await UpsertTypeDetailsAsync(listingId, request.Type,
+            await UpsertTypeDetailsAsync(listingId, type,
                 request.HotelDetails, request.RestaurantDetails, request.EventDetails,
                 request.CarRentalDetails, request.ActivityDetails, ct);
+
+            await _listingRepository.ReplaceCustomFieldValuesAsync(listingId, MapCustomFieldValues(request.CustomFieldValues), ct);
 
             await _unitOfWork.CommitAsync();
         }
@@ -148,6 +170,54 @@ public class ListingService : IListingService
         var listings = await _listingRepository.GetByVendorProfileIdWithDetailsAsync(vendorProfile.Id, ct);
         return listings.Select(MapToResponse).ToList();
     }
+
+    private static void EnsureDetailProvided(
+        ListingType type,
+        HotelDetailsDto? hotel,
+        RestaurantDetailsDto? restaurant,
+        EventDetailsDto? @event,
+        CarRentalDetailsDto? carRental,
+        ActivityDetailsDto? activity)
+    {
+        var missing = type switch
+        {
+            ListingType.Hotel => hotel == null,
+            ListingType.Restaurant => restaurant == null,
+            ListingType.Event => @event == null,
+            ListingType.CarRental => carRental == null,
+            ListingType.Activity => activity == null,
+            _ => true
+        };
+
+        if (missing)
+            throw new BusinessRuleException($"{type} details are required for a {type} listing.");
+    }
+
+    private static void EnsureRequiredCustomFieldsProvided(
+        Ube.Domain.Entities.Listings.Category category,
+        List<ListingCustomFieldValueInputDto> values)
+    {
+        var provided = values
+            .Where(v => !string.IsNullOrWhiteSpace(v.Value))
+            .Select(v => v.CategoryCustomFieldId)
+            .ToHashSet();
+
+        var missing = category.CustomFields
+            .Where(f => f.Required && !provided.Contains(f.Id))
+            .Select(f => f.Label)
+            .ToList();
+
+        if (missing.Count > 0)
+            throw new BusinessRuleException($"Missing required field(s): {string.Join(", ", missing)}.");
+    }
+
+    private static List<ListingCustomFieldValue> MapCustomFieldValues(IEnumerable<ListingCustomFieldValueInputDto> values)
+        => values.Select(v => new ListingCustomFieldValue
+        {
+            Id = Guid.NewGuid(),
+            CategoryCustomFieldId = v.CategoryCustomFieldId,
+            Value = v.Value
+        }).ToList();
 
     private Task UpsertTypeDetailsAsync(
         Guid listingId,
@@ -318,6 +388,12 @@ public class ListingService : IListingService
             IncludedServices = l.ActivityDetails.IncludedServices?.Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList(),
             SafetyRequirements = l.ActivityDetails.SafetyRequirements,
             AvailabilitySchedule = l.ActivityDetails.AvailabilitySchedule
-        }
+        },
+        CustomFieldValues = l.CustomFieldValues?.Select(v => new ListingCustomFieldValueDto
+        {
+            CategoryCustomFieldId = v.CategoryCustomFieldId,
+            Label = v.CategoryCustomField.Label,
+            Value = v.Value
+        }).ToList() ?? new List<ListingCustomFieldValueDto>()
     };
 }

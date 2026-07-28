@@ -32,4 +32,6 @@ public class ListingResponse
     public EventDetailsDto? EventDetails { get; set; }
     public CarRentalDetailsDto? CarRentalDetails { get; set; }
     public ActivityDetailsDto? ActivityDetails { get; set; }
+
+    public List<ListingCustomFieldValueDto> CustomFieldValues { get; set; } = new();
 }

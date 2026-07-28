@@ -16,6 +16,9 @@ public class CreateCategoryDtoValidator : AbstractValidator<CreateCategoryDto>
             .MaximumLength(500)
             .When(x => !string.IsNullOrWhiteSpace(x.Description));
 
+        RuleFor(x => x.Type)
+            .IsInEnum().WithMessage("A valid listing type is required");
+
         RuleFor(x => x.DefaultCommissionPercent)
             .InclusiveBetween(0, 100).WithMessage("Commission percent must be between 0 and 100");
 
@@ -29,5 +32,8 @@ public class CreateCategoryDtoValidator : AbstractValidator<CreateCategoryDto>
         RuleFor(x => x.Status)
             .Must(s => ValidStatuses.Contains(s))
             .WithMessage("Status must be Active or Inactive");
+
+        RuleForEach(x => x.CustomFields)
+            .SetValidator(new CategoryCustomFieldInputDtoValidator());
     }
 }

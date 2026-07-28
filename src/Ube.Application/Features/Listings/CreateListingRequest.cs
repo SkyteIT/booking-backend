@@ -1,11 +1,10 @@
-using Ube.Domain.Enums.Listings;
-
 namespace Ube.Application.Features.Listings;
 
 public class CreateListingRequest
 {
+    // ListingType is derived from the chosen Category.Type - the vendor
+    // doesn't pick it separately, so there's no Type field here.
     public Guid CategoryId { get; set; }
-    public ListingType Type { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal Price { get; set; }
@@ -21,4 +20,8 @@ public class CreateListingRequest
     public EventDetailsDto? EventDetails { get; set; }
     public CarRentalDetailsDto? CarRentalDetails { get; set; }
     public ActivityDetailsDto? ActivityDetails { get; set; }
+
+    // Answers to the chosen category's admin-defined custom fields
+    // (e.g. Amenities, RoomTypes, TableTypes).
+    public List<ListingCustomFieldValueInputDto> CustomFieldValues { get; set; } = new();
 }

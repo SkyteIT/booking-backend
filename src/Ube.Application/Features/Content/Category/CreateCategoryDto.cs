@@ -1,3 +1,5 @@
+using Ube.Domain.Enums.Listings;
+
 namespace Ube.Application.Features.Content.Category;
 
 public class CreateCategoryDto
@@ -5,6 +7,9 @@ public class CreateCategoryDto
     // ── Basic Information ──
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
+
+    // Which ListingType listings under this category must use.
+    public ListingType Type { get; set; }
 
     // ── Category Configuration ──
     public string? BookingType { get; set; }
@@ -30,4 +35,7 @@ public class CreateCategoryDto
     // ── Status ──
     /// <summary>Accepted values: "Active", "Inactive", "Deleted". Defaults to Active.</summary>
     public string Status { get; set; } = "Active";
+
+    // ── Custom Fields ──
+    public List<CategoryCustomFieldInputDto> CustomFields { get; set; } = new();
 }

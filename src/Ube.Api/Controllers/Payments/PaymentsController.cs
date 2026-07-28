@@ -44,7 +44,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost("advance")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Finance")]
     public async Task<IActionResult> IssueAdvance(IssueVendorAdvanceRequest request, CancellationToken ct)
     {
         var result = await _advanceService.IssueAdvanceAsync(_currentUser.UserId, request, ct);
@@ -52,7 +52,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost("reconcile")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin,Finance")]
     public async Task<IActionResult> Reconcile([FromQuery] DateTime periodStart, [FromQuery] DateTime periodEnd, CancellationToken ct)
     {
         var result = await _reconciliationService.ReconcileAsync(_currentUser.UserId, periodStart, periodEnd, ct);

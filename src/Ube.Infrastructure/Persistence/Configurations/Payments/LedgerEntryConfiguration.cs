@@ -17,6 +17,7 @@ public class LedgerEntryConfiguration : IEntityTypeConfiguration<LedgerEntry>
         builder.HasIndex(x => x.PaymentId);
         builder.HasIndex(x => x.RefundId);
         builder.HasIndex(x => x.PayoutBatchId);
+        builder.HasIndex(x => x.VendorCommissionInvoiceId);
         builder.HasIndex(x => x.BookingId);
     }
 }

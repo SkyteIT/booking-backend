@@ -152,6 +152,15 @@ public class RefundService : IRefundService
             ? 0
             : MoneyMath.RoundCurrency(payment.NetVendorAmount * refund.Amount / payment.Amount);
 
+        // If the vendor already received an advance against this payment,
+        // this debit is money they need to give back, not just a smaller
+        // future payout - tag it Clawback instead of Refund so reporting
+        // can tell the two apart. The ledger math is identical either way;
+        // this only changes the entry's label.
+        var existingEntries = await _ledgerRepo.GetByPaymentIdAsync(payment.Id, ct);
+        var isClawback = existingEntries.Any(e => e.EntryType == LedgerEntryType.AdvancePayout);
+        var vendorEntryType = isClawback ? LedgerEntryType.Clawback : LedgerEntryType.Refund;
+
         var entries = new List<LedgerEntry>
         {
             new()
@@ -169,7 +178,7 @@ public class RefundService : IRefundService
                 Id = Guid.NewGuid(),
                 AccountType = LedgerAccountType.Vendor,
                 VendorProfileId = payment.VendorProfileId,
-                EntryType = LedgerEntryType.Refund,
+                EntryType = vendorEntryType,
                 Direction = LedgerDirection.Debit,
                 Amount = refundShareOfCommission,
                 PaymentId = payment.Id,

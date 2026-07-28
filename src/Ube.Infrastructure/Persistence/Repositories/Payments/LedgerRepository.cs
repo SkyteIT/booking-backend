@@ -30,11 +30,15 @@ public class LedgerRepository : ILedgerRepository
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<LedgerEntry>> GetUnbatchedByVendorIdAsync(Guid vendorProfileId, DateTime periodEnd, CancellationToken ct = default)
+    public async Task<IReadOnlyList<LedgerEntry>> GetByPaymentIdAsync(Guid paymentId, CancellationToken ct = default)
         => await _db.LedgerEntries
-            .Where(x => x.VendorProfileId == vendorProfileId
-                        && x.PayoutBatchId == null
-                        && x.CreatedAt <= periodEnd)
+            .Where(x => x.PaymentId == paymentId)
+            .OrderBy(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<LedgerEntry>> GetByVendorIdAsOfAsync(Guid vendorProfileId, DateTime asOf, CancellationToken ct = default)
+        => await _db.LedgerEntries
+            .Where(x => x.VendorProfileId == vendorProfileId && x.CreatedAt <= asOf)
             .OrderBy(x => x.CreatedAt)
             .ToListAsync(ct);
 }

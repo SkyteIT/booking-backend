@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Payments;
 
 namespace Ube.Infrastructure.Persistence.Repositories.Payments;
 
@@ -18,6 +19,11 @@ public class PaymentRepository : IPaymentRepository
 
     public async Task<IReadOnlyList<Payment>> GetByBookingIdAsync(Guid bookingId, CancellationToken ct = default)
         => await _db.Payments.Where(x => x.BookingId == bookingId).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<Payment>> GetCapturedInRangeAsync(DateTime periodStart, DateTime periodEnd, CancellationToken ct = default)
+        => await _db.Payments
+            .Where(x => x.Status == PaymentStatus.Captured && x.CreatedAt >= periodStart && x.CreatedAt <= periodEnd)
+            .ToListAsync(ct);
 
     public async Task AddAsync(Payment payment, CancellationToken ct = default)
     {

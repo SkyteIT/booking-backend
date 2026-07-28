@@ -25,7 +25,7 @@ public class CommissionResolverService : ICommissionResolverService
         // 1. Vendor-specific override - highest priority.
         var activeOverride = await _commissionRepo.GetActiveOverrideAsync(vendorProfileId, categoryId, asOf, ct);
         if (activeOverride != null)
-            return new CommissionResolution(activeOverride.CommissionPercent, "VendorOverride");
+            return new CommissionResolution(activeOverride.CommissionPercent, "VendorOverride", activeOverride.Id);
 
         var category = await _categoryRepo.GetByIdAsync(categoryId, ct: ct)
             ?? throw new NotFoundException("Category not found");

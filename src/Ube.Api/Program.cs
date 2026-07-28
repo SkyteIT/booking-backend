@@ -153,6 +153,17 @@ builder.Services.AddScoped<IPaymentGatewayClient, MockPaymentGatewayClient>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IRefundService, RefundService>();
 builder.Services.AddScoped<IPayoutBatchService, PayoutBatchService>();
+builder.Services.AddScoped<IVendorInvoiceRepository, VendorInvoiceRepository>();
+builder.Services.AddScoped<IVendorInvoiceService, VendorInvoiceService>();
+builder.Services.AddScoped<IPayoutExportRepository, PayoutExportRepository>();
+builder.Services.AddScoped<IPayoutExportSettingsRepository, PayoutExportSettingsRepository>();
+builder.Services.AddScoped<IPayoutExportService, PayoutExportService>();
+builder.Services.AddScoped<ICommissionPolicyService, CommissionPolicyService>();
+builder.Services.AddScoped<IVendorAdvanceService, VendorAdvanceService>();
+builder.Services.AddScoped<IVendorCommissionAcknowledgementService, VendorCommissionAcknowledgementService>();
+builder.Services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
+builder.Services.Configure<PaymentSchedulerOptions>(builder.Configuration.GetSection("PaymentScheduler"));
+builder.Services.AddHostedService<PaymentSchedulerBackgroundService>();
 
 builder.Services.AddRateLimiter(options =>
 {

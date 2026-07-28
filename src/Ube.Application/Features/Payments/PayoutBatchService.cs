@@ -9,27 +9,35 @@ public class PayoutBatchService : IPayoutBatchService
     private readonly IPayoutBatchRepository _batchRepo;
     private readonly ILedgerRepository _ledgerRepo;
     private readonly IPaymentAuditLogRepository _auditRepo;
+    private readonly IVendorInvoiceRepository _invoiceRepo;
 
     public PayoutBatchService(
         IPayoutBatchRepository batchRepo,
         ILedgerRepository ledgerRepo,
-        IPaymentAuditLogRepository auditRepo)
+        IPaymentAuditLogRepository auditRepo,
+        IVendorInvoiceRepository invoiceRepo)
     {
         _batchRepo = batchRepo;
         _ledgerRepo = ledgerRepo;
         _auditRepo = auditRepo;
+        _invoiceRepo = invoiceRepo;
     }
 
     public async Task<PayoutBatchDto> ComputeAsync(ComputePayoutBatchRequest request, CancellationToken ct = default)
     {
+        // Only one unresolved claim on a vendor's running balance may exist
+        // at a time - a batch and an invoice both read the same cumulative
+        // ledger sum, so two unresolved claims would double-count whatever
+        // hasn't been settled/paid yet.
         var existingBatches = await _batchRepo.GetByVendorIdAsync(request.VendorProfileId, ct);
-        var overlapping = existingBatches.Any(b =>
-            b.Status != PayoutBatchStatus.Settled &&
-            b.PeriodStart < request.PeriodEnd && request.PeriodStart < b.PeriodEnd);
-        if (overlapping)
-            throw new BusinessRuleException("An unsettled batch already covers an overlapping period for this vendor");
+        if (existingBatches.Any(b => b.Status != PayoutBatchStatus.Settled))
+            throw new BusinessRuleException("This vendor already has an unresolved payout batch - settle it before computing a new one");
 
-        var entries = await _ledgerRepo.GetUnbatchedByVendorIdAsync(request.VendorProfileId, request.PeriodEnd, ct);
+        var existingInvoices = await _invoiceRepo.GetByVendorIdAsync(request.VendorProfileId, ct);
+        if (existingInvoices.Any(i => i.Status is VendorInvoiceStatus.Pending or VendorInvoiceStatus.Overdue))
+            throw new BusinessRuleException("This vendor has an unresolved commission invoice - resolve it before computing a payout batch");
+
+        var entries = await _ledgerRepo.GetByVendorIdAsOfAsync(request.VendorProfileId, request.PeriodEnd, ct);
         var vendorEntries = entries.Where(e => e.AccountType == LedgerAccountType.Vendor);
 
         var total = vendorEntries.Sum(e => e.Direction == LedgerDirection.Credit ? e.Amount : -e.Amount);
@@ -63,9 +71,9 @@ public class PayoutBatchService : IPayoutBatchService
         batch.SettledAt = DateTime.UtcNow;
         await _batchRepo.UpdateAsync(batch, ct);
 
-        // A new Settlement entry closes out the batched amount - tagged
-        // with PayoutBatchId at creation, never by editing the entries it
-        // covers. Future "unbatched" queries naturally exclude it.
+        // A new Settlement entry (a Debit) nets the batched amount back to
+        // zero in the running balance - tagged with PayoutBatchId at
+        // creation, never by editing the entries it covers.
         await _ledgerRepo.AddAsync(new LedgerEntry
         {
             Id = Guid.NewGuid(),

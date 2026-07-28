@@ -20,6 +20,7 @@ public class LedgerEntry
     public Guid? PaymentId { get; set; }
     public Guid? RefundId { get; set; }
     public Guid? PayoutBatchId { get; set; }
+    public Guid? VendorCommissionInvoiceId { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

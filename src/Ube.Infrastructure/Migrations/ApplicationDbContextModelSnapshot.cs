@@ -964,6 +964,9 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<Guid?>("RefundId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("VendorCommissionInvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<Guid?>("VendorProfileId")
                         .HasColumnType("uniqueidentifier");
 
@@ -976,6 +979,8 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("PayoutBatchId");
 
                     b.HasIndex("RefundId");
+
+                    b.HasIndex("VendorCommissionInvoiceId");
 
                     b.HasIndex("VendorProfileId");
 
@@ -1157,6 +1162,71 @@ namespace Ube.Infrastructure.Migrations
                     b.ToTable("PayoutBatches", (string)null);
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.PayoutExportRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BatchIdsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FileChecksum")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RequestedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("SecondApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("SecondApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("PayoutExportRuns", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.PayoutExportSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LargeExportThreshold")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PayoutExportSettings", (string)null);
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Payments.Refund", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1222,6 +1292,46 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("VendorProfileId");
 
                     b.ToTable("VendorCommissionAcknowledgements", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Payments.VendorCommissionInvoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AmountOwed")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("VendorProfileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendorProfileId", "Status");
+
+                    b.ToTable("VendorCommissionInvoices", (string)null);
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Payments.VendorCommissionOverride", b =>

@@ -14,19 +14,49 @@ public class VendorLedgerController : ControllerBase
 {
     private readonly ILedgerRepository _ledgerRepo;
     private readonly IPayoutBatchService _payoutBatchService;
+    private readonly IVendorInvoiceService _invoiceService;
+    private readonly IVendorCommissionAcknowledgementService _acknowledgementService;
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly ICurrentUserService _currentUser;
 
     public VendorLedgerController(
         ILedgerRepository ledgerRepo,
         IPayoutBatchService payoutBatchService,
+        IVendorInvoiceService invoiceService,
+        IVendorCommissionAcknowledgementService acknowledgementService,
         IVendorProfileRepository vendorRepo,
         ICurrentUserService currentUser)
     {
         _ledgerRepo = ledgerRepo;
         _payoutBatchService = payoutBatchService;
+        _invoiceService = invoiceService;
+        _acknowledgementService = acknowledgementService;
         _vendorRepo = vendorRepo;
         _currentUser = currentUser;
+    }
+
+    [HttpPost("commission-acknowledgement")]
+    public async Task<IActionResult> AcknowledgeCommissionRate(AcknowledgeCommissionRateRequest request, CancellationToken ct)
+    {
+        var vendorProfileId = await ResolveVendorProfileIdAsync();
+        var result = await _acknowledgementService.AcknowledgeAsync(vendorProfileId, request, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("commission-acknowledgements")]
+    public async Task<IActionResult> GetCommissionAcknowledgements(CancellationToken ct)
+    {
+        var vendorProfileId = await ResolveVendorProfileIdAsync();
+        var result = await _acknowledgementService.GetHistoryAsync(vendorProfileId, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("commission-invoices")]
+    public async Task<IActionResult> GetInvoices(CancellationToken ct)
+    {
+        var vendorProfileId = await ResolveVendorProfileIdAsync();
+        var invoices = await _invoiceService.GetForVendorAsync(vendorProfileId, ct);
+        return Ok(invoices);
     }
 
     [HttpGet("ledger")]

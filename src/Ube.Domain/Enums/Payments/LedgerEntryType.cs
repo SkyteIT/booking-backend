@@ -8,5 +8,6 @@ public enum LedgerEntryType
     Refund = 4,
     AdvancePayout = 5,
     Settlement = 6,
-    Clawback = 7
+    Clawback = 7,
+    InvoicePayment = 8
 }

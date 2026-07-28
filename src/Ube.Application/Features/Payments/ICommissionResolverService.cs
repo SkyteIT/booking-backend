@@ -1,6 +1,6 @@
 namespace Ube.Application.Features.Payments;
 
-public record CommissionResolution(decimal CommissionPercent, string Source);
+public record CommissionResolution(decimal CommissionPercent, string Source, Guid? OverrideId = null);
 
 // Resolves the commission percent a payment should use, in the documented
 // precedence order: vendor-specific override -> loyalty tier -> category

@@ -28,6 +28,9 @@ public class VendorCommissionRepository : IVendorCommissionRepository
         return candidates.FirstOrDefault();
     }
 
+    public async Task<VendorCommissionOverride?> GetOverrideByIdAsync(Guid id, CancellationToken ct = default)
+        => await _db.VendorCommissionOverrides.FirstOrDefaultAsync(x => x.Id == id, ct);
+
     public async Task<IReadOnlyList<VendorCommissionOverride>> GetAllForVendorAsync(Guid vendorProfileId, CancellationToken ct = default)
         => await _db.VendorCommissionOverrides
             .Where(x => x.VendorProfileId == vendorProfileId)
@@ -51,6 +54,31 @@ public class VendorCommissionRepository : IVendorCommissionRepository
             .OrderByDescending(x => x.MonthsActive)
             .ToListAsync(ct);
 
+    public async Task<LoyaltyDiscountTier?> GetLoyaltyTierByIdAsync(Guid id, CancellationToken ct = default)
+        => await _db.LoyaltyDiscountTiers.FirstOrDefaultAsync(x => x.Id == id, ct);
+
+    public async Task AddLoyaltyTierAsync(LoyaltyDiscountTier tier, CancellationToken ct = default)
+    {
+        await _db.LoyaltyDiscountTiers.AddAsync(tier, ct);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateLoyaltyTierAsync(LoyaltyDiscountTier tier, CancellationToken ct = default)
+    {
+        _db.LoyaltyDiscountTiers.Update(tier);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteLoyaltyTierAsync(Guid id, CancellationToken ct = default)
+    {
+        var tier = await _db.LoyaltyDiscountTiers.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (tier != null)
+        {
+            _db.LoyaltyDiscountTiers.Remove(tier);
+            await _db.SaveChangesAsync(ct);
+        }
+    }
+
     public async Task AddAcknowledgementAsync(VendorCommissionAcknowledgement acknowledgement, CancellationToken ct = default)
     {
         await _db.VendorCommissionAcknowledgements.AddAsync(acknowledgement, ct);
@@ -62,4 +90,10 @@ public class VendorCommissionRepository : IVendorCommissionRepository
             .Where(x => x.VendorProfileId == vendorProfileId)
             .OrderByDescending(x => x.AcknowledgedAt)
             .FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<VendorCommissionAcknowledgement>> GetAllAcknowledgementsForVendorAsync(Guid vendorProfileId, CancellationToken ct = default)
+        => await _db.VendorCommissionAcknowledgements
+            .Where(x => x.VendorProfileId == vendorProfileId)
+            .OrderByDescending(x => x.AcknowledgedAt)
+            .ToListAsync(ct);
 }

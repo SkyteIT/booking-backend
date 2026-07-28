@@ -11,11 +11,19 @@ namespace Ube.Api.Controllers.Payments;
 public class PaymentsController : ControllerBase
 {
     private readonly IPaymentService _paymentService;
+    private readonly IVendorAdvanceService _advanceService;
+    private readonly IPaymentReconciliationService _reconciliationService;
     private readonly ICurrentUserService _currentUser;
 
-    public PaymentsController(IPaymentService paymentService, ICurrentUserService currentUser)
+    public PaymentsController(
+        IPaymentService paymentService,
+        IVendorAdvanceService advanceService,
+        IPaymentReconciliationService reconciliationService,
+        ICurrentUserService currentUser)
     {
         _paymentService = paymentService;
+        _advanceService = advanceService;
+        _reconciliationService = reconciliationService;
         _currentUser = currentUser;
     }
 
@@ -32,6 +40,22 @@ public class PaymentsController : ControllerBase
     {
         var isAdmin = User.IsInRole("Admin");
         var result = await _paymentService.GetAsync(id, _currentUser.UserId, isAdmin, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("advance")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> IssueAdvance(IssueVendorAdvanceRequest request, CancellationToken ct)
+    {
+        var result = await _advanceService.IssueAdvanceAsync(_currentUser.UserId, request, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("reconcile")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Reconcile([FromQuery] DateTime periodStart, [FromQuery] DateTime periodEnd, CancellationToken ct)
+    {
+        var result = await _reconciliationService.ReconcileAsync(_currentUser.UserId, periodStart, periodEnd, ct);
         return Ok(result);
     }
 }

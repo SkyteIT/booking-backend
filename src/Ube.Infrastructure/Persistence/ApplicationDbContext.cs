@@ -59,6 +59,9 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<VendorCommissionOverride> VendorCommissionOverrides { get; set; } = default!;
     public DbSet<VendorCommissionAcknowledgement> VendorCommissionAcknowledgements { get; set; } = default!;
     public DbSet<LoyaltyDiscountTier> LoyaltyDiscountTiers { get; set; } = default!;
+    public DbSet<VendorCommissionInvoice> VendorCommissionInvoices { get; set; } = default!;
+    public DbSet<PayoutExportRun> PayoutExportRuns { get; set; } = default!;
+    public DbSet<PayoutExportSettings> PayoutExportSettingsRows { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

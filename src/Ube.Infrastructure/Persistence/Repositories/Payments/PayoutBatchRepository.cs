@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Payments;
 
 namespace Ube.Infrastructure.Persistence.Repositories.Payments;
 
@@ -17,6 +18,15 @@ public class PayoutBatchRepository : IPayoutBatchRepository
         => await _db.PayoutBatches
             .Where(x => x.VendorProfileId == vendorProfileId)
             .OrderByDescending(x => x.PeriodEnd)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<PayoutBatch>> GetByIdsAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
+        => await _db.PayoutBatches.Where(x => ids.Contains(x.Id)).ToListAsync(ct);
+
+    public async Task<IReadOnlyList<PayoutBatch>> GetAllPendingAsync(CancellationToken ct = default)
+        => await _db.PayoutBatches
+            .Where(x => x.Status == PayoutBatchStatus.Pending)
+            .OrderBy(x => x.PeriodEnd)
             .ToListAsync(ct);
 
     public async Task AddAsync(PayoutBatch batch, CancellationToken ct = default)

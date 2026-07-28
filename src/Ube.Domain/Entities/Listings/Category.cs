@@ -26,6 +26,16 @@ public class Category
     public decimal? PlatformServiceFee { get; set; }
     public bool TaxApplicable { get; set; }
 
+    // Refund policy (SRS 7.4) - time-based tiers relative to booking start
+    public int FullRefundDaysBefore { get; set; }
+    public int PartialRefundDaysBefore { get; set; }
+    public decimal PartialRefundPercent { get; set; }
+    public decimal? RefundAutoApprovalThreshold { get; set; }
+
+    // Vendor advances
+    public bool AllowsVendorAdvance { get; set; }
+    public decimal? AdvancePercent { get; set; }
+
     // Display
     public string? Icon { get; set; }
     public string? BannerImageUrl { get; set; }

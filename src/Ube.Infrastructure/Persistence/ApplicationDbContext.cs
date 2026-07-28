@@ -6,6 +6,7 @@ using Ube.Domain.Entities.Carts;
 using Ube.Domain.Entities.Content;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Notifications;
+using Ube.Domain.Entities.Payments;
 using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
@@ -48,6 +49,16 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     // ================= CUSTOM FIELDS =================
     public DbSet<CategoryCustomField> CategoryCustomFields { get; set; } = default!;
     public DbSet<ListingCustomFieldValue> ListingCustomFieldValues { get; set; } = default!;
+
+    // ================= PAYMENTS =================
+    public DbSet<Payment> Payments { get; set; } = default!;
+    public DbSet<Refund> Refunds { get; set; } = default!;
+    public DbSet<LedgerEntry> LedgerEntries { get; set; } = default!;
+    public DbSet<PayoutBatch> PayoutBatches { get; set; } = default!;
+    public DbSet<PaymentAuditLogEntry> PaymentAuditLogEntries { get; set; } = default!;
+    public DbSet<VendorCommissionOverride> VendorCommissionOverrides { get; set; } = default!;
+    public DbSet<VendorCommissionAcknowledgement> VendorCommissionAcknowledgements { get; set; } = default!;
+    public DbSet<LoyaltyDiscountTier> LoyaltyDiscountTiers { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

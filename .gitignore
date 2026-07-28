@@ -75,3 +75,4 @@ appsettings.Development.json
 appsettings.*.Local.json
 **/appsettings.Development.json
 secrets.json
+docs

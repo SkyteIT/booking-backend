@@ -49,6 +49,9 @@ using Ube.Application.Features.Cart;
 using Ube.Infrastructure.Persistence.Repositories.Cart;
 using Ube.Application.Features.Admin.Dashboard;
 using Ube.Infrastructure.Persistence.Repositories.Admin;
+using Ube.Application.Features.Payments;
+using Ube.Infrastructure.Persistence.Repositories.Payments;
+using Ube.Infrastructure.Integrations.PaymentGateway;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -138,6 +141,18 @@ builder.Services.AddScoped<ICartService, CartService>();
 // Admin dashboard
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IRefundRepository, RefundRepository>();
+builder.Services.AddScoped<ILedgerRepository, LedgerRepository>();
+builder.Services.AddScoped<IPayoutBatchRepository, PayoutBatchRepository>();
+builder.Services.AddScoped<IVendorCommissionRepository, VendorCommissionRepository>();
+builder.Services.AddScoped<IPaymentAuditLogRepository, PaymentAuditLogRepository>();
+builder.Services.AddScoped<ICommissionResolverService, CommissionResolverService>();
+builder.Services.AddScoped<IPaymentGatewayClient, MockPaymentGatewayClient>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IRefundService, RefundService>();
+builder.Services.AddScoped<IPayoutBatchService, PayoutBatchService>();
 
 builder.Services.AddRateLimiter(options =>
 {

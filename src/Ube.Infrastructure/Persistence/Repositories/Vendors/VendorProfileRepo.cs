@@ -18,6 +18,13 @@ public class VendorProfileRepository : IVendorProfileRepository
         .AsNoTracking()
         .FirstOrDefaultAsync(v => v.UserId == userId);
     }
+    // Method to get vendor profile by its own ID
+    public async Task<VendorProfile?> GetByIdAsync(Guid vendorProfileId)
+    {
+        return await _db.VendorProfiles
+        .AsNoTracking()
+        .FirstOrDefaultAsync(v => v.Id == vendorProfileId);
+    }
     // Method to update vendor profile
     public async Task UpdateAsync(VendorProfile profile)
     {

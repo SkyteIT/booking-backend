@@ -6,7 +6,7 @@ using Ube.Application.Features.Payments;
 namespace Ube.Api.Controllers.Payments;
 
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Finance")]
 [Route("api/vendor-invoices")]
 public class VendorInvoicesController : ControllerBase
 {

@@ -16,6 +16,7 @@ public class VendorLedgerController : ControllerBase
     private readonly IPayoutBatchService _payoutBatchService;
     private readonly IVendorInvoiceService _invoiceService;
     private readonly IVendorCommissionAcknowledgementService _acknowledgementService;
+    private readonly IPaymentDisputeService _disputeService;
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly ICurrentUserService _currentUser;
 
@@ -24,6 +25,7 @@ public class VendorLedgerController : ControllerBase
         IPayoutBatchService payoutBatchService,
         IVendorInvoiceService invoiceService,
         IVendorCommissionAcknowledgementService acknowledgementService,
+        IPaymentDisputeService disputeService,
         IVendorProfileRepository vendorRepo,
         ICurrentUserService currentUser)
     {
@@ -31,8 +33,17 @@ public class VendorLedgerController : ControllerBase
         _payoutBatchService = payoutBatchService;
         _invoiceService = invoiceService;
         _acknowledgementService = acknowledgementService;
+        _disputeService = disputeService;
         _vendorRepo = vendorRepo;
         _currentUser = currentUser;
+    }
+
+    [HttpGet("disputes")]
+    public async Task<IActionResult> GetDisputes(CancellationToken ct)
+    {
+        var vendorProfileId = await ResolveVendorProfileIdAsync();
+        var result = await _disputeService.GetForVendorAsync(vendorProfileId, ct);
+        return Ok(result);
     }
 
     [HttpPost("commission-acknowledgement")]

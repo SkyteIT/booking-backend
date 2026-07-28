@@ -2,10 +2,7 @@ using Ube.Application.Features.Payments;
 
 namespace Ube.Infrastructure.Integrations.PaymentGateway;
 
-// Dev/testing only. Simulates a successful gateway synchronously so the
-// rest of the Payments domain can be built and tested before the real
-// gateway (supplied by a separate team) exists. Swapping it out later is a
-// one-line DI change in Program.cs.
+// Dev/testing only. 
 public class MockPaymentGatewayClient : IPaymentGatewayClient
 {
     public Task<GatewayChargeResult> InitiateChargeAsync(decimal amount, string currency, string idempotencyKey, string reference, CancellationToken ct = default)

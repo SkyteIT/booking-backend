@@ -102,7 +102,7 @@ public class AvailabilityServiceTests
             )
         );
 
-        Assert.Contains("already has a booking", exception.Message);
+        Assert.Contains("already booked", exception.Message);
     }
 
     [Fact]

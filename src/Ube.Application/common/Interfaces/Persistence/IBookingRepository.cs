@@ -14,6 +14,15 @@ public interface IBookingRepository
     Task<int> GetNextBookingSequenceAsync();
 
     Task <List<Booking>> GetBookingsByListingAndDateRangeAsync(Guid listingId , DateTime startDate , DateTime endDate);
+    Task AddAsync(Booking booking);
 
-    
+    Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(
+        Guid customerId,
+        BookingsRequest request);
+
+    Task<Booking?> GetCustomerBookingAsync(
+        Guid bookingId,
+        Guid customerId);
+    Task<Domain.Entities.Listings.Listing?> GetByListingIdAsync(Guid listingId);
+
 }

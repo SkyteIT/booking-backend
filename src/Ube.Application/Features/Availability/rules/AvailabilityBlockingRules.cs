@@ -20,7 +20,8 @@ public static class AvailabilityBlockingRules
 
         //Filter relevant bookings only
         var relevantBookings = bookings
-            .Where(b => b.Status == BookingStatus.Confirmed &&
+            .Where(b => b.Status != BookingStatus.Cancelled &&
+                        b.Status != BookingStatus.Rejected &&
                         b.StartDateTime.Date <= maxDate &&
                         b.EndDateTime.Date >= minDate)
             .ToList();

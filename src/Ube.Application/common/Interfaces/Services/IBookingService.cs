@@ -6,12 +6,34 @@ namespace Ube.Application.Common.Interfaces.Services;
 
 public interface IBookingService
 {
-    Task<BookingDetailDto> UpdateVendorBookingStatusAsync(Guid bookingId, Guid vendorId, BookingStatus newStatus);
-    Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request);
-    Task<BookingDetailDto> GetBookingDetailAsync(Guid bookingId, Guid vendorId);
+    // Vendor
+    Task<BookingDetailDto> UpdateVendorBookingStatusAsync(
+        Guid bookingId,
+        Guid vendorId,
+        BookingStatus newStatus);
+
+    Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(
+        Guid vendorId,
+        BookingsRequest request);
+
+    Task<BookingDetailDto> GetBookingDetailAsync(
+        Guid bookingId,
+        Guid vendorId);
+
+    // Customer
+    Task<BookingDetailDto> CreateBookingAsync(
+        Guid customerId,
+        CreateBookingRequest request);
+
+    Task<PagedResult<CustomerBookingDto>> GetCustomerBookingsAsync(
+        Guid customerId,
+        BookingsRequest request);
+
+    Task<BookingDetailDto> GetCustomerBookingDetailAsync(
+        Guid bookingId,
+        Guid customerId);
+
+    Task<BookingDetailDto> CancelCustomerBookingAsync(
+        Guid bookingId,
+        Guid customerId);
 }
-
-
-/// var nextValue = await _bookingRepository.GetNextBookingSequenceAsync();
-/// var bookingNumber = $"BKG-{nextValue:D6}";
-

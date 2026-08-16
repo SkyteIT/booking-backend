@@ -36,4 +36,14 @@ public class ReviewsController : ControllerBase
         var result = await _service.GetRatingAsync(vendorId);
         return Ok(result);
     }
+
+    // get reviews for a single listing with pagination and optional rating filter
+    [HttpGet("listings/{listingId}/reviews")]
+    public async Task<IActionResult> GetByListing(
+        Guid listingId,
+        [FromQuery] ReviewRequest options)
+    {
+        var result = await _service.GetReviewsByListingAsync(listingId, options);
+        return Ok(result);
+    }
 }

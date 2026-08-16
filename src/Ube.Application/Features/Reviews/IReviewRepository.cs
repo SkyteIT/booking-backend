@@ -1,7 +1,7 @@
 using Ube.Domain.Entities.Reviews;
 using Ube.Application.Common.Models;
 
-namespace Ube.Application.Common.Interfaces.Persistence;
+namespace Ube.Application.Features.Reviews;
 
 public interface IReviewRepository
 {
@@ -13,9 +13,22 @@ public interface IReviewRepository
         Guid vendorId,
         QueryOptions options
     );
+    Task<(List<Review> Items, int TotalCount)> GetPagedByListingAsync(
+        Guid listingId,
+        QueryOptions options
+    );
+    Task<(List<Review> Items, int TotalCount)> GetPagedByCustomerAsync(
+        Guid customerId,
+        QueryOptions options
+    );
     Task<(double AverageRating, int TotalCount)> GetRatingAsync(Guid vendorId);
+    Task<(List<Review> Items, int TotalCount)> GetPagedForModerationAsync(
+        bool? isHidden,
+        QueryOptions options
+    );
 
     Task<Review?> GetByIdAsync(Guid id);
     Task UpdateAsync(Review review);
     Task DeleteAsync(Review review);
+    Task SaveChangesAsync();
 }

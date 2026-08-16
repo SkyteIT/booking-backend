@@ -25,4 +25,9 @@ public class Review
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+
+    public bool IsHidden { get; set; }
+    public DateTime? HiddenAt { get; set; }
+    public Guid? HiddenByUserId { get; set; }
+    public string? HideReason { get; set; }
 }

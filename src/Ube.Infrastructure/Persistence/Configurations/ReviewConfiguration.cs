@@ -20,12 +20,20 @@ public class ReviewConfiguration : IEntityTypeConfiguration<Review>
                 .IsRequired()
                 .HasMaxLength(1000);
 
+        // moderation
+        builder.Property(x => x.IsHidden)
+                .IsRequired()
+                .HasDefaultValue(false);
+        builder.Property(x => x.HideReason)
+                .HasMaxLength(500);
+
         // indexes
         builder.HasIndex(x => x.BookingId)
                 .IsUnique();
         builder.HasIndex(x => x.ListingId);
         builder.HasIndex(x => x.CustomerId);
         builder.HasIndex(x => x.VendorId);
+        builder.HasIndex(x => x.IsHidden);
 
         builder.HasIndex(x => new { x.VendorId, x.CreatedAt });
         // relationships

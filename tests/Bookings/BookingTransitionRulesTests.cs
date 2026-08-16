@@ -85,4 +85,32 @@ public class BookingTransitionRulesTests
     {
         Assert.False(BookingTransitionRules.CanSystemTransition(from, to));
     }
+
+    // --- CanAdminTransition ---
+    // Admin gets every structurally-valid transition (the union of what
+    // vendor/customer/system can each do individually), never a raw
+    // any-status-to-any-status jump.
+
+    [Theory]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Rejected)]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Confirmed, BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Confirmed, BookingStatus.Completed)]
+    public void CanAdminTransition_Returns_True_For_Valid_Transitions(BookingStatus from, BookingStatus to)
+    {
+        Assert.True(BookingTransitionRules.CanAdminTransition(from, to));
+    }
+
+    [Theory]
+    [InlineData(BookingStatus.Rejected,  BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Cancelled, BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Completed, BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Completed, BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Completed, BookingStatus.Pending)]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Completed)]
+    public void CanAdminTransition_Returns_False_For_Invalid_Jumps(BookingStatus from, BookingStatus to)
+    {
+        Assert.False(BookingTransitionRules.CanAdminTransition(from, to));
+    }
 }

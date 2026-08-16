@@ -1,4 +1,6 @@
+using System.Text;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Features.Bookings;
 using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Bookings;
 
@@ -92,15 +94,24 @@ public class AdminService : IAdminService
         var booking = await _adminRepository.GetBookingByIdAsync(bookingId)
             ?? throw new NotFoundException($"Booking {bookingId} not found.");
 
-        booking.Status = status.ToLower() switch
+        var newStatus = status.ToLower() switch
         {
             "confirmed"  => BookingStatus.Confirmed,
+            "rejected"   => BookingStatus.Rejected,
             "cancelled"  => BookingStatus.Cancelled,
             "completed"  => BookingStatus.Completed,
             "pending"    => BookingStatus.Pending,
             _ => throw new BusinessRuleException($"Invalid status: {status}")
         };
 
+        // Routed through the same state machine every other role uses - an
+        // admin has broader transitions available than vendor/customer, but
+        // can't jump a booking to any status regardless of its current one.
+        var transitionRule = BookingValidationRules.CanAdminSetStatus(booking, newStatus);
+        if (!transitionRule.IsSuccess)
+            throw new BusinessRuleException(transitionRule.ErrorMessage);
+
+        booking.Status = newStatus;
         booking.UpdatedAt = DateTime.UtcNow;
 
         await _adminRepository.UpdateBookingAsync(booking);

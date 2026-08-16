@@ -52,10 +52,23 @@ using Ube.Infrastructure.Persistence.Repositories.Admin;
 using Ube.Application.Features.Payments;
 using Ube.Infrastructure.Persistence.Repositories.Payments;
 using Ube.Infrastructure.Integrations.PaymentGateway;
+using Azure.Identity;
+using Azure.Extensions.AspNetCore.Configuration.Secrets;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
+// Azure Key Vault integration - URI comes from appsettings.{Environment}.json
+// (KeyVault:Uri) so each environment can point at its own vault without a code change.
+var keyVaultUriSetting = builder.Configuration["KeyVault:Uri"];
+if (!string.IsNullOrWhiteSpace(keyVaultUriSetting))
+{
+    var credential = new ClientSecretCredential(
+        builder.Configuration["Azure:TenantId"],
+        builder.Configuration["Azure:ClientId"],
+        builder.Configuration["Azure:ClientSecret"]
+    );
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUriSetting), credential);
+}
 // Add JWT Authentication
 builder.Services.AddJwtAuthentication(builder.Configuration);
 

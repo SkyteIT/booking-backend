@@ -61,4 +61,12 @@ public static class BookingTransitionRules
             _ => false
         };
     }
+    // Admin can perform any transition that's structurally valid in the state
+    // machine (unlike vendor/customer, not narrowed to a role-specific subset)
+    // - but still bounded by CanTransition, so an admin can't jump e.g.
+    // Rejected -> Confirmed or Completed -> Pending. Broad, not unchecked.
+    public static bool CanAdminTransition(BookingStatus currentStatus, BookingStatus newStatus)
+    {
+        return CanTransition(currentStatus, newStatus);
+    }
 }

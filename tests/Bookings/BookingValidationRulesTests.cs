@@ -228,4 +228,45 @@ public class BookingValidationRulesTests
 
         Assert.False(result.IsSuccess);
     }
+
+    // --- CanAdminSetStatus ---
+    // Regression coverage for the Admin status-override bypass fix:
+    // AdminService.UpdateBookingStatusAsync used to set booking.Status
+    // directly with zero rule checks, letting an admin jump any status to
+    // any other status (e.g. Rejected -> Confirmed).
+
+    [Theory]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Rejected)]
+    [InlineData(BookingStatus.Pending,   BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Confirmed, BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Confirmed, BookingStatus.Completed)]
+    public void CanAdminSetStatus_Succeeds_For_Valid_Transitions(BookingStatus from, BookingStatus to)
+    {
+        var booking = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), from);
+
+        var result = BookingValidationRules.CanAdminSetStatus(booking, to);
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public void CanAdminSetStatus_Fails_When_Jumping_Rejected_To_Confirmed()
+    {
+        var booking = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Rejected);
+
+        var result = BookingValidationRules.CanAdminSetStatus(booking, BookingStatus.Confirmed);
+
+        Assert.False(result.IsSuccess);
+    }
+
+    [Fact]
+    public void CanAdminSetStatus_Fails_When_Jumping_Completed_To_Pending()
+    {
+        var booking = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Completed);
+
+        var result = BookingValidationRules.CanAdminSetStatus(booking, BookingStatus.Pending);
+
+        Assert.False(result.IsSuccess);
+    }
 }

@@ -21,6 +21,14 @@ public class CustomerReviewsController : ControllerBase
         _currentUser = currentUser;
     }
 
+    // Get the current customer's own reviews - "My Reviews" page
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine([FromQuery] ReviewRequest options)
+    {
+        var result = await _service.GetMyReviewsAsync(_currentUser.UserId, options);
+        return Ok(result);
+    }
+
     //Create review
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateReviewDto dto)

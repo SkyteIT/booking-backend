@@ -47,6 +47,9 @@ public class ReviewService : IReviewService
             var ownerRule = ReviewRules.MustBeBookingOwner(booking.CustomerId, currentUserId);
             if (!ownerRule.IsSuccess)
                 throw new BusinessRuleException(ownerRule.ErrorMessage);
+            var ownBusinessRule = ReviewRules.PreventReviewOwnBusiness(booking.Listing.VendorProfile.UserId, currentUserId);
+            if (!ownBusinessRule.IsSuccess)
+                throw new BusinessRuleException(ownBusinessRule.ErrorMessage);
             var exists = await _reviewRepo.ExistsByBookingIdAsync(dto.BookingId);
             var duplicateRule = ReviewRules.CannotReviewTwice(exists);
             if (!duplicateRule.IsSuccess)
@@ -69,6 +72,7 @@ public class ReviewService : IReviewService
             await _reviewRepo.AddAsync(review);
 
             await _ratingHelper.UpdateListingRatingAsync(review.ListingId, null, review.Rating);
+            await _reviewRepo.SaveChangesAsync();
             await _unitOfWork.CommitAsync();
         }
         catch{
@@ -96,6 +100,52 @@ public class ReviewService : IReviewService
             TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
         };
     }
+    public async Task<PagedResult<ReviewDto>> GetReviewsByListingAsync(Guid listingId, ReviewRequest request)
+    {
+        var (app, totalItems) = await _reviewRepo.GetPagedByListingAsync(listingId, request);
+        var mapped = app.Select(r => new ReviewDto
+        {
+            Id = r.Id,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            CreatedAt = r.CreatedAt,
+            CustomerName = r.Customer.FirstName + " " + r.Customer.LastName
+        }).ToList();
+        return new PagedResult<ReviewDto>{
+            Items = mapped,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalItems,
+            TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
+        };
+    }
+
+    // A customer's own reviews - "My Reviews" page
+    public async Task<PagedResult<CustomerReviewDto>> GetMyReviewsAsync(Guid customerId, ReviewRequest request)
+    {
+        var (app, totalItems) = await _reviewRepo.GetPagedByCustomerAsync(customerId, request);
+        var mapped = app.Select(r => new CustomerReviewDto
+        {
+            Id = r.Id,
+            BookingId = r.BookingId,
+            ListingId = r.ListingId,
+            ListingTitle = r.Listing.Title,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            CreatedAt = r.CreatedAt,
+            UpdatedAt = r.UpdatedAt,
+            VendorReply = r.VendorReply,
+            VendorReplyAt = r.VendorReplyAt
+        }).ToList();
+        return new PagedResult<CustomerReviewDto>{
+            Items = mapped,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalItems,
+            TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
+        };
+    }
+
     // Get average rating and total count for a vendor
     public async Task<object> GetRatingAsync(Guid vendorId)
     {
@@ -109,32 +159,67 @@ public class ReviewService : IReviewService
     // Update review
     public async Task UpdateReviewAsync(CreateReviewDto dto, Guid currentUserId, Guid reviewId)
     {
-        var review = await _reviewRepo.GetByIdAsync(reviewId);
-        if (review == null)
-            throw new NotFoundException("Review not found");
-        if(review.CustomerId != currentUserId)
-            throw new BusinessRuleException("You can only update your own reviews");
-        var ratingRule = ReviewRules.ValidateRating(dto.Rating);
-        if (!ratingRule.IsSuccess)
-            throw new BusinessRuleException(ratingRule.ErrorMessage);
-        review.Rating = dto.Rating;
-        review.Comment = dto.Comment;
-        review.UpdatedAt = DateTime.UtcNow;
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var review = await _reviewRepo.GetByIdAsync(reviewId)
+                ?? throw new NotFoundException("Review not found");
 
-        await _reviewRepo.UpdateAsync(review);
+            var booking = await _bookingRepo.GetByIdAsync(review.BookingId)
+                ?? throw new NotFoundException("Booking not found");
+
+            if (booking.CustomerId != currentUserId)
+                throw new BusinessRuleException("You can only update your own reviews");
+
+            var completedRule = ReviewRules.MustBeCompleted(booking.Status);
+            if (!completedRule.IsSuccess)
+                throw new BusinessRuleException(completedRule.ErrorMessage);
+
+            var ratingRule = ReviewRules.ValidateRating(dto.Rating);
+            if (!ratingRule.IsSuccess)
+                throw new BusinessRuleException(ratingRule.ErrorMessage);
+
+            var oldRating = review.Rating;
+            review.Rating = dto.Rating;
+            review.Comment = dto.Comment;
+            review.UpdatedAt = DateTime.UtcNow;
+
+            await _ratingHelper.UpdateListingRatingAsync(review.ListingId, oldRating, review.Rating);
+            await _reviewRepo.UpdateAsync(review);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task DeleteReviewAsync(Guid reviewId, Guid userId)
     {
-        var review = await _reviewRepo.GetByIdAsync(reviewId);
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var review = await _reviewRepo.GetByIdAsync(reviewId)
+                ?? throw new NotFoundException("Review not found");
 
-        if (review == null)
-            throw new NotFoundException("Review not found");
+            var booking = await _bookingRepo.GetByIdAsync(review.BookingId)
+                ?? throw new NotFoundException("Booking not found");
 
-        if (review.CustomerId != userId)
-            throw new ForbiddenException("You can only delete your own review");
+            if (booking.CustomerId != userId)
+                throw new ForbiddenException("You can only delete your own review");
 
-        await _reviewRepo.DeleteAsync(review);
+            await _ratingHelper.UpdateListingRatingAsync(review.ListingId, review.Rating, null);
+            await _reviewRepo.DeleteAsync(review);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
     }
     public async Task AddVendorReplyAsync(Guid reviewId, VendorReplyDto dto, Guid vendorUserId)
     {
@@ -152,5 +237,89 @@ public class ReviewService : IReviewService
 
         await _reviewRepo.UpdateAsync(review);
     }
-    
+
+    // Admin moderation queue - includes hidden reviews, optionally filtered by hidden status
+    public async Task<PagedResult<AdminReviewDto>> GetReviewsForModerationAsync(bool? isHidden, ReviewRequest request)
+    {
+        var (app, totalItems) = await _reviewRepo.GetPagedForModerationAsync(isHidden, request);
+        var mapped = app.Select(r => new AdminReviewDto
+        {
+            Id = r.Id,
+            ListingId = r.ListingId,
+            VendorId = r.VendorId,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            CreatedAt = r.CreatedAt,
+            CustomerName = r.Customer.FirstName + " " + r.Customer.LastName,
+            IsHidden = r.IsHidden,
+            HiddenAt = r.HiddenAt,
+            HideReason = r.HideReason
+        }).ToList();
+        return new PagedResult<AdminReviewDto>{
+            Items = mapped,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalItems,
+            TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
+        };
+    }
+
+    // Hide a review from public view; a hidden review no longer counts toward the listing's rating.
+    public async Task HideReviewAsync(Guid reviewId, Guid adminUserId, string reason)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var review = await _reviewRepo.GetByIdAsync(reviewId)
+                ?? throw new NotFoundException("Review not found");
+
+            if (review.IsHidden)
+                throw new BusinessRuleException("Review is already hidden");
+
+            review.IsHidden = true;
+            review.HiddenAt = DateTime.UtcNow;
+            review.HiddenByUserId = adminUserId;
+            review.HideReason = reason;
+
+            // A hidden review's rating no longer counts toward the listing's aggregate.
+            await _ratingHelper.UpdateListingRatingAsync(review.ListingId, review.Rating, null);
+            await _reviewRepo.UpdateAsync(review);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+    }
+
+    // Restore a hidden review; its rating counts toward the listing's aggregate again.
+    public async Task UnhideReviewAsync(Guid reviewId, Guid adminUserId)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var review = await _reviewRepo.GetByIdAsync(reviewId)
+                ?? throw new NotFoundException("Review not found");
+
+            if (!review.IsHidden)
+                throw new BusinessRuleException("Review is not hidden");
+
+            review.IsHidden = false;
+            review.HiddenAt = null;
+            review.HiddenByUserId = null;
+            review.HideReason = null;
+
+            await _ratingHelper.UpdateListingRatingAsync(review.ListingId, null, review.Rating);
+            await _reviewRepo.UpdateAsync(review);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+    }
 }

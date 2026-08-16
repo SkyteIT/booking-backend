@@ -74,4 +74,14 @@ public static class BookingValidationRules
         else
             return Result.Failure("Cannot complete booking.");
     }
+
+    // this part for admin side validation - broader than vendor/customer,
+    // but still routed through the same state machine, never a raw assignment.
+    public static Result CanAdminSetStatus(Booking booking, BookingStatus newStatus)
+    {
+        if (BookingTransitionRules.CanAdminTransition(booking.Status, newStatus))
+            return Result.Success();
+        else
+            return Result.Failure($"Cannot change booking status from {booking.Status} to {newStatus}.");
+    }
 }

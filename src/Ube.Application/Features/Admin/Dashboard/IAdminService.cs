@@ -17,4 +17,5 @@ public interface IAdminService
     Task<List<AdminBookingDto>> GetAllBookingsAsync();
     Task<AdminBookingDto?> GetBookingByIdAsync(Guid bookingId);
     Task<AdminBookingDto> UpdateBookingStatusAsync(Guid bookingId, string status);
+    Task<byte[]> ExportBookingsCsvAsync();
 }

@@ -1,2 +1,0 @@
- Stop-Process -Name dotnet -Force --> to stop unknow turminalls
- 

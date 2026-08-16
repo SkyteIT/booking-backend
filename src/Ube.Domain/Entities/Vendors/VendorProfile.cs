@@ -1,3 +1,5 @@
+using Ube.Domain.Entities.Users;
+
 namespace Ube.Domain.Entities.Vendors;
 
 public class VendorProfile
@@ -28,4 +30,7 @@ public class VendorProfile
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    // Navigation Property
+    public User User { get; set; }
 }

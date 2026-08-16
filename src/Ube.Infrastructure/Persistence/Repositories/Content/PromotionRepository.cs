@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Ube.Application.Features.Content;
+using Ube.Application.Features.Content.Promotion;
 using Ube.Domain.Entities.Content;
 
 namespace Ube.Infrastructure.Persistence.Repositories.Content;

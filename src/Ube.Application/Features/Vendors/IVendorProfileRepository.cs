@@ -5,6 +5,7 @@ namespace Ube.Application.Features.Vendors;
 public interface IVendorProfileRepository
 {
     Task<VendorProfile?> GetVendorIdAsync(Guid userId);
+    Task<VendorProfile?> GetByIdAsync(Guid vendorProfileId);
     Task UpdateAsync(VendorProfile profile);
     Task AddAsync(VendorProfile profile);
 }

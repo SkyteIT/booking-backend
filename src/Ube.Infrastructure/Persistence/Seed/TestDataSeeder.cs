@@ -25,11 +25,31 @@ public static class TestDataSeeder
 
     public static readonly Guid CategoryId = Guid.Parse("dddddddd-0000-0000-0000-dddddddddddd");
 
+    // One category per ListingType so search/filter/category-tile UI has a real
+    // spread of data to work against, not just the one Photography vendor.
+    public static readonly Guid CategoryHotelId = Guid.Parse("10000000-0000-0000-0000-000000000001");
+    public static readonly Guid CategoryRestaurantId = Guid.Parse("10000000-0000-0000-0000-000000000002");
+    public static readonly Guid CategoryEventId = Guid.Parse("10000000-0000-0000-0000-000000000003");
+    public static readonly Guid CategoryCarRentalId = Guid.Parse("10000000-0000-0000-0000-000000000004");
+    public static readonly Guid CategoryActivityId = Guid.Parse("10000000-0000-0000-0000-000000000005");
+
     public static readonly Guid Listing1Id = Guid.Parse("eeeeeeee-0000-0000-0000-eeeeeeeeeeee");
     public static readonly Guid Listing2Id = Guid.Parse("eeeeeeee-1111-1111-1111-eeeeeeeeeeee");
     public static readonly Guid Listing3Id = Guid.Parse("eeeeeeee-2222-2222-2222-eeeeeeeeeeee");
     public static readonly Guid Listing4Id = Guid.Parse("eeeeeeee-3333-3333-3333-eeeeeeeeeeee");
     public static readonly Guid Listing5Id = Guid.Parse("eeeeeeee-4444-4444-4444-eeeeeeeeeeee");
+
+    // 2 listings per new type-scoped category (see CategoryHotelId etc. above).
+    public static readonly Guid ListingHotel1Id = Guid.Parse("20000000-0000-0000-0000-000000000001");
+    public static readonly Guid ListingHotel2Id = Guid.Parse("20000000-0000-0000-0000-000000000002");
+    public static readonly Guid ListingRestaurant1Id = Guid.Parse("20000000-0000-0000-0000-000000000003");
+    public static readonly Guid ListingRestaurant2Id = Guid.Parse("20000000-0000-0000-0000-000000000004");
+    public static readonly Guid ListingEvent1Id = Guid.Parse("20000000-0000-0000-0000-000000000005");
+    public static readonly Guid ListingEvent2Id = Guid.Parse("20000000-0000-0000-0000-000000000006");
+    public static readonly Guid ListingCarRental1Id = Guid.Parse("20000000-0000-0000-0000-000000000007");
+    public static readonly Guid ListingCarRental2Id = Guid.Parse("20000000-0000-0000-0000-000000000008");
+    public static readonly Guid ListingActivity1Id = Guid.Parse("20000000-0000-0000-0000-000000000009");
+    public static readonly Guid ListingActivity2Id = Guid.Parse("20000000-0000-0000-0000-00000000000a");
 
     public static readonly Guid VendorPayoutId = Guid.Parse("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb");
 
@@ -100,7 +120,15 @@ public static class TestDataSeeder
         UpsertVendorProfile(dbContext, VendorProfileId, VendorUserId, "Main Vendor Studio", "Photography", "Simple seeded vendor profile.", "+94770000001", now, cancellationToken);
         // Add vendor payout defaults
         UpsertVendorPayout(dbContext, VendorPayoutId, VendorProfileId, "Seed Bank", "000123456789", "Main Vendor", "Colombo Branch", now, cancellationToken);
-        UpsertCategory(dbContext, CategoryId, "Photography", "Seed category for all listings.", now, cancellationToken);
+        // "Photography" doesn't map cleanly onto any fixed ListingType, but of the
+        // 5 it's closest to a bookable Activity, so that's what its listings use.
+        UpsertCategory(dbContext, CategoryId, "Photography", "Seed category for all listings.", ListingType.Activity, now, cancellationToken);
+
+        UpsertCategory(dbContext, CategoryHotelId, "Hotels & Resorts", "Stays across hotels, apartments, and resorts.", ListingType.Hotel, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryRestaurantId, "Restaurants & Dining", "Table reservations at restaurants and cafes.", ListingType.Restaurant, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryEventId, "Events & Tickets", "Concerts, sports, and theater tickets.", ListingType.Event, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryCarRentalId, "Car Rentals", "Self-drive and chauffeur car rentals.", ListingType.CarRental, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryActivityId, "Activities & Tours", "Tours, experiences, and bookable activities.", ListingType.Activity, now, cancellationToken);
 
         UpsertVendorApplication(
             dbContext,
@@ -198,7 +226,28 @@ public static class TestDataSeeder
 
         foreach (var listing in listings)
         {
-            UpsertListing(dbContext, listing.Id, VendorProfileId, CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, now, cancellationToken);
+            UpsertListing(dbContext, listing.Id, VendorProfileId, CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, ListingType.Activity, now, cancellationToken);
+        }
+
+        // 2 listings per type-scoped category so search/filter/category tiles have
+        // real spread across all 5 listing types, not just the photography vendor.
+        var typeScopedListings = new[]
+        {
+            new { Id = ListingHotel1Id, CategoryId = CategoryHotelId, Type = ListingType.Hotel, Title = "Seaside Resort Room", Price = 32000m, Location = "Galle", Description = "Ocean-view double room with breakfast included." },
+            new { Id = ListingHotel2Id, CategoryId = CategoryHotelId, Type = ListingType.Hotel, Title = "City Center Apartment", Price = 19000m, Location = "Colombo", Description = "Self-catered 1-bedroom apartment near the city center." },
+            new { Id = ListingRestaurant1Id, CategoryId = CategoryRestaurantId, Type = ListingType.Restaurant, Title = "Table at Spice Garden", Price = 6000m, Location = "Colombo", Description = "Table for two at a popular Sri Lankan fine-dining restaurant." },
+            new { Id = ListingRestaurant2Id, CategoryId = CategoryRestaurantId, Type = ListingType.Restaurant, Title = "Rooftop Grill Reservation", Price = 8500m, Location = "Kandy", Description = "Rooftop grill and bar table reservation." },
+            new { Id = ListingEvent1Id, CategoryId = CategoryEventId, Type = ListingType.Event, Title = "Colombo Music Festival", Price = 5000m, Location = "Colombo", Description = "General admission ticket to the annual music festival." },
+            new { Id = ListingEvent2Id, CategoryId = CategoryEventId, Type = ListingType.Event, Title = "Theater Night: The Play", Price = 3500m, Location = "Kandy", Description = "Ticket to an evening theater performance." },
+            new { Id = ListingCarRental1Id, CategoryId = CategoryCarRentalId, Type = ListingType.CarRental, Title = "Compact Car Rental", Price = 9000m, Location = "Colombo", Description = "Self-drive compact car, daily rental." },
+            new { Id = ListingCarRental2Id, CategoryId = CategoryCarRentalId, Type = ListingType.CarRental, Title = "SUV with Driver", Price = 16000m, Location = "Negombo", Description = "Chauffeur-driven SUV, daily rental." },
+            new { Id = ListingActivity1Id, CategoryId = CategoryActivityId, Type = ListingType.Activity, Title = "Sigiriya Day Tour", Price = 14000m, Location = "Sigiriya", Description = "Full-day guided tour of Sigiriya rock fortress." },
+            new { Id = ListingActivity2Id, CategoryId = CategoryActivityId, Type = ListingType.Activity, Title = "Whitewater Rafting", Price = 11000m, Location = "Kitulgala", Description = "Half-day guided whitewater rafting experience." },
+        };
+
+        foreach (var listing in typeScopedListings)
+        {
+            UpsertListing(dbContext, listing.Id, VendorProfileId, listing.CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, listing.Type, now, cancellationToken);
         }
 
         var customerIds = new[] { Customer1Id, Customer2Id, Customer3Id };
@@ -397,6 +446,7 @@ public static class TestDataSeeder
         Guid categoryId,
         string name,
         string description,
+        ListingType type,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -408,6 +458,7 @@ public static class TestDataSeeder
                 Id = categoryId,
                 Name = name,
                 Description = description,
+                Type = type,
                 Status = Ube.Domain.Enums.RecordStatus.Active,
                 CreatedAt = now
             });
@@ -416,6 +467,7 @@ public static class TestDataSeeder
 
         category.Name = name;
         category.Description = description;
+        category.Type = type;
         category.Status = Ube.Domain.Enums.RecordStatus.Active;
         dbContext.Categories.Update(category);
     }
@@ -429,6 +481,7 @@ public static class TestDataSeeder
         string description,
         decimal price,
         string location,
+        ListingType type,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -446,6 +499,7 @@ public static class TestDataSeeder
                 Currency = "LKR",
                 Location = location,
                 IsActive = true,
+                Type = type,
                 AvailabilityType = AvailabilityType.Capacity,
                 Capacity = 1,
                 CreatedAt = now
@@ -461,6 +515,7 @@ public static class TestDataSeeder
         listing.Currency = "LKR";
         listing.Location = location;
         listing.IsActive = true;
+        listing.Type = type;
         listing.AvailabilityType = AvailabilityType.Capacity;
         listing.Capacity = 1;
         listing.UpdatedAt = now;

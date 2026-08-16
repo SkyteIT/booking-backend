@@ -186,6 +186,22 @@ public class AuthService : IAuthService
         await _refreshTokenRepo.UpdateAsync(stored);
     }
 
+    public async Task<CurrentUserDto?> GetCurrentUserAsync(Guid userId)
+    {
+        var user = await _userRepo.GetByIdAsync(userId);
+        if (user == null) return null;
+
+        return new CurrentUserDto
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role.ToString(),
+            ProfileImageUrl = user.ProfileImageUrl
+        };
+    }
+
     // --- helpers ---
 
     private static string GenerateSecureToken()

@@ -1,5 +1,5 @@
+using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Enums.Users;
-
 
 namespace Ube.Domain.Entities.Users;
 
@@ -30,4 +30,6 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
+
+    public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

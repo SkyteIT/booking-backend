@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs.Category;
-using Ube.Application.Interfaces;
+using Ube.Application.Features.Content.Category;
 
 namespace Ube.Api.Controllers;
 
@@ -43,6 +43,7 @@ public class CategoryController : ControllerBase
     }
 
     // POST: api/categories
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create(
         [FromBody] CreateCategoryDto dto,
@@ -55,6 +56,7 @@ public class CategoryController : ControllerBase
     }
 
     // PUT: api/categories/{id}
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(
         Guid id,
@@ -66,6 +68,7 @@ public class CategoryController : ControllerBase
     }
 
     // DELETE: api/categories/{id}
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
@@ -74,6 +77,7 @@ public class CategoryController : ControllerBase
     }
 
     // PATCH: api/categories/{id}/status
+    [Authorize(Roles = "Admin")]
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> ToggleStatus(
         Guid id,

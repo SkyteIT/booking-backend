@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs.Banner;
-using Ube.Application.Interfaces;
+using Ube.Application.Features.Content.Banner;
 
 namespace Ube.Api.Controllers;
 
@@ -32,6 +32,7 @@ public class BannerController : ControllerBase
     }
 
     // POST: api/banners
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBannerDto dto, CancellationToken cancellationToken)
     {
@@ -42,6 +43,7 @@ public class BannerController : ControllerBase
     }
 
     // PUT: api/banners/{id}
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBannerDto dto, CancellationToken cancellationToken)
     {
@@ -50,6 +52,7 @@ public class BannerController : ControllerBase
     }
 
     // DELETE: api/banners/{id}
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {

@@ -17,10 +17,16 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
         builder.Property(x => x.Description)
                 .HasMaxLength(500);
 
+        builder.Property(x => x.Type)
+                .HasConversion<int?>();
+
         builder.Property(x => x.BookingType).HasMaxLength(50);
         builder.Property(x => x.ServiceModel).HasMaxLength(50);
         builder.Property(x => x.DefaultCommissionPercent).HasPrecision(5, 2);
         builder.Property(x => x.PlatformServiceFee).HasPrecision(10, 2);
+        builder.Property(x => x.PartialRefundPercent).HasPrecision(5, 2);
+        builder.Property(x => x.RefundAutoApprovalThreshold).HasPrecision(10, 2);
+        builder.Property(x => x.AdvancePercent).HasPrecision(5, 2);
         builder.Property(x => x.Icon).HasMaxLength(100);
         builder.Property(x => x.BannerImageUrl).HasMaxLength(500);
 

@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Ube.Application.DTOs.Search;
-using Ube.Application.Interfaces;
+using Ube.Application.Features.Search;
 
 namespace Ube.Api.Controllers;
 

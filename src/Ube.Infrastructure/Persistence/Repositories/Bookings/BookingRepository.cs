@@ -59,6 +59,14 @@ public class BookingRepository : IBookingRepository
             {
                 query = query.Where(b => b.EndDateTime.Date <= request.EndDate.Value.Date);
             }
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var search = request.Search.ToLower();
+                query = query.Where(b =>
+                    b.BookingNumber.ToLower().Contains(search) ||
+                    b.Listing.Title.ToLower().Contains(search) ||
+                    (b.Customer.FirstName + " " + b.Customer.LastName).ToLower().Contains(search));
+            }
             query = request.SortOptions switch
             {
                 BookingSortBy.Oldest => query.OrderBy(b => b.CreatedAt), //oldest booking first

@@ -64,6 +64,13 @@ public class AdminController : ControllerBase
         return Ok(bookings);
     }
 
+    [HttpGet("bookings/export")]
+    public async Task<IActionResult> ExportBookings()
+    {
+        var csvBytes = await _adminService.ExportBookingsCsvAsync();
+        return File(csvBytes, "text/csv", $"bookings-{DateTime.UtcNow:yyyy-MM-dd}.csv");
+    }
+
     [HttpGet("bookings/{bookingId:guid}")]
     public async Task<ActionResult<AdminBookingDto>> GetBookingById(Guid bookingId)
     {

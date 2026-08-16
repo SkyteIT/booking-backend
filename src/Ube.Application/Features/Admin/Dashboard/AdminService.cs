@@ -120,6 +120,56 @@ public class AdminService : IAdminService
         return MapBookingToDto(booking);
     }
 
+    // Generates the full bookings export as CSV bytes, server-side - same
+    // dataset GetAllBookingsAsync returns, just formatted as a downloadable
+    // file instead of JSON. UTF-8 BOM prefix so Excel opens it correctly.
+    public async Task<byte[]> ExportBookingsCsvAsync()
+    {
+        var bookings = await GetAllBookingsAsync();
+
+        var sb = new StringBuilder();
+        sb.AppendLine(string.Join(",", new[]
+        {
+            "Booking ID", "Customer", "Customer Email", "Service", "Category",
+            "Start", "End", "Amount", "Currency", "Status", "Created At"
+        }.Select(CsvEscape)));
+
+        foreach (var b in bookings)
+        {
+            sb.AppendLine(string.Join(",", new[]
+            {
+                b.Id.ToString(),
+                b.CustomerName,
+                b.CustomerEmail,
+                b.ListingTitle,
+                b.ListingCategory,
+                b.StartDateTime.ToString("O"),
+                b.EndDateTime.ToString("O"),
+                b.TotalAmount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                b.Currency,
+                b.Status,
+                b.CreatedAt.ToString("O"),
+            }.Select(CsvEscape)));
+        }
+
+        var preamble = Encoding.UTF8.GetPreamble();
+        var content = Encoding.UTF8.GetBytes(sb.ToString());
+        return preamble.Concat(content).ToArray();
+    }
+
+    // Wraps a field in quotes (and doubles any internal quotes) if it
+    // contains a comma, quote, or newline - without this, a customer name
+    // like "Smith, John" would silently split into two CSV columns.
+    private static string CsvEscape(string field)
+    {
+        field ??= string.Empty;
+        if (field.Contains(',') || field.Contains('"') || field.Contains('\n') || field.Contains('\r'))
+        {
+            return $"\"{field.Replace("\"", "\"\"")}\"";
+        }
+        return field;
+    }
+
     // ── Mappers ───────────────────────────────────────────────────────────────
 
     private static AdminUserDto MapUserToDto(Domain.Entities.Users.User user)

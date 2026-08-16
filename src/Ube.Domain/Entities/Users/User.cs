@@ -31,5 +31,9 @@ public class User
 
     public DateTime? UpdatedAt { get; set; }
 
+    // Stored encrypted via IEncryptionService - never persisted in plaintext.
+    public string? TwoFactorSecret { get; set; }
+    public bool TwoFactorEnabled { get; set; } = false;
+
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
 }

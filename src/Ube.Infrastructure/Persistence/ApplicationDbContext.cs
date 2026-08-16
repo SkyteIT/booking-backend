@@ -30,6 +30,9 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<BlockedDate> BlockedDates { get; set; } = default!;
     public DbSet<UserLocalizationSettings> UserLocalizationSettings { get; set; } = default!;
     public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; } = default!;
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = default!;
+    public DbSet<TwoFactorChallenge> TwoFactorChallenges { get; set; } = default!;
+    public DbSet<TwoFactorBackupCode> TwoFactorBackupCodes { get; set; } = default!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
     public DbSet<Banner> Banners { get; set; } = default!;
     public DbSet<Promotion> Promotions { get; set; } = default!;

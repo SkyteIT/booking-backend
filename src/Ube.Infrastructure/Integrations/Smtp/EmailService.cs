@@ -2,6 +2,7 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using MimeKit.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net.Security;
@@ -15,16 +16,18 @@ public class EmailService : IEmailService
 {
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailService> _logger;
+    private readonly string _frontendBaseUrl;
 
-    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
+    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger, IConfiguration configuration)
     {
         _settings = settings.Value;
         _logger = logger;
+        _frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
     }
 
     public Task SendVerificationEmailAsync(string email, string token)
     {
-        var verificationLink = $"http://localhost:3000/verify-email?token={token}";
+        var verificationLink = $"{_frontendBaseUrl}/verify-email?token={token}";
 
         var body = $"""
             <h3>Welcome to Ube!</h3>
@@ -39,6 +42,25 @@ public class EmailService : IEmailService
             """;
 
         return SendEmailAsync(email, "Verify your Ube account", body);
+    }
+
+    public Task SendPasswordResetEmailAsync(string email, string token)
+    {
+        var resetLink = $"{_frontendBaseUrl}/reset-password?token={token}";
+
+        var body = $"""
+            <h3>Reset your Ube password</h3>
+            <p>We received a request to reset your password. Click the link below to choose a new one:</p>
+            <a href='{resetLink}' style='display:inline-block;padding:10px 20px;
+               background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;'>
+               Reset Password
+            </a>
+            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
+               This link expires in 10 minutes. If you didn't request a password reset, you can safely ignore this email.
+            </p>
+            """;
+
+        return SendEmailAsync(email, "Reset your Ube password", body);
     }
 
     public async Task SendEmailAsync(string to, string subject, string htmlBody)

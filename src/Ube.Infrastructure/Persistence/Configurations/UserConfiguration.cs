@@ -26,5 +26,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(x => x.PhoneNumber)
                .HasMaxLength(20);
+
+        // Encrypted ciphertext, longer than the raw secret due to AES + base64 overhead.
+        builder.Property(x => x.TwoFactorSecret)
+               .HasMaxLength(500);
     }
 }

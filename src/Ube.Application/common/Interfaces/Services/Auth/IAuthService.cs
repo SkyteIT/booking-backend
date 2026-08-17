@@ -10,4 +10,6 @@ public interface IAuthService
     Task<AuthResponseDto> RefreshTokenAsync(string refreshToken);
     Task LogoutAsync(string refreshToken);
     Task<CurrentUserDto?> GetCurrentUserAsync(Guid userId);
+    Task ForgotPasswordAsync(string email);
+    Task ResetPasswordAsync(string email, string token, string newPassword);
 }

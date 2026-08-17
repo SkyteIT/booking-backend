@@ -62,6 +62,11 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
                 .HasForeignKey(i => i.ListingId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasMany(x => x.Units)
+                .WithOne(u => u.Listing)
+                .HasForeignKey(u => u.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         builder.HasIndex(x => x.VendorProfileId);
         builder.HasIndex(x => x.CategoryId);
         builder.HasIndex(x => x.IsActive);

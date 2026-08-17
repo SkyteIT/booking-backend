@@ -84,6 +84,97 @@ public class BookingService : IBookingService
         return MapToDetail(booking, vendorId);
     }
 
+    public async Task<PagedResult<VendorBookingDto>> GetCustomerBookingsAsync(Guid customerId, BookingsRequest request)
+    {
+        var bookings = await _bookingRepository.GetBookingsByCustomerIdAsync(customerId, request);
+        var customerBookings = bookings.Items.Select(b => new VendorBookingDto
+        {
+            BookingId = b.Id,
+            BookingNumber = b.BookingNumber,
+            ListingTitle = b.Listing.Title,
+            CustomerName = b.Customer.FirstName + " " + b.Customer.LastName,
+            StartDateTime = b.StartDateTime,
+            EndDateTime = b.EndDateTime,
+            Status = b.Status,
+            TotalAmount = b.TotalAmount,
+            Currency = b.Currency,
+            CreatedAt = b.CreatedAt
+        }).ToList();
+
+        return new PagedResult<VendorBookingDto>
+        {
+            Items = customerBookings,
+            PageNumber = bookings.PageNumber,
+            PageSize = bookings.PageSize,
+            TotalCount = bookings.TotalCount,
+            TotalPages = bookings.TotalPages
+        };
+    }
+
+    public async Task<BookingDetailDto> GetCustomerBookingDetailAsync(Guid bookingId, Guid customerId)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId)
+            ?? throw new NotFoundException("Booking not found");
+
+        if (booking.CustomerId != customerId)
+            throw new NotFoundException("Booking not found");
+
+        return MapToCustomerDetail(booking, customerId);
+    }
+
+    public async Task<BookingDetailDto> CancelBookingAsync(Guid bookingId, Guid customerId)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId)
+            ?? throw new NotFoundException("Booking not found");
+
+        var validationResult = booking.Status == BookingStatus.Pending
+            ? BookingValidationRules.CanUserCancelPendding(booking, customerId)
+            : BookingValidationRules.CanUserCancelConfirmed(booking, customerId);
+
+        if (!validationResult.IsSuccess)
+            throw new BusinessRuleException(validationResult.ErrorMessage);
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            booking.Status = BookingStatus.Cancelled;
+            booking.UpdatedAt = DateTime.UtcNow;
+            await _bookingRepository.UpdateAsync(booking);
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+
+        return MapToCustomerDetail(booking, customerId);
+    }
+
+    // CanUserCancelConfirmed has no StartDateTime check - a customer can
+    // still cancel a Confirmed booking minutes before it starts. Existing
+    // behavior of the already-tested rule, not introduced here.
+    private static BookingDetailDto MapToCustomerDetail(Domain.Entities.Bookings.Booking booking, Guid customerId) =>
+        new BookingDetailDto
+        {
+            BookingId = booking.Id,
+            BookingNumber = booking.BookingNumber,
+            ListingTitle = booking.Listing.Title,
+            CustomerName = booking.Customer.FirstName + " " + booking.Customer.LastName,
+            CustomerEmail = booking.Customer.Email,
+            StartDateTime = booking.StartDateTime,
+            EndDateTime = booking.EndDateTime,
+            Status = booking.Status,
+            TotalAmount = booking.TotalAmount,
+            Currency = booking.Currency,
+            CreatedAt = booking.CreatedAt,
+            CanConfirm = false,
+            CanReject = false,
+            CanCancel = booking.Status == BookingStatus.Pending
+                ? BookingValidationRules.CanUserCancelPendding(booking, customerId).IsSuccess
+                : BookingValidationRules.CanUserCancelConfirmed(booking, customerId).IsSuccess
+        };
+
     private static BookingDetailDto MapToDetail(Domain.Entities.Bookings.Booking booking, Guid vendorId) =>
         new BookingDetailDto
         {

@@ -15,8 +15,17 @@ public class Category
     public ListingType? Type { get; set; }
 
     // Configuration
-    public string? BookingType { get; set; }
-    public string? ServiceModel { get; set; }
+    public BookingConfirmationType? BookingType { get; set; }
+    // What Listing.Price is denominated in (nightly/hourly/per-person/
+    // daily/flat) - drives BookingPricingRules.CalculateTotal. Field
+    // name kept as ServiceModel to match the existing admin form/DTO
+    // wire contract (was free text before this feature).
+    public PricingUnit? ServiceModel { get; set; }
+    // Whether the customer pays the platform up front or pays the
+    // vendor directly at the venue - drives CheckoutService's choice of
+    // PaymentCollectionMethod. New field (no admin UI equivalent
+    // existed before this feature).
+    public ServiceCollectionModel? PaymentCollectionModel { get; set; }
     public bool DateSelectionEnabled { get; set; }
     public bool TimeSlotEnabled { get; set; }
     public bool AvailabilityCalendarEnabled { get; set; }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Payments;
+using Ube.Domain.Enums.Payments;
 
 namespace Ube.Api.Controllers.Payments;
 
@@ -17,6 +18,21 @@ public class RefundsController : ControllerBase
     {
         _refundService = refundService;
         _currentUser = currentUser;
+    }
+
+    // Admin queue view - lists refunds across the platform, optionally
+    // filtered by status. Distinct from the payment-scoped/single-record
+    // actions below, which any authenticated user can hit for their own booking.
+    [HttpGet]
+    [Authorize(Roles = "Admin,Finance")]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] RefundStatus? status,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var result = await _refundService.GetPagedAsync(status, pageNumber, pageSize, ct);
+        return Ok(result);
     }
 
     [HttpPost]

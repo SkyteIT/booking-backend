@@ -12,8 +12,9 @@ public class CreateCategoryDto
     public ListingType Type { get; set; }
 
     // ── Category Configuration ──
-    public string? BookingType { get; set; }
-    public string? ServiceModel { get; set; }
+    public BookingConfirmationType? BookingType { get; set; }
+    public PricingUnit? ServiceModel { get; set; }
+    public ServiceCollectionModel? PaymentCollectionModel { get; set; }
     public bool DateSelectionEnabled { get; set; }
     public bool TimeSlotEnabled { get; set; }
     public bool AvailabilityCalendarEnabled { get; set; }

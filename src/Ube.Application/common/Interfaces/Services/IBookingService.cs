@@ -9,6 +9,10 @@ public interface IBookingService
     Task<BookingDetailDto> UpdateVendorBookingStatusAsync(Guid bookingId, Guid vendorId, BookingStatus newStatus);
     Task<PagedResult<VendorBookingDto>> GetVendorBookingsAsync(Guid vendorId, BookingsRequest request);
     Task<BookingDetailDto> GetBookingDetailAsync(Guid bookingId, Guid vendorId);
+
+    Task<PagedResult<VendorBookingDto>> GetCustomerBookingsAsync(Guid customerId, BookingsRequest request);
+    Task<BookingDetailDto> GetCustomerBookingDetailAsync(Guid bookingId, Guid customerId);
+    Task<BookingDetailDto> CancelBookingAsync(Guid bookingId, Guid customerId);
 }
 
 

@@ -1,5 +1,6 @@
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Helpers;
+using Ube.Application.Common.Models.Pagination;
 using Ube.Domain.Entities.Payments;
 using Ube.Domain.Enums.Payments;
 
@@ -204,6 +205,36 @@ public class PaymentDisputeService : IPaymentDisputeService
     {
         var disputes = await _disputeRepo.GetByVendorIdAsync(vendorProfileId, ct);
         return disputes.Select(ToDto).ToList();
+    }
+
+    public async Task<PagedResult<AdminDisputeDto>> GetPagedAsync(PaymentDisputeStatus? status, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _disputeRepo.GetPagedAsync(status, pageNumber, pageSize, ct);
+
+        var mapped = items.Select(x => new AdminDisputeDto
+        {
+            Id = x.Dispute.Id,
+            PaymentId = x.Dispute.PaymentId,
+            BookingNumber = x.BookingNumber,
+            CustomerName = x.CustomerName,
+            VendorName = x.VendorName,
+            Amount = x.Dispute.Amount,
+            Reason = x.Dispute.Reason,
+            DisputeFeeAmount = x.Dispute.DisputeFeeAmount,
+            ExternalDisputeReference = x.Dispute.ExternalDisputeReference,
+            Status = x.Dispute.Status,
+            OpenedAt = x.Dispute.OpenedAt,
+            ResolvedAt = x.Dispute.ResolvedAt
+        }).ToList();
+
+        return new PagedResult<AdminDisputeDto>
+        {
+            Items = mapped,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+        };
     }
 
     private static PaymentDisputeDto ToDto(PaymentDispute d) => new()

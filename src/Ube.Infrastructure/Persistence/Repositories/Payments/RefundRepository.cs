@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Payments;
 
 namespace Ube.Infrastructure.Persistence.Repositories.Payments;
 
@@ -15,6 +16,48 @@ public class RefundRepository : IRefundRepository
 
     public async Task<IReadOnlyList<Refund>> GetByPaymentIdAsync(Guid paymentId, CancellationToken ct = default)
         => await _db.Refunds.Where(x => x.PaymentId == paymentId).ToListAsync(ct);
+
+    // Refund has no navigation properties to Payment/Booking/Customer/Listing
+    // by design (see IRefundRepository) - this is a plain LINQ join on the
+    // foreign-key values, no changes to the domain entities needed.
+    public async Task<(List<RefundListItem> Items, int TotalCount)> GetPagedAsync(
+        RefundStatus? status, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var bookings = _db.Bookings
+            .Include(b => b.Customer)
+            .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile);
+
+        var query =
+            from r in _db.Refunds
+            join p in _db.Payments on r.PaymentId equals p.Id
+            join b in bookings on p.BookingId equals b.Id
+            select new { r, b };
+
+        if (status.HasValue)
+        {
+            query = query.Where(x => x.r.Status == status.Value);
+        }
+
+        query = query.OrderByDescending(x => x.r.CreatedAt);
+
+        var totalCount = await query.CountAsync(ct);
+
+        var page = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        var items = page.Select(x => new RefundListItem(
+            x.r,
+            x.b.BookingNumber,
+            $"{x.b.Customer.FirstName} {x.b.Customer.LastName}",
+            x.b.Listing.VendorProfile.BusinessName,
+            x.b.Listing.Title
+        )).ToList();
+
+        return (items, totalCount);
+    }
 
     public async Task AddAsync(Refund refund, CancellationToken ct = default)
     {

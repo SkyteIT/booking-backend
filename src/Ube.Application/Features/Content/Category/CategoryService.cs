@@ -26,6 +26,7 @@ public class CategoryService : ICategoryService
         Type = x.Type,
         BookingType = x.BookingType,
         ServiceModel = x.ServiceModel,
+        PaymentCollectionModel = x.PaymentCollectionModel,
         DateSelectionEnabled = x.DateSelectionEnabled,
         TimeSlotEnabled = x.TimeSlotEnabled,
         AvailabilityCalendarEnabled = x.AvailabilityCalendarEnabled,
@@ -126,6 +127,7 @@ public class CategoryService : ICategoryService
             entity.Type = dto.Type;
             entity.BookingType = dto.BookingType ?? entity.BookingType;
             entity.ServiceModel = dto.ServiceModel ?? entity.ServiceModel;
+            entity.PaymentCollectionModel = dto.PaymentCollectionModel ?? entity.PaymentCollectionModel;
             entity.DateSelectionEnabled = dto.DateSelectionEnabled;
             entity.TimeSlotEnabled = dto.TimeSlotEnabled;
             entity.AvailabilityCalendarEnabled = dto.AvailabilityCalendarEnabled;
@@ -149,6 +151,7 @@ public class CategoryService : ICategoryService
                 Type = dto.Type,
                 BookingType = dto.BookingType,
                 ServiceModel = dto.ServiceModel,
+                PaymentCollectionModel = dto.PaymentCollectionModel,
                 DateSelectionEnabled = dto.DateSelectionEnabled,
                 TimeSlotEnabled = dto.TimeSlotEnabled,
                 AvailabilityCalendarEnabled = dto.AvailabilityCalendarEnabled,
@@ -209,6 +212,7 @@ public class CategoryService : ICategoryService
         if (dto.Type.HasValue) entity.Type = dto.Type.Value;
         if (dto.BookingType is not null) entity.BookingType = dto.BookingType;
         if (dto.ServiceModel is not null) entity.ServiceModel = dto.ServiceModel;
+        if (dto.PaymentCollectionModel is not null) entity.PaymentCollectionModel = dto.PaymentCollectionModel;
         if (dto.DateSelectionEnabled.HasValue) entity.DateSelectionEnabled = dto.DateSelectionEnabled.Value;
         if (dto.TimeSlotEnabled.HasValue) entity.TimeSlotEnabled = dto.TimeSlotEnabled.Value;
         if (dto.AvailabilityCalendarEnabled.HasValue) entity.AvailabilityCalendarEnabled = dto.AvailabilityCalendarEnabled.Value;

@@ -102,6 +102,9 @@ builder.Services.AddScoped<IBlockedDateRepository, BlockedDateRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
 builder.Services.AddScoped<IListingService, ListingService>();
+builder.Services.AddScoped<IListingUnitRepository, ListingUnitRepository>();
+builder.Services.AddScoped<IListingUnitService, ListingUnitService>();
+builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 // Register availability strategies
 builder.Services.AddScoped<IAvailabilityStrategy, CapacityStrategy>();
 builder.Services.AddScoped<IAvailabilityStrategy, SingleUnitStrategy>();

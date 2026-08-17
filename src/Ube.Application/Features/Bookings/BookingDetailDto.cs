@@ -16,4 +16,5 @@ public class BookingDetailDto
     public DateTime CreatedAt {get; set;}
     public bool CanConfirm { get; set; }
     public bool CanReject { get; set; }
+    public bool CanCancel { get; set; }
 }

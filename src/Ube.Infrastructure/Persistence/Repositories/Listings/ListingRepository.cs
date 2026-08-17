@@ -179,15 +179,37 @@ public class ListingRepository : IListingRepository
     public async Task UpsertDetailsAsync<TDetail>(Guid listingId, TDetail details, CancellationToken ct = default)
         where TDetail : class, IListingDetail
     {
+        // Always set explicitly (not just on the create path) - `details` is
+        // a freshly-built object that never had ListingId populated by its
+        // caller on the update path, so leaving this to chance previously
+        // corrupted the FK to Guid.Empty on every update.
+        details.ListingId = listingId;
+
         var existing = await _db.Set<TDetail>().FirstOrDefaultAsync(d => d.ListingId == listingId, ct);
         if (existing == null)
         {
-            details.ListingId = listingId;
             _db.Set<TDetail>().Add(details);
         }
         else
         {
-            _db.Entry(existing).CurrentValues.SetValues(details);
+            // Deliberately NOT entry.CurrentValues.SetValues(details) - that
+            // copies every property matched by name, including the primary
+            // key. `details` is a freshly-built object with a default-valued
+            // Id (IListingDetail never exposes Id for callers to set), so
+            // SetValues throws immediately on the key mismatch ("part of a
+            // key and so cannot be modified") before any value even reaches
+            // SaveChanges. Instead, copy every scalar property except the key
+            // directly via EF metadata.
+            var entry = _db.Entry(existing);
+            var keyPropertyNames = entry.Metadata.FindPrimaryKey()!.Properties
+                .Select(p => p.Name)
+                .ToHashSet();
+
+            foreach (var property in entry.Metadata.GetProperties())
+            {
+                if (keyPropertyNames.Contains(property.Name)) continue;
+                entry.Property(property.Name).CurrentValue = property.PropertyInfo!.GetValue(details);
+            }
         }
 
         await _db.SaveChangesAsync(ct);

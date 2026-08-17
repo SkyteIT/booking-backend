@@ -12,6 +12,12 @@ public class Booking
     public Guid ListingId { get; set; }
     public Listing Listing { get; set; } = null!;
 
+    // Which specific bookable unit (room type, seat, fleet vehicle, time
+    // slot) this booking is for - null for listings with no defined
+    // units, in which case the booking is against the listing as a whole.
+    public Guid? ListingUnitId { get; set; }
+    public ListingUnit? ListingUnit { get; set; }
+
     public Guid CustomerId { get; set; }
     public User Customer { get; set; } = null!;
 

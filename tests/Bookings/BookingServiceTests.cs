@@ -218,4 +218,94 @@ public class BookingServiceTests
         Assert.Equal(2, result.TotalCount);
         Assert.Equal(1, result.PageNumber);
     }
+
+    // --- CancelBookingAsync ---
+
+    [Fact]
+    public async Task CancelBooking_Throws_NotFoundException_When_Booking_Missing()
+    {
+        var ctx = Build();
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Booking?)null);
+
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            ctx.Service.CancelBookingAsync(Guid.NewGuid(), Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task CancelBooking_Throws_BusinessRuleException_When_Not_Owner()
+    {
+        var ctx = Build();
+        var bookingId = Guid.NewGuid();
+        var booking = MakeBooking(bookingId, Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Pending);
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            ctx.Service.CancelBookingAsync(bookingId, Guid.NewGuid()));
+    }
+
+    [Theory]
+    [InlineData(BookingStatus.Pending)]
+    [InlineData(BookingStatus.Confirmed)]
+    public async Task CancelBooking_Succeeds_For_Pending_Or_Confirmed_Owned_Booking(BookingStatus status)
+    {
+        var ctx = Build();
+        var customerId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, status);
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+
+        var result = await ctx.Service.CancelBookingAsync(bookingId, customerId);
+
+        Assert.Equal(BookingStatus.Cancelled, booking.Status);
+        Assert.Equal(BookingStatus.Cancelled, result.Status);
+        ctx.BookingRepo.Verify(r => r.UpdateAsync(booking), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Completed)]
+    [InlineData(BookingStatus.Rejected)]
+    public async Task CancelBooking_Throws_BusinessRuleException_For_Non_Cancellable_Status(BookingStatus status)
+    {
+        var ctx = Build();
+        var customerId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, status);
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            ctx.Service.CancelBookingAsync(bookingId, customerId));
+    }
+
+    // --- GetCustomerBookingsAsync ---
+
+    [Fact]
+    public async Task GetCustomerBookings_Maps_Paged_Result()
+    {
+        var ctx = Build();
+        var vendorId = Guid.NewGuid();
+        var customerId = Guid.NewGuid();
+        var request = new BookingsRequest { PageNumber = 1, PageSize = 10 };
+
+        var bookings = new List<Booking>
+        {
+            MakeBooking(Guid.NewGuid(), vendorId, customerId, BookingStatus.Pending)
+        };
+
+        ctx.BookingRepo
+            .Setup(r => r.GetBookingsByCustomerIdAsync(customerId, request, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new PagedResult<Booking>
+            {
+                Items = bookings,
+                PageNumber = 1,
+                PageSize = 10,
+                TotalCount = 1,
+                TotalPages = 1
+            });
+
+        var result = await ctx.Service.GetCustomerBookingsAsync(customerId, request);
+
+        Assert.Single(result.Items);
+        Assert.Equal(1, result.TotalCount);
+    }
 }

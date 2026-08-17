@@ -1,6 +1,7 @@
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Content.Category;
 using Ube.Domain.Entities.Payments;
 using Ube.Domain.Enums.Payments;
@@ -132,6 +133,36 @@ public class RefundService : IRefundService
         }, ct);
 
         return ToDto(refund);
+    }
+
+    public async Task<PagedResult<AdminRefundDto>> GetPagedAsync(RefundStatus? status, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var (items, totalCount) = await _refundRepo.GetPagedAsync(status, pageNumber, pageSize, ct);
+
+        var mapped = items.Select(x => new AdminRefundDto
+        {
+            Id = x.Refund.Id,
+            PaymentId = x.Refund.PaymentId,
+            BookingNumber = x.BookingNumber,
+            CustomerName = x.CustomerName,
+            VendorName = x.VendorName,
+            ListingTitle = x.ListingTitle,
+            Amount = x.Refund.Amount,
+            Reason = x.Refund.Reason,
+            Status = x.Refund.Status,
+            PolicyTierApplied = x.Refund.PolicyTierApplied,
+            ProcessedAt = x.Refund.ProcessedAt,
+            CreatedAt = x.Refund.CreatedAt
+        }).ToList();
+
+        return new PagedResult<AdminRefundDto>
+        {
+            Items = mapped,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+        };
     }
 
     private async Task ProcessApprovedRefundAsync(Refund refund, Payment payment, Guid? approvedByUserId, CancellationToken ct)

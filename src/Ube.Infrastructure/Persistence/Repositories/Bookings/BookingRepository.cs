@@ -25,15 +25,18 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
-    // Get next booking sequence number for generating booking reference number
+    // Get next booking sequence number for generating booking reference number.
+    // Must materialize with ToListAsync, not FirstAsync/SingleAsync - EF
+    // composes those as a wrapping subquery, and SQL Server rejects
+    // "NEXT VALUE FOR" inside a subquery ("not allowed in ... sub-queries").
     public async Task<int> GetNextBookingSequenceAsync()
     {
-        var result = await _db
+        var results = await _db
             .Database
             .SqlQueryRaw<int>("SELECT NEXT VALUE FOR BookingNumbers")
-            .FirstAsync();
+            .ToListAsync();
 
-        return result;
+        return results[0];
     }
     // get ookings for booking management page for vendors with pagination and filtering
     public async Task<PagedResult<Booking>> GetBookingsByVendorIdAsync(
@@ -130,5 +133,72 @@ public class BookingRepository : IBookingRepository
                     )
             .ToListAsync();
     }
-    
+
+    // Same soft-hold rule as GetBookingsByListingAndDateRangeAsync, scoped
+    // to a specific bookable unit (room type/seat/time slot) instead of
+    // the whole listing.
+    public async Task<List<Booking>> GetBookingsByListingUnitAndDateRangeAsync(
+        Guid listingUnitId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        return await _db.Bookings
+            .Where(b => b.ListingUnitId == listingUnitId &&
+                    b.StartDateTime.Date <= endDate.Date &&
+                    b.EndDateTime.Date >= startDate.Date &&
+                    (b.Status == BookingStatus.Confirmed ||
+                        (b.Status == BookingStatus.Pending && b.CreatedAt >= DateTime.UtcNow.AddHours(-1)))
+                    )
+            .ToListAsync(ct);
+    }
+
+    public async Task AddAsync(Booking booking, CancellationToken ct = default)
+    {
+        await _db.Bookings.AddAsync(booking, ct);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(Guid customerId, BookingsRequest request, CancellationToken ct = default)
+    {
+        var query = _db.Bookings
+            .Include(b => b.Customer)
+            .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile)
+            .Where(b => b.CustomerId == customerId)
+            .AsQueryable();
+
+        if (request.Status.HasValue)
+            query = query.Where(b => b.Status == request.Status.Value);
+        if (request.StartDate.HasValue)
+            query = query.Where(b => b.StartDateTime.Date >= request.StartDate.Value.Date);
+        if (request.EndDate.HasValue)
+            query = query.Where(b => b.EndDateTime.Date <= request.EndDate.Value.Date);
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.ToLower();
+            query = query.Where(b =>
+                b.BookingNumber.ToLower().Contains(search) ||
+                b.Listing.Title.ToLower().Contains(search));
+        }
+        query = request.SortOptions switch
+        {
+            BookingSortBy.Oldest => query.OrderBy(b => b.CreatedAt),
+            BookingSortBy.StartDateAsc => query.OrderBy(b => b.StartDateTime),
+            BookingSortBy.StartDateDesc => query.OrderByDescending(b => b.StartDateTime),
+            _ => query.OrderByDescending(b => b.CreatedAt)
+        };
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<Booking>
+        {
+            Items = items,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
+        };
+    }
 }

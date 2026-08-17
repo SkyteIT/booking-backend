@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Payments;
+using Ube.Domain.Enums.Payments;
 
 namespace Ube.Api.Controllers.Payments;
 
@@ -37,6 +38,19 @@ public class PaymentDisputesController : ControllerBase
     public async Task<IActionResult> GetForPayment(Guid paymentId, CancellationToken ct)
     {
         var result = await _disputeService.GetForPaymentAsync(paymentId, ct);
+        return Ok(result);
+    }
+
+    // Admin queue view - lists disputes across the platform, optionally
+    // filtered by status.
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] PaymentDisputeStatus? status,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken ct = default)
+    {
+        var result = await _disputeService.GetPagedAsync(status, pageNumber, pageSize, ct);
         return Ok(result);
     }
 }

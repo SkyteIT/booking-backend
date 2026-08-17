@@ -48,4 +48,5 @@ public class Listing
     public ActivityListingDetails? ActivityDetails { get; set; }
 
     public ICollection<ListingCustomFieldValue> CustomFieldValues { get; set; } = new List<ListingCustomFieldValue>();
+    public ICollection<ListingUnit> Units { get; set; } = new List<ListingUnit>();
 }

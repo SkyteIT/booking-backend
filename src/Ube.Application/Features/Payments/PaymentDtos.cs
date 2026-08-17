@@ -43,3 +43,21 @@ public class RefundDto
     public DateTime? ProcessedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+// Enriched view for the admin refund queue - adds the context
+// (booking/customer/vendor/listing) a plain RefundDto doesn't have.
+public class AdminRefundDto
+{
+    public Guid Id { get; set; }
+    public Guid PaymentId { get; set; }
+    public string BookingNumber { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public string VendorName { get; set; } = string.Empty;
+    public string ListingTitle { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public RefundStatus Status { get; set; }
+    public decimal PolicyTierApplied { get; set; }
+    public DateTime? ProcessedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

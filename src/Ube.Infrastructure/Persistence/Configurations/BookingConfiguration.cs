@@ -44,5 +44,10 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
                 .WithMany(u => u.Bookings)
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.ListingUnit)
+                .WithMany()
+                .HasForeignKey(x => x.ListingUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(x => x.ListingUnitId);
     }
 }

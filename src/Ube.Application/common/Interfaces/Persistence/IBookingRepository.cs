@@ -18,4 +18,5 @@ public interface IBookingRepository
     Task<List<Booking>> GetBookingsByListingUnitAndDateRangeAsync(Guid listingUnitId, DateTime startDate, DateTime endDate, CancellationToken ct = default);
     Task AddAsync(Booking booking, CancellationToken ct = default);
     Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(Guid customerId, BookingsRequest request, CancellationToken ct = default);
+    Task<List<Booking>> GetBookingsPastEndDateAsync(DateTime asOf, CancellationToken ct = default);
 }

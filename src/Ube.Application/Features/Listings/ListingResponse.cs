@@ -17,6 +17,10 @@ public class ListingResponse
 
     public string CategoryName { get; set; } = string.Empty;
     public string VendorName { get; set; } = string.Empty;
+    // What Listing.Price is denominated in (nightly/hourly/per-person/
+    // daily/flat), from the listing's Category - lets the frontend cart
+    // compute an accurate live total estimate matching BookingPricingRules.
+    public PricingUnit? PricingUnit { get; set; }
 
     public ListingType Type { get; set; }
     public double AverageRating { get; set; }

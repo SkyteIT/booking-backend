@@ -27,7 +27,9 @@ using Ube.Application.Features.Vendors.Payout;
 using Ube.Application.Features.VendorRegistration;
 using Ube.Application.Features.Localization;
 using Ube.Application.Features.Admin.VendorApplications;
+using Ube.Application.Features.Questions;
 using Ube.Application.Features.Reviews;
+using Ube.Infrastructure.Persistence.Repositories.Questions;
 using Ube.Infrastructure.Persistence.Repositories.Reviews;
 using Ube.Application.Common.Models;
 using Ube.Application.Features.Notifications.Email;
@@ -57,7 +59,6 @@ using Azure.Extensions.AspNetCore.Configuration.Secrets;
 
 
 var builder = WebApplication.CreateBuilder(args);
-// Azure Key Vault integration - URI comes from appsettings.{Environment}.json
 // (KeyVault:Uri) so each environment can point at its own vault without a code change.
 var keyVaultUriSetting = builder.Configuration["KeyVault:Uri"];
 if (!string.IsNullOrWhiteSpace(keyVaultUriSetting))
@@ -130,6 +131,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 //add Review service
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
+builder.Services.AddScoped<IListingQuestionService, ListingQuestionService>();
+builder.Services.AddScoped<IListingQuestionRepository, ListingQuestionRepository>();
 //add email verification token repository
 builder.Services.AddScoped<IEmailVerificationRepository, EmailVerificationRepository>();
 builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
@@ -185,6 +188,8 @@ builder.Services.AddScoped<IVendorCommissionAcknowledgementService, VendorCommis
 builder.Services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
 builder.Services.Configure<PaymentSchedulerOptions>(builder.Configuration.GetSection("PaymentScheduler"));
 builder.Services.AddHostedService<PaymentSchedulerBackgroundService>();
+builder.Services.Configure<BookingCompletionOptions>(builder.Configuration.GetSection("BookingCompletion"));
+builder.Services.AddHostedService<BookingCompletionBackgroundService>();
 
 builder.Services.AddRateLimiter(options =>
 {

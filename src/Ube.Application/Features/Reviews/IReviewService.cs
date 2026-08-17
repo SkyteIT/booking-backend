@@ -7,15 +7,19 @@ public interface IReviewService
 {
     Task CreateReviewAsync(CreateReviewDto dto, Guid currentUserId);
 
-    Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request);
-    Task<PagedResult<ReviewDto>> GetReviewsByListingAsync(Guid listingId, ReviewRequest request);
+    Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request, Guid? currentUserId = null);
+    Task<PagedResult<ReviewDto>> GetReviewsByListingAsync(Guid listingId, ReviewRequest request, Guid? currentUserId = null);
     Task<PagedResult<CustomerReviewDto>> GetMyReviewsAsync(Guid customerId, ReviewRequest request);
     Task<object> GetRatingAsync(Guid vendorId);
-    
+
     Task UpdateReviewAsync(CreateReviewDto dto, Guid currentUserId, Guid reviewId);
     Task DeleteReviewAsync(Guid reviewId, Guid currentUserId);
 
     Task AddVendorReplyAsync(Guid reviewId, VendorReplyDto dto, Guid currentUserId);
+
+    // Toggles the current customer's like on a review; returns the new
+    // (likeCount, isLiked) state.
+    Task<(int LikeCount, bool IsLiked)> ToggleLikeAsync(Guid reviewId, Guid customerId);
 
     Task<PagedResult<AdminReviewDto>> GetReviewsForModerationAsync(bool? isHidden, ReviewRequest request);
     Task HideReviewAsync(Guid reviewId, Guid adminUserId, string reason);

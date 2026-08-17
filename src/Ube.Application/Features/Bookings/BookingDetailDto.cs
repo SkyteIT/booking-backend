@@ -17,4 +17,5 @@ public class BookingDetailDto
     public bool CanConfirm { get; set; }
     public bool CanReject { get; set; }
     public bool CanCancel { get; set; }
+    public bool CanReview { get; set; }
 }

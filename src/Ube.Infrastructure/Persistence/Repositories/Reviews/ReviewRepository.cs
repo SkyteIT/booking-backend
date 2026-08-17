@@ -177,4 +177,55 @@ public class ReviewRepository : IReviewRepository
     {
         await _db.SaveChangesAsync();
     }
+
+    // Grouped count per review id for one page of reviews - avoids an
+    // N+1 count query per card.
+    public async Task<Dictionary<Guid, int>> GetLikeCountsAsync(IEnumerable<Guid> reviewIds)
+    {
+        var ids = reviewIds.ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, int>();
+
+        return await _db.ReviewLikes
+            .Where(l => ids.Contains(l.ReviewId))
+            .GroupBy(l => l.ReviewId)
+            .Select(g => new { ReviewId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ReviewId, x => x.Count);
+    }
+
+    // Which of these reviews the given customer has already liked - for
+    // rendering the "liked by you" state on a page of reviews.
+    public async Task<HashSet<Guid>> GetLikedReviewIdsAsync(Guid customerId, IEnumerable<Guid> reviewIds)
+    {
+        var ids = reviewIds.ToList();
+        if (ids.Count == 0) return new HashSet<Guid>();
+
+        var liked = await _db.ReviewLikes
+            .Where(l => l.CustomerId == customerId && ids.Contains(l.ReviewId))
+            .Select(l => l.ReviewId)
+            .ToListAsync();
+
+        return liked.ToHashSet();
+    }
+
+    public async Task<bool> ToggleLikeAsync(Guid reviewId, Guid customerId)
+    {
+        var existing = await _db.ReviewLikes
+            .FirstOrDefaultAsync(l => l.ReviewId == reviewId && l.CustomerId == customerId);
+
+        if (existing != null)
+        {
+            _db.ReviewLikes.Remove(existing);
+            await _db.SaveChangesAsync();
+            return false;
+        }
+
+        await _db.ReviewLikes.AddAsync(new Domain.Entities.Reviews.ReviewLike
+        {
+            Id = Guid.NewGuid(),
+            ReviewId = reviewId,
+            CustomerId = customerId
+        });
+        await _db.SaveChangesAsync();
+        return true;
+    }
 }

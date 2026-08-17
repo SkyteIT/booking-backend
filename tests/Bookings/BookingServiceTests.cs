@@ -3,6 +3,7 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Bookings;
+using Ube.Application.Features.Reviews;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Users;
@@ -16,13 +17,15 @@ public class BookingServiceTests
     private sealed record Ctx(
         Mock<IBookingRepository> BookingRepo,
         Mock<IUnitOfWork> UnitOfWork,
+        Mock<IReviewRepository> ReviewRepo,
         BookingService Service);
 
     private static Ctx Build()
     {
         var repo = new Mock<IBookingRepository>();
         var uow  = new Mock<IUnitOfWork>();
-        return new Ctx(repo, uow, new BookingService(repo.Object, uow.Object));
+        var reviewRepo = new Mock<IReviewRepository>();
+        return new Ctx(repo, uow, reviewRepo, new BookingService(repo.Object, uow.Object, reviewRepo.Object));
     }
 
     private static Booking MakeBooking(Guid bookingId, Guid vendorUserId, Guid customerId, BookingStatus status)
@@ -307,5 +310,137 @@ public class BookingServiceTests
 
         Assert.Single(result.Items);
         Assert.Equal(1, result.TotalCount);
+    }
+
+    // --- GetCustomerBookingDetailAsync (CanReview) ---
+
+    [Fact]
+    public async Task GetCustomerBookingDetail_CanReview_True_For_Completed_Booking_Without_Review()
+    {
+        var ctx = Build();
+        var customerId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, BookingStatus.Completed);
+
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+        ctx.ReviewRepo.Setup(r => r.ExistsByBookingIdAsync(bookingId)).ReturnsAsync(false);
+
+        var result = await ctx.Service.GetCustomerBookingDetailAsync(bookingId, customerId);
+
+        Assert.True(result.CanReview);
+    }
+
+    [Fact]
+    public async Task GetCustomerBookingDetail_CanReview_False_When_Review_Already_Exists()
+    {
+        var ctx = Build();
+        var customerId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, BookingStatus.Completed);
+
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+        ctx.ReviewRepo.Setup(r => r.ExistsByBookingIdAsync(bookingId)).ReturnsAsync(true);
+
+        var result = await ctx.Service.GetCustomerBookingDetailAsync(bookingId, customerId);
+
+        Assert.False(result.CanReview);
+    }
+
+    [Theory]
+    [InlineData(BookingStatus.Pending)]
+    [InlineData(BookingStatus.Confirmed)]
+    [InlineData(BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Rejected)]
+    public async Task GetCustomerBookingDetail_CanReview_False_When_Not_Completed(BookingStatus status)
+    {
+        var ctx = Build();
+        var customerId = Guid.NewGuid();
+        var bookingId = Guid.NewGuid();
+        var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, status);
+
+        ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+
+        var result = await ctx.Service.GetCustomerBookingDetailAsync(bookingId, customerId);
+
+        Assert.False(result.CanReview);
+        ctx.ReviewRepo.Verify(r => r.ExistsByBookingIdAsync(It.IsAny<Guid>()), Times.Never);
+    }
+
+    // --- CompleteExpiredBookingsAsync ---
+
+    [Fact]
+    public async Task CompleteExpiredBookings_Completes_Confirmed_Booking_Past_End_Date()
+    {
+        var ctx = Build();
+        var booking = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Confirmed);
+        booking.EndDateTime = DateTime.UtcNow.AddDays(-1);
+
+        ctx.BookingRepo
+            .Setup(r => r.GetBookingsPastEndDateAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { booking });
+        ctx.UnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+        ctx.UnitOfWork.Setup(u => u.CommitAsync()).Returns(Task.CompletedTask);
+
+        var completedCount = await ctx.Service.CompleteExpiredBookingsAsync();
+
+        Assert.Equal(1, completedCount);
+        Assert.Equal(BookingStatus.Completed, booking.Status);
+        Assert.NotNull(booking.UpdatedAt);
+        ctx.BookingRepo.Verify(r => r.UpdateAsync(booking), Times.Once);
+        ctx.UnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(BookingStatus.Pending)]
+    [InlineData(BookingStatus.Cancelled)]
+    [InlineData(BookingStatus.Rejected)]
+    [InlineData(BookingStatus.Completed)]
+    public async Task CompleteExpiredBookings_Skips_Non_Confirmed_Bookings(BookingStatus status)
+    {
+        var ctx = Build();
+        // Defensive test: even if the repo query somehow returned a
+        // non-Confirmed booking, CanSystemComplete must still reject it -
+        // the sweep never assigns status without going through the state
+        // machine.
+        var booking = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), status);
+        booking.EndDateTime = DateTime.UtcNow.AddDays(-1);
+
+        ctx.BookingRepo
+            .Setup(r => r.GetBookingsPastEndDateAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { booking });
+
+        var completedCount = await ctx.Service.CompleteExpiredBookingsAsync();
+
+        Assert.Equal(0, completedCount);
+        Assert.Equal(status, booking.Status);
+        ctx.BookingRepo.Verify(r => r.UpdateAsync(It.IsAny<Booking>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CompleteExpiredBookings_Isolates_Failure_And_Still_Completes_Others()
+    {
+        var ctx = Build();
+        var failing = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Confirmed);
+        failing.EndDateTime = DateTime.UtcNow.AddDays(-2);
+        var succeeding = MakeBooking(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), BookingStatus.Confirmed);
+        succeeding.EndDateTime = DateTime.UtcNow.AddDays(-1);
+
+        ctx.BookingRepo
+            .Setup(r => r.GetBookingsPastEndDateAsync(It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<Booking> { failing, succeeding });
+        ctx.UnitOfWork.Setup(u => u.BeginTransactionAsync()).Returns(Task.CompletedTask);
+        ctx.UnitOfWork.Setup(u => u.CommitAsync()).Returns(Task.CompletedTask);
+        ctx.UnitOfWork.Setup(u => u.RollbackAsync()).Returns(Task.CompletedTask);
+        ctx.BookingRepo.Setup(r => r.UpdateAsync(failing)).ThrowsAsync(new Exception("DB error"));
+
+        var completedCount = await ctx.Service.CompleteExpiredBookingsAsync();
+
+        // Only the succeeding booking counts - the failing one's update
+        // was attempted and rolled back, but didn't abort the loop.
+        Assert.Equal(1, completedCount);
+        Assert.Equal(BookingStatus.Completed, succeeding.Status);
+        ctx.BookingRepo.Verify(r => r.UpdateAsync(failing), Times.Once);
+        ctx.UnitOfWork.Verify(u => u.RollbackAsync(), Times.Once);
+        ctx.UnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
     }
 }

@@ -201,4 +201,13 @@ public class BookingRepository : IBookingRepository
             TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
         };
     }
+
+    // Confirmed bookings whose service period has already ended - the
+    // candidate set for the automatic "mark Completed" sweep.
+    public async Task<List<Booking>> GetBookingsPastEndDateAsync(DateTime asOf, CancellationToken ct = default)
+    {
+        return await _db.Bookings
+            .Where(b => b.Status == BookingStatus.Confirmed && b.EndDateTime < asOf)
+            .ToListAsync(ct);
+    }
 }

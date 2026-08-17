@@ -52,4 +52,14 @@ public class CustomerReviewsController : ControllerBase
         await _service.DeleteReviewAsync(id, _currentUser.UserId);
         return Ok(new { message = "Review deleted" });
     }
+
+    // Toggle a like on a review. Lives here (not on the AllowAnonymous
+    // ReviewsController) because a controller-level [AllowAnonymous]
+    // always wins over an action-level [Authorize] in ASP.NET Core.
+    [HttpPost("{reviewId}/like")]
+    public async Task<IActionResult> ToggleLike(Guid reviewId)
+    {
+        var (likeCount, isLiked) = await _service.ToggleLikeAsync(reviewId, _currentUser.UserId);
+        return Ok(new { likeCount, isLiked });
+    }
 }

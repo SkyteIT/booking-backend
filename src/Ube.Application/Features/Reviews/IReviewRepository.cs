@@ -31,4 +31,9 @@ public interface IReviewRepository
     Task UpdateAsync(Review review);
     Task DeleteAsync(Review review);
     Task SaveChangesAsync();
+
+    Task<Dictionary<Guid, int>> GetLikeCountsAsync(IEnumerable<Guid> reviewIds);
+    Task<HashSet<Guid>> GetLikedReviewIdsAsync(Guid customerId, IEnumerable<Guid> reviewIds);
+    // Returns the review's new "liked by this customer" state after toggling.
+    Task<bool> ToggleLikeAsync(Guid reviewId, Guid customerId);
 }

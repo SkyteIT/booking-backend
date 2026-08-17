@@ -7,6 +7,7 @@ using Ube.Domain.Entities.Content;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Notifications;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Entities.Questions;
 using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
@@ -23,6 +24,8 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<Listing> Listings { get; set; } = default!;
     public DbSet<Booking> Bookings { get; set; } = default!;
     public DbSet<Review> Reviews { get; set; } = default!;
+    public DbSet<ReviewLike> ReviewLikes { get; set; } = default!;
+    public DbSet<ListingQuestion> ListingQuestions { get; set; } = default!;
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<VendorApplication> VendorApplications { get; set; } = default!;
     public DbSet<VendorProfile> VendorProfiles { get; set; } = default!;

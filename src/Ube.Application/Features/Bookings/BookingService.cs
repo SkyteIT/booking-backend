@@ -3,6 +3,7 @@ using Ube.Domain.Enums.Bookings;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Features.Reviews;
 
 namespace Ube.Application.Features.Bookings;
 
@@ -10,11 +11,13 @@ public class BookingService : IBookingService
 {
     private readonly IBookingRepository _bookingRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IReviewRepository _reviewRepository;
 
-    public BookingService(IBookingRepository bookingRepository, IUnitOfWork unitOfWork)
+    public BookingService(IBookingRepository bookingRepository, IUnitOfWork unitOfWork, IReviewRepository reviewRepository)
     {
         _bookingRepository = bookingRepository;
         _unitOfWork = unitOfWork;
+        _reviewRepository = reviewRepository;
     }
 
     public async Task<BookingDetailDto> UpdateVendorBookingStatusAsync(Guid bookingId, Guid vendorId, BookingStatus newStatus)
@@ -119,7 +122,10 @@ public class BookingService : IBookingService
         if (booking.CustomerId != customerId)
             throw new NotFoundException("Booking not found");
 
-        return MapToCustomerDetail(booking, customerId);
+        var canReview = booking.Status == BookingStatus.Completed
+            && !await _reviewRepository.ExistsByBookingIdAsync(bookingId);
+
+        return MapToCustomerDetail(booking, customerId, canReview);
     }
 
     public async Task<BookingDetailDto> CancelBookingAsync(Guid bookingId, Guid customerId)
@@ -148,13 +154,49 @@ public class BookingService : IBookingService
             throw;
         }
 
-        return MapToCustomerDetail(booking, customerId);
+        // Just transitioned to Cancelled, was never Completed - never reviewable.
+        return MapToCustomerDetail(booking, customerId, canReview: false);
+    }
+
+    public async Task<int> CompleteExpiredBookingsAsync(CancellationToken ct = default)
+    {
+        var expired = await _bookingRepository.GetBookingsPastEndDateAsync(DateTime.UtcNow, ct);
+        var completedCount = 0;
+
+        foreach (var booking in expired)
+        {
+            // The repo query already filters to Confirmed + past end date,
+            // but re-validate through the same state machine used
+            // everywhere else - never a raw status assignment.
+            if (!BookingValidationRules.CanSystemComplete(booking).IsSuccess)
+                continue;
+
+            // Each booking gets its own transaction so one bad row can't
+            // abort the rest of the sweep - same isolation the scheduled
+            // Payments sweeps rely on (each sweep step is independently
+            // try/caught), just per-item instead of per-sweep here.
+            await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                booking.Status = BookingStatus.Completed;
+                booking.UpdatedAt = DateTime.UtcNow;
+                await _bookingRepository.UpdateAsync(booking);
+                await _unitOfWork.CommitAsync();
+                completedCount++;
+            }
+            catch
+            {
+                await _unitOfWork.RollbackAsync();
+            }
+        }
+
+        return completedCount;
     }
 
     // CanUserCancelConfirmed has no StartDateTime check - a customer can
     // still cancel a Confirmed booking minutes before it starts. Existing
     // behavior of the already-tested rule, not introduced here.
-    private static BookingDetailDto MapToCustomerDetail(Domain.Entities.Bookings.Booking booking, Guid customerId) =>
+    private static BookingDetailDto MapToCustomerDetail(Domain.Entities.Bookings.Booking booking, Guid customerId, bool canReview) =>
         new BookingDetailDto
         {
             BookingId = booking.Id,
@@ -172,7 +214,8 @@ public class BookingService : IBookingService
             CanReject = false,
             CanCancel = booking.Status == BookingStatus.Pending
                 ? BookingValidationRules.CanUserCancelPendding(booking, customerId).IsSuccess
-                : BookingValidationRules.CanUserCancelConfirmed(booking, customerId).IsSuccess
+                : BookingValidationRules.CanUserCancelConfirmed(booking, customerId).IsSuccess,
+            CanReview = canReview
         };
 
     private static BookingDetailDto MapToDetail(Domain.Entities.Bookings.Booking booking, Guid vendorId) =>
@@ -190,6 +233,9 @@ public class BookingService : IBookingService
             Currency = booking.Currency,
             CreatedAt = booking.CreatedAt,
             CanConfirm = BookingValidationRules.CanVendorConfirm(booking, vendorId).IsSuccess,
-            CanReject = BookingValidationRules.CanVendorReject(booking, vendorId).IsSuccess
+            CanReject = BookingValidationRules.CanVendorReject(booking, vendorId).IsSuccess,
+            // A vendor can't review their own listing (ReviewRules.PreventReviewOwnBusiness
+            // already blocks this server-side too) - never show the button on their own view.
+            CanReview = false
         };
 }

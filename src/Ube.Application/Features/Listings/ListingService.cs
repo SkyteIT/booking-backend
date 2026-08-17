@@ -319,6 +319,7 @@ public class ListingService : IListingService
         IsActive = l.IsActive,
         CategoryName = l.Category?.Name ?? string.Empty,
         VendorName = l.VendorProfile?.BusinessName ?? string.Empty,
+        PricingUnit = l.Category?.ServiceModel,
         Type = l.Type,
         AverageRating = l.AverageRating,
         TotalReviews = l.TotalReviews,

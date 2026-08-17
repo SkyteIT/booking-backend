@@ -20,13 +20,20 @@ public class ReviewsController : ControllerBase
         _currentUser = currentUser;
     }
 
+    // Anonymous callers can view reviews, but ICurrentUserService.UserId
+    // throws for them - only read it when the request actually carries an
+    // authenticated principal, so "like" state can be shown to signed-in
+    // viewers without breaking anonymous browsing.
+    private Guid? CurrentUserIdOrNull =>
+        User.Identity?.IsAuthenticated == true ? _currentUser.UserId : null;
+
     // get reviews for a vendor with pagination and optional rating filter
     [HttpGet("vendors/{vendorId}/reviews")]
     public async Task<IActionResult> GetByVendor(
         Guid vendorId,
         [FromQuery] ReviewRequest options)
     {
-        var result = await _service.GetReviewsByVendorAsync(vendorId, options);
+        var result = await _service.GetReviewsByVendorAsync(vendorId, options, CurrentUserIdOrNull);
         return Ok(result);
     }
     // get average rating and total reviews for a vendor
@@ -43,7 +50,7 @@ public class ReviewsController : ControllerBase
         Guid listingId,
         [FromQuery] ReviewRequest options)
     {
-        var result = await _service.GetReviewsByListingAsync(listingId, options);
+        var result = await _service.GetReviewsByListingAsync(listingId, options, CurrentUserIdOrNull);
         return Ok(result);
     }
 }

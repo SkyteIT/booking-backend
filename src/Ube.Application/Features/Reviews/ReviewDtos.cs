@@ -16,6 +16,8 @@ public class ReviewDto
     public string Comment { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public string CustomerName { get; set; } = string.Empty;
+    public int LikeCount { get; set; }
+    public bool IsLikedByCurrentUser { get; set; }
 }
 
 public class ReviewRequest : QueryOptions

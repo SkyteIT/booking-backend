@@ -13,6 +13,10 @@ public interface IBookingService
     Task<PagedResult<VendorBookingDto>> GetCustomerBookingsAsync(Guid customerId, BookingsRequest request);
     Task<BookingDetailDto> GetCustomerBookingDetailAsync(Guid bookingId, Guid customerId);
     Task<BookingDetailDto> CancelBookingAsync(Guid bookingId, Guid customerId);
+
+    // Automatic "Confirmed -> Completed" sweep, driven by BookingCompletionBackgroundService.
+    // Returns how many bookings were actually completed.
+    Task<int> CompleteExpiredBookingsAsync(CancellationToken ct = default);
 }
 
 

@@ -81,17 +81,10 @@ public class ReviewService : IReviewService
         }
     }
 
-    public async Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request)
+    public async Task<PagedResult<ReviewDto>> GetReviewsByVendorAsync(Guid vendorId, ReviewRequest request, Guid? currentUserId = null)
     {
         var (app,totalItems) = await _reviewRepo.GetPagedByVendorAsync(vendorId, request);
-        var mapped = app.Select(r => new ReviewDto
-        {
-            Id = r.Id,
-            Rating = r.Rating,
-            Comment = r.Comment,
-            CreatedAt = r.CreatedAt,
-            CustomerName = r.Customer.FirstName + " " + r.Customer.LastName
-        }).ToList();
+        var mapped = await MapWithLikesAsync(app, currentUserId);
         return new PagedResult<ReviewDto>{
             Items = mapped,
             PageNumber = request.PageNumber,
@@ -100,17 +93,10 @@ public class ReviewService : IReviewService
             TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
         };
     }
-    public async Task<PagedResult<ReviewDto>> GetReviewsByListingAsync(Guid listingId, ReviewRequest request)
+    public async Task<PagedResult<ReviewDto>> GetReviewsByListingAsync(Guid listingId, ReviewRequest request, Guid? currentUserId = null)
     {
         var (app, totalItems) = await _reviewRepo.GetPagedByListingAsync(listingId, request);
-        var mapped = app.Select(r => new ReviewDto
-        {
-            Id = r.Id,
-            Rating = r.Rating,
-            Comment = r.Comment,
-            CreatedAt = r.CreatedAt,
-            CustomerName = r.Customer.FirstName + " " + r.Customer.LastName
-        }).ToList();
+        var mapped = await MapWithLikesAsync(app, currentUserId);
         return new PagedResult<ReviewDto>{
             Items = mapped,
             PageNumber = request.PageNumber,
@@ -118,6 +104,39 @@ public class ReviewService : IReviewService
             TotalCount = totalItems,
             TotalPages = (int)Math.Ceiling((double)totalItems / request.PageSize)
         };
+    }
+
+    // Shared like-hydration for a page of reviews - two grouped queries
+    // for the whole page (counts + the viewer's liked subset), never
+    // per-review, so this never turns into an N+1.
+    private async Task<List<ReviewDto>> MapWithLikesAsync(List<Review> reviews, Guid? currentUserId)
+    {
+        var ids = reviews.Select(r => r.Id).ToList();
+        var likeCounts = await _reviewRepo.GetLikeCountsAsync(ids);
+        var likedByMe = currentUserId.HasValue
+            ? await _reviewRepo.GetLikedReviewIdsAsync(currentUserId.Value, ids)
+            : new HashSet<Guid>();
+
+        return reviews.Select(r => new ReviewDto
+        {
+            Id = r.Id,
+            Rating = r.Rating,
+            Comment = r.Comment,
+            CreatedAt = r.CreatedAt,
+            CustomerName = r.Customer.FirstName + " " + r.Customer.LastName,
+            LikeCount = likeCounts.GetValueOrDefault(r.Id),
+            IsLikedByCurrentUser = likedByMe.Contains(r.Id)
+        }).ToList();
+    }
+
+    public async Task<(int LikeCount, bool IsLiked)> ToggleLikeAsync(Guid reviewId, Guid customerId)
+    {
+        var review = await _reviewRepo.GetByIdAsync(reviewId)
+            ?? throw new NotFoundException("Review not found");
+
+        var isLiked = await _reviewRepo.ToggleLikeAsync(review.Id, customerId);
+        var counts = await _reviewRepo.GetLikeCountsAsync(new[] { review.Id });
+        return (counts.GetValueOrDefault(review.Id), isLiked);
     }
 
     // A customer's own reviews - "My Reviews" page

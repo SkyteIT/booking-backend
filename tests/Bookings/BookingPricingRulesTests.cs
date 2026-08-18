@@ -1,4 +1,5 @@
 using Ube.Application.Features.Bookings;
+using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums.Listings;
 
 namespace Ube.Tests.Bookings;
@@ -54,5 +55,60 @@ public class BookingPricingRulesTests
     {
         var total = BookingPricingRules.CalculateTotal(1000m, 1, Start, Start.AddHours(2), PricingUnit.PerDay);
         Assert.Equal(1000m, total); // same calendar day -> at least 1 day
+    }
+
+    private static SeasonalPricingRule MakeRule(DateTime start, DateTime end, SeasonalRateAdjustmentType type, decimal value) => new()
+    {
+        Id = Guid.NewGuid(),
+        StartDate = DateOnly.FromDateTime(start),
+        EndDate = DateOnly.FromDateTime(end),
+        AdjustmentType = type,
+        AdjustmentValue = value,
+        IsActive = true
+    };
+
+    [Fact]
+    public void CalculateSeasonalTotal_With_No_Rules_Matches_Flat_CalculateTotal()
+    {
+        var seasonal = BookingPricingRules.CalculateSeasonalTotal(1000m, 2, Start, Start.AddDays(3), Array.Empty<SeasonalPricingRule>());
+        var flat = BookingPricingRules.CalculateTotal(1000m, 2, Start, Start.AddDays(3), PricingUnit.PerNight);
+        Assert.Equal(flat, seasonal);
+    }
+
+    [Fact]
+    public void CalculateSeasonalTotal_Rule_Covering_Whole_Stay_Applies_Percentage_Discount()
+    {
+        var rules = new[] { MakeRule(Start, Start.AddDays(10), SeasonalRateAdjustmentType.PercentageAdjustment, -20) };
+        var total = BookingPricingRules.CalculateSeasonalTotal(1000m, 1, Start, Start.AddDays(3), rules);
+        Assert.Equal(2400m, total); // 3 nights * 800 (1000 - 20%)
+    }
+
+    [Fact]
+    public void CalculateSeasonalTotal_Rule_Covering_Only_Part_Of_Stay_Sums_Mixed_Rates()
+    {
+        // 4-night stay, only the last 2 nights fall in a +50% peak rule.
+        var peakStart = Start.AddDays(2);
+        var rules = new[] { MakeRule(peakStart, Start.AddDays(10), SeasonalRateAdjustmentType.PercentageAdjustment, 50) };
+        var total = BookingPricingRules.CalculateSeasonalTotal(1000m, 1, Start, Start.AddDays(4), rules);
+        // nights: day0=1000, day1=1000, day2=1500, day3=1500 => 5000
+        Assert.Equal(5000m, total);
+    }
+
+    [Fact]
+    public void CalculateSeasonalTotal_FixedRate_Replaces_Base_Price_For_Covered_Nights()
+    {
+        var rules = new[] { MakeRule(Start, Start, SeasonalRateAdjustmentType.FixedRate, 750m) };
+        var total = BookingPricingRules.CalculateSeasonalTotal(1000m, 2, Start, Start.AddDays(2), rules);
+        // night0 fixed 750, night1 falls outside the rule -> base 1000; *2 quantity
+        Assert.Equal((750m + 1000m) * 2, total);
+    }
+
+    [Fact]
+    public void CalculateSeasonalTotal_Inactive_Rule_Is_Ignored()
+    {
+        var rule = MakeRule(Start, Start.AddDays(10), SeasonalRateAdjustmentType.FixedRate, 1);
+        rule.IsActive = false;
+        var total = BookingPricingRules.CalculateSeasonalTotal(1000m, 1, Start, Start.AddDays(2), new[] { rule });
+        Assert.Equal(2000m, total); // falls back to flat base price
     }
 }

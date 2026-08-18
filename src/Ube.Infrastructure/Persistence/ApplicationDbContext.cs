@@ -44,6 +44,7 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<NotificationPreference> NotificationPreferences { get; set; } = default!;
     public DbSet<ListingImage> ListingImages { get; set; } = default!;
     public DbSet<ListingUnit> ListingUnits { get; set; } = default!;
+    public DbSet<SeasonalPricingRule> SeasonalPricingRules { get; set; } = default!;
     public DbSet<Cart> Carts { get; set; } = default!;
     public DbSet<CartItem> CartItems { get; set; } = default!;
 

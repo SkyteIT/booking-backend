@@ -20,6 +20,7 @@ public class CheckoutService : ICheckoutService
     private readonly IListingUnitRepository _unitRepo;
     private readonly IBlockedDateRepository _blockedDateRepo;
     private readonly ICategoryRepository _categoryRepo;
+    private readonly ISeasonalPricingRepository _seasonalPricingRepo;
     private readonly StrategySelector _strategySelector;
     private readonly IPaymentService _paymentService;
     private readonly IFraudDetectionService _fraudDetectionService;
@@ -31,6 +32,7 @@ public class CheckoutService : ICheckoutService
         IListingUnitRepository unitRepo,
         IBlockedDateRepository blockedDateRepo,
         ICategoryRepository categoryRepo,
+        ISeasonalPricingRepository seasonalPricingRepo,
         StrategySelector strategySelector,
         IPaymentService paymentService,
         IFraudDetectionService fraudDetectionService,
@@ -41,6 +43,7 @@ public class CheckoutService : ICheckoutService
         _unitRepo = unitRepo;
         _blockedDateRepo = blockedDateRepo;
         _categoryRepo = categoryRepo;
+        _seasonalPricingRepo = seasonalPricingRepo;
         _strategySelector = strategySelector;
         _paymentService = paymentService;
         _fraudDetectionService = fraudDetectionService;
@@ -93,8 +96,21 @@ public class CheckoutService : ICheckoutService
                 var bookingNumber = $"BKG-{nextValue:D6}";
 
                 var effectivePrice = unit?.PriceOverride ?? listing.Price;
-                var totalAmount = BookingPricingRules.CalculateTotal(
-                    effectivePrice, item.Quantity, item.StartDateTime, item.EndDateTime, category.ServiceModel);
+                var isDateBasedPricing = category.ServiceModel is PricingUnit.PerNight or PricingUnit.PerDay;
+                decimal totalAmount;
+                if (isDateBasedPricing)
+                {
+                    var seasonalRules = await _seasonalPricingRepo.GetActiveInRangeAsync(
+                        listing.Id, item.ListingUnitId,
+                        DateOnly.FromDateTime(item.StartDateTime), DateOnly.FromDateTime(item.EndDateTime), ct);
+                    totalAmount = BookingPricingRules.CalculateSeasonalTotal(
+                        effectivePrice, item.Quantity, item.StartDateTime, item.EndDateTime, seasonalRules);
+                }
+                else
+                {
+                    totalAmount = BookingPricingRules.CalculateTotal(
+                        effectivePrice, item.Quantity, item.StartDateTime, item.EndDateTime, category.ServiceModel);
+                }
 
                 var status = category.BookingType == BookingConfirmationType.Instant
                     ? BookingStatus.Confirmed

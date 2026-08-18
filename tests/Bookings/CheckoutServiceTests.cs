@@ -22,6 +22,7 @@ public class CheckoutServiceTests
         Mock<IListingUnitRepository> UnitRepo,
         Mock<IBlockedDateRepository> BlockedDateRepo,
         Mock<ICategoryRepository> CategoryRepo,
+        Mock<ISeasonalPricingRepository> SeasonalPricingRepo,
         Mock<IPaymentService> PaymentService,
         Mock<IFraudDetectionService> FraudDetectionService,
         Mock<IUnitOfWork> UnitOfWork,
@@ -34,9 +35,14 @@ public class CheckoutServiceTests
         var unitRepo = new Mock<IListingUnitRepository>();
         var blockedDateRepo = new Mock<IBlockedDateRepository>();
         var categoryRepo = new Mock<ICategoryRepository>();
+        var seasonalPricingRepo = new Mock<ISeasonalPricingRepository>();
         var paymentService = new Mock<IPaymentService>();
         var fraudDetectionService = new Mock<IFraudDetectionService>();
         var unitOfWork = new Mock<IUnitOfWork>();
+
+        seasonalPricingRepo
+            .Setup(r => r.GetActiveInRangeAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<SeasonalPricingRule>());
 
         // A single always-available Capacity strategy - EnsureAvailableAsync
         // is not what these tests are about, so it never blocks checkout.
@@ -80,12 +86,13 @@ public class CheckoutServiceTests
             unitRepo.Object,
             blockedDateRepo.Object,
             categoryRepo.Object,
+            seasonalPricingRepo.Object,
             strategySelector,
             paymentService.Object,
             fraudDetectionService.Object,
             unitOfWork.Object);
 
-        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, paymentService, fraudDetectionService, unitOfWork, service);
+        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, paymentService, fraudDetectionService, unitOfWork, service);
     }
 
     private static Listing MakeListing(Guid categoryId) => new()

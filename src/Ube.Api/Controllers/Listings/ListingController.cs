@@ -9,12 +9,30 @@ namespace Ube.Api.Controllers.Listings;
 public class ListingController : ControllerBase
 {
     private readonly IListingService _listingService;
+    private readonly ISeasonalPricingService _seasonalPricingService;
     private readonly ICurrentUserService _currentUser;
 
-    public ListingController(IListingService listingService, ICurrentUserService currentUser)
+    public ListingController(IListingService listingService, ISeasonalPricingService seasonalPricingService, ICurrentUserService currentUser)
     {
         _listingService = listingService;
+        _seasonalPricingService = seasonalPricingService;
         _currentUser = currentUser;
+    }
+
+    // Public price preview - reuses the exact same seasonal-aware
+    // calculation CheckoutService uses, so this always matches the real
+    // charge instead of drifting from a separate client-side estimate.
+    [HttpGet("{id:guid}/price-quote")]
+    public async Task<IActionResult> GetPriceQuote(
+        Guid id,
+        [FromQuery] DateTime startDate,
+        [FromQuery] DateTime endDate,
+        [FromQuery] Guid? unitId,
+        [FromQuery] int quantity = 1,
+        CancellationToken ct = default)
+    {
+        var quote = await _seasonalPricingService.GetPriceQuoteAsync(id, unitId, startDate, endDate, quantity, ct);
+        return Ok(quote);
     }
 
     [HttpGet("me")]

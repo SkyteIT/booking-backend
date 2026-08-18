@@ -4,6 +4,7 @@ using Ube.Domain.Entities.Auth;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Carts;
 using Ube.Domain.Entities.Content;
+using Ube.Domain.Entities.Fraud;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Notifications;
 using Ube.Domain.Entities.Payments;
@@ -70,6 +71,9 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<PayoutExportRun> PayoutExportRuns { get; set; } = default!;
     public DbSet<PayoutExportSettings> PayoutExportSettingsRows { get; set; } = default!;
     public DbSet<PaymentDispute> PaymentDisputes { get; set; } = default!;
+
+    // ================= FRAUD =================
+    public DbSet<FraudFlag> FraudFlags { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -32,6 +32,11 @@ public class Booking
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 
+    // Set only by the NewAccountHighValue fraud rule at checkout - while
+    // true, the booking is forced Pending and payment capture is deferred
+    // until an admin clears or rejects the FraudFlag that caused the hold.
+    public bool IsHeldForFraudReview { get; set; }
+
     // Optimistic concurrency — prevents two simultaneous status updates from both succeeding
     public byte[] RowVersion { get; set; } = [];
 }

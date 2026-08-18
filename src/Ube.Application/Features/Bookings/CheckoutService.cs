@@ -3,6 +3,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Availability;
 using Ube.Application.Features.Availability.Strategies;
 using Ube.Application.Features.Content.Category;
+using Ube.Application.Features.Fraud;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
@@ -21,6 +22,7 @@ public class CheckoutService : ICheckoutService
     private readonly ICategoryRepository _categoryRepo;
     private readonly StrategySelector _strategySelector;
     private readonly IPaymentService _paymentService;
+    private readonly IFraudDetectionService _fraudDetectionService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CheckoutService(
@@ -31,6 +33,7 @@ public class CheckoutService : ICheckoutService
         ICategoryRepository categoryRepo,
         StrategySelector strategySelector,
         IPaymentService paymentService,
+        IFraudDetectionService fraudDetectionService,
         IUnitOfWork unitOfWork)
     {
         _bookingRepo = bookingRepo;
@@ -40,6 +43,7 @@ public class CheckoutService : ICheckoutService
         _categoryRepo = categoryRepo;
         _strategySelector = strategySelector;
         _paymentService = paymentService;
+        _fraudDetectionService = fraudDetectionService;
         _unitOfWork = unitOfWork;
     }
 
@@ -74,6 +78,15 @@ public class CheckoutService : ICheckoutService
                         throw new BusinessRuleException("Selected unit does not belong to this listing");
                 }
 
+                // Duplicate-booking guard - same customer already holds a
+                // live (Pending/Confirmed) booking for this listing/unit that
+                // overlaps these dates. Unambiguous fraud signal, always
+                // hard-declined, never just flagged.
+                var isDuplicate = await _bookingRepo.HasOverlappingBookingForCustomerAsync(
+                    customerId, listing.Id, item.ListingUnitId, item.StartDateTime, item.EndDateTime, ct);
+                if (isDuplicate)
+                    throw new BusinessRuleException($"You already have a booking for {listing.Title} in this date range.");
+
                 await EnsureAvailableAsync(listing, unit, item.StartDateTime, item.EndDateTime, ct);
 
                 var nextValue = await _bookingRepo.GetNextBookingSequenceAsync();
@@ -87,6 +100,16 @@ public class CheckoutService : ICheckoutService
                     ? BookingStatus.Confirmed
                     : BookingStatus.Pending;
 
+                var collectionMethod = category.PaymentCollectionModel == ServiceCollectionModel.PayAtVenue
+                    ? PaymentCollectionMethod.VendorCollected
+                    : PaymentCollectionMethod.PlatformCollected;
+
+                // Gray-area fraud signal: a brand-new account making an
+                // unusually large first booking. Held for admin review
+                // instead of declined outright - the booking is created but
+                // stays Pending and payment capture is deferred.
+                var isHeldForFraudReview = await _fraudDetectionService.IsNewAccountHighValueAsync(customerId, totalAmount, ct);
+
                 var booking = new Booking
                 {
                     Id = Guid.NewGuid(),
@@ -96,7 +119,8 @@ public class CheckoutService : ICheckoutService
                     CustomerId = customerId,
                     StartDateTime = item.StartDateTime,
                     EndDateTime = item.EndDateTime,
-                    Status = status,
+                    Status = isHeldForFraudReview ? BookingStatus.Pending : status,
+                    IsHeldForFraudReview = isHeldForFraudReview,
                     TotalAmount = totalAmount,
                     Currency = listing.Currency,
                     CreatedAt = DateTime.UtcNow
@@ -105,21 +129,26 @@ public class CheckoutService : ICheckoutService
                 await _bookingRepo.AddAsync(booking, ct);
                 bookings.Add(booking);
 
-                var collectionMethod = category.PaymentCollectionModel == ServiceCollectionModel.PayAtVenue
-                    ? PaymentCollectionMethod.VendorCollected
-                    : PaymentCollectionMethod.PlatformCollected;
-
-                var paymentRequest = new InitiatePaymentRequest
+                if (isHeldForFraudReview)
                 {
-                    BookingId = booking.Id,
-                    CollectionMethod = collectionMethod,
-                    IdempotencyKey = $"{request.IdempotencyKey}:{booking.Id}"
-                };
-                var payment = await _paymentService.InitiateAsync(customerId, paymentRequest, ct);
-                payments.Add(payment);
+                    // No payment initiated while held - deferred until an
+                    // admin clears the flag (Features/Fraud/FraudDetectionService.ReviewAsync).
+                    await _fraudDetectionService.CreateHoldFlagAsync(booking, status, collectionMethod, ct);
+                }
+                else
+                {
+                    var paymentRequest = new InitiatePaymentRequest
+                    {
+                        BookingId = booking.Id,
+                        CollectionMethod = collectionMethod,
+                        IdempotencyKey = $"{request.IdempotencyKey}:{booking.Id}"
+                    };
+                    var payment = await _paymentService.InitiateAsync(customerId, paymentRequest, ct);
+                    payments.Add(payment);
 
-                if (payment.Status == PaymentStatus.Failed)
-                    throw new BusinessRuleException($"Payment failed for {listing.Title}");
+                    if (payment.Status == PaymentStatus.Failed)
+                        throw new BusinessRuleException($"Payment failed for {listing.Title}");
+                }
             }
 
             await _unitOfWork.CommitAsync();
@@ -128,6 +157,14 @@ public class CheckoutService : ICheckoutService
         {
             await _unitOfWork.RollbackAsync();
             throw;
+        }
+
+        // Post-commit, weaker pattern signals (velocity, repeated
+        // cancellations) - the checkout already succeeded, this only ever
+        // adds visibility for admins, never affects the booking itself.
+        foreach (var booking in bookings)
+        {
+            await _fraudDetectionService.EvaluateFlagOnlyRulesAsync(customerId, booking.Id, ct);
         }
 
         // Re-fetch with navigation properties populated (Listing/Customer)

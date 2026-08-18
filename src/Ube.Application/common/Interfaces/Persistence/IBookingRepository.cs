@@ -20,4 +20,9 @@ public interface IBookingRepository
     Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(Guid customerId, BookingsRequest request, CancellationToken ct = default);
     Task<List<Booking>> GetBookingsPastEndDateAsync(DateTime asOf, CancellationToken ct = default);
     Task<Dictionary<Guid, string>> GetBookingNumbersByIdsAsync(IEnumerable<Guid> bookingIds, CancellationToken ct = default);
+
+    // Fraud detection support - see Features/Fraud/FraudDetectionService.cs.
+    Task<bool> HasOverlappingBookingForCustomerAsync(Guid customerId, Guid listingId, Guid? listingUnitId, DateTime startDate, DateTime endDate, CancellationToken ct = default);
+    Task<int> CountByCustomerSinceAsync(Guid customerId, DateTime since, CancellationToken ct = default);
+    Task<int> CountCancelledByCustomerSinceAsync(Guid customerId, DateTime since, CancellationToken ct = default);
 }

@@ -225,4 +225,34 @@ public class BookingRepository : IBookingRepository
             .Select(b => new { b.Id, b.BookingNumber })
             .ToDictionaryAsync(x => x.Id, x => x.BookingNumber, ct);
     }
+
+    // Duplicate-booking guard - same customer, same listing/unit, dates
+    // overlap, and the prior booking is still live (Pending/Confirmed).
+    // A Cancelled/Rejected/Completed prior booking never blocks a new one.
+    public async Task<bool> HasOverlappingBookingForCustomerAsync(
+        Guid customerId, Guid listingId, Guid? listingUnitId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        return await _db.Bookings.AnyAsync(b =>
+            b.CustomerId == customerId &&
+            b.ListingId == listingId &&
+            b.ListingUnitId == listingUnitId &&
+            (b.Status == BookingStatus.Pending || b.Status == BookingStatus.Confirmed) &&
+            b.StartDateTime.Date <= endDate.Date &&
+            b.EndDateTime.Date >= startDate.Date,
+            ct);
+    }
+
+    // Booking-velocity fraud signal - how many bookings this customer has
+    // created since a given point in time, regardless of status.
+    public async Task<int> CountByCustomerSinceAsync(Guid customerId, DateTime since, CancellationToken ct = default)
+    {
+        return await _db.Bookings.CountAsync(b => b.CustomerId == customerId && b.CreatedAt >= since, ct);
+    }
+
+    // Repeated-cancellation fraud signal.
+    public async Task<int> CountCancelledByCustomerSinceAsync(Guid customerId, DateTime since, CancellationToken ct = default)
+    {
+        return await _db.Bookings.CountAsync(b =>
+            b.CustomerId == customerId && b.Status == BookingStatus.Cancelled && b.CreatedAt >= since, ct);
+    }
 }

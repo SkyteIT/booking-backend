@@ -54,6 +54,8 @@ using Ube.Infrastructure.Persistence.Repositories.Admin;
 using Ube.Application.Features.Payments;
 using Ube.Infrastructure.Persistence.Repositories.Payments;
 using Ube.Infrastructure.Integrations.PaymentGateway;
+using Ube.Application.Features.Fraud;
+using Ube.Infrastructure.Persistence.Repositories.Fraud;
 using Azure.Identity;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 
@@ -191,6 +193,11 @@ builder.Services.Configure<PaymentSchedulerOptions>(builder.Configuration.GetSec
 builder.Services.AddHostedService<PaymentSchedulerBackgroundService>();
 builder.Services.Configure<BookingCompletionOptions>(builder.Configuration.GetSection("BookingCompletion"));
 builder.Services.AddHostedService<BookingCompletionBackgroundService>();
+
+// Fraud detection
+builder.Services.AddScoped<IFraudFlagRepository, FraudFlagRepository>();
+builder.Services.AddScoped<IFraudDetectionService, FraudDetectionService>();
+builder.Services.Configure<FraudDetectionOptions>(builder.Configuration.GetSection("FraudDetection"));
 
 builder.Services.AddRateLimiter(options =>
 {

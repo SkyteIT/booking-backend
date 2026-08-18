@@ -43,6 +43,7 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<Promotion> Promotions { get; set; } = default!;
     public DbSet<Notification> Notifications { get; set; } = default!;
     public DbSet<NotificationPreference> NotificationPreferences { get; set; } = default!;
+    public DbSet<PushSubscription> PushSubscriptions { get; set; } = default!;
     public DbSet<ListingImage> ListingImages { get; set; } = default!;
     public DbSet<ListingUnit> ListingUnits { get; set; } = default!;
     public DbSet<SeasonalPricingRule> SeasonalPricingRules { get; set; } = default!;

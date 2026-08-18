@@ -5,6 +5,8 @@ using Ube.Application.Common.Exceptions;
 using Ube.Domain.Entities.Reviews;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Helpers;
+using Ube.Application.Features.Notifications;
+using Ube.Domain.Enums.Notifications;
 
 
 namespace Ube.Application.Features.Reviews;
@@ -14,18 +16,21 @@ public class ReviewService : IReviewService
     private readonly IBookingRepository _bookingRepo;
     private readonly IReviewRepository _reviewRepo;
     private readonly RatingHelper _ratingHelper;
+    private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public ReviewService(
         IBookingRepository bookingRepo,
         IReviewRepository reviewRepo,
         RatingHelper ratingHelper,
+        INotificationService notificationService,
         IUnitOfWork unitOfWork
         )
     {
         _bookingRepo = bookingRepo;
         _reviewRepo = reviewRepo;
         _ratingHelper = ratingHelper;
+        _notificationService = notificationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -74,6 +79,23 @@ public class ReviewService : IReviewService
             await _ratingHelper.UpdateListingRatingAsync(review.ListingId, null, review.Rating);
             await _reviewRepo.SaveChangesAsync();
             await _unitOfWork.CommitAsync();
+
+            // Best-effort - a notification failure should never fail a review
+            // that has already been committed.
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = booking.Listing.VendorProfile.UserId,
+                    Title = "New review",
+                    Message = $"{booking.Customer.FirstName} {booking.Customer.LastName} left a {dto.Rating}-star review on {booking.Listing.Title}.",
+                    Type = (int)NotificationType.NewReview
+                }, CancellationToken.None);
+            }
+            catch
+            {
+                // Swallow - notification delivery is not part of the review contract.
+            }
         }
         catch{
                 await _unitOfWork.RollbackAsync();

@@ -86,4 +86,22 @@ public class NotificationController : ControllerBase
         var result = await _service.SavePreferenceAsync(_currentUser.UserId, dto, cancellationToken);
         return Ok(result);
     }
+
+    // POST: api/notifications/push/subscribe
+    // Register (or repoint) a browser push subscription for the authenticated user
+    [HttpPost("push/subscribe")]
+    public async Task<IActionResult> SubscribeToPush([FromBody] SubscribePushDto dto, CancellationToken cancellationToken)
+    {
+        await _service.SubscribeToPushAsync(_currentUser.UserId, dto, cancellationToken);
+        return NoContent();
+    }
+
+    // POST: api/notifications/push/unsubscribe
+    // Remove a browser push subscription (only if it belongs to the caller)
+    [HttpPost("push/unsubscribe")]
+    public async Task<IActionResult> UnsubscribeFromPush([FromBody] UnsubscribePushDto dto, CancellationToken cancellationToken)
+    {
+        await _service.UnsubscribeFromPushAsync(_currentUser.UserId, dto.Endpoint, cancellationToken);
+        return NoContent();
+    }
 }

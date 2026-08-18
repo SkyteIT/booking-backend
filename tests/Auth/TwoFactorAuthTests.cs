@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using OtpNet;
@@ -48,7 +49,10 @@ public class TwoFactorAuthTests
             _emailService.Object,
             _encryptionService.Object,
             Mock.Of<ILogger<AuthService>>(),
-            _unitOfWork.Object);
+            _unitOfWork.Object,
+            new ConfigurationBuilder()
+                .AddInMemoryCollection(new Dictionary<string, string?> { ["Google:ClientId"] = "test-google-client-id" })
+                .Build());
     }
 
     private static User MakeUser(UserRole role, bool twoFactorEnabled = false, string? secret = null) => new()

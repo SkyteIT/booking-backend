@@ -9,15 +9,18 @@ public class NotificationService : INotificationService
     private readonly INotificationRepository _repo;
     private readonly IEmailService _emailService;
     private readonly ISmsService _smsService;
+    private readonly IPushService _pushService;
 
     public NotificationService(
         INotificationRepository repo,
         IEmailService emailService,
-        ISmsService smsService)
+        ISmsService smsService,
+        IPushService pushService)
     {
         _repo = repo;
         _emailService = emailService;
         _smsService = smsService;
+        _pushService = pushService;
     }
 
     public async Task<IReadOnlyList<NotificationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
@@ -47,6 +50,13 @@ public class NotificationService : INotificationService
 
         if (preference?.SmsEnabled == true && !string.IsNullOrEmpty(dto.PhoneNumber))
             await _smsService.SendSmsAsync(dto.PhoneNumber, notification.Message);
+
+        if (preference?.PushEnabled == true)
+        {
+            var subscriptions = await _repo.GetPushSubscriptionsByUserIdAsync(dto.UserId, cancellationToken);
+            foreach (var sub in subscriptions)
+                await _pushService.SendPushAsync(sub.Endpoint, sub.P256dh, sub.Auth, notification.Title, notification.Message, cancellationToken);
+        }
 
         return ToDto(notification);
     }
@@ -86,7 +96,7 @@ public class NotificationService : INotificationService
         {
             Id = x.Id,
             UserId = x.UserId,
-            NotificationType = x.NotificationType.ToString(),
+            NotificationType = ((int)x.NotificationType).ToString(),
             EmailEnabled = x.EmailEnabled,
             PushEnabled = x.PushEnabled,
             SmsEnabled = x.SmsEnabled
@@ -125,11 +135,47 @@ public class NotificationService : INotificationService
         {
             Id = preference.Id,
             UserId = preference.UserId,
-            NotificationType = preference.NotificationType.ToString(),
+            NotificationType = ((int)preference.NotificationType).ToString(),
             EmailEnabled = preference.EmailEnabled,
             PushEnabled = preference.PushEnabled,
             SmsEnabled = preference.SmsEnabled
         };
+    }
+
+    public async Task SubscribeToPushAsync(Guid userId, SubscribePushDto dto, CancellationToken cancellationToken)
+    {
+        var existing = await _repo.GetPushSubscriptionByEndpointAsync(dto.Endpoint, cancellationToken);
+
+        if (existing != null)
+        {
+            // Same browser endpoint re-subscribing (e.g. a different account
+            // signed in on this device) - repoint it rather than duplicate.
+            existing.UserId = userId;
+            existing.P256dh = dto.P256dh;
+            existing.Auth = dto.Auth;
+        }
+        else
+        {
+            await _repo.AddPushSubscriptionAsync(new PushSubscription
+            {
+                UserId = userId,
+                Endpoint = dto.Endpoint,
+                P256dh = dto.P256dh,
+                Auth = dto.Auth
+            }, cancellationToken);
+        }
+
+        await _repo.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UnsubscribeFromPushAsync(Guid userId, string endpoint, CancellationToken cancellationToken)
+    {
+        var existing = await _repo.GetPushSubscriptionByEndpointAsync(endpoint, cancellationToken);
+        if (existing == null || existing.UserId != userId)
+            return;
+
+        await _repo.RemovePushSubscriptionAsync(endpoint, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
     }
 
     private static NotificationDto ToDto(Notification x) => new()

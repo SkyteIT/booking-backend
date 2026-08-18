@@ -9,6 +9,7 @@ using Ube.Application.Features.Auth;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Auth;
 using Ube.Application.Features.Notifications.Email;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OtpNet;
 
@@ -27,6 +28,7 @@ public class AuthService : IAuthService
     private readonly IEncryptionService _encryptionService;
     private readonly ILogger<AuthService> _logger;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly string _googleClientId;
 
     private const int BackupCodeCount = 10;
     private const string TotpIssuer = "Ube";
@@ -42,7 +44,8 @@ public class AuthService : IAuthService
         IEmailService emailService,
         IEncryptionService encryptionService,
         ILogger<AuthService> logger,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IConfiguration configuration)
     {
         _userRepo = userRepo;
         _tokenService = tokenService;
@@ -55,6 +58,8 @@ public class AuthService : IAuthService
         _encryptionService = encryptionService;
         _logger = logger;
         _unitOfWork = unitOfWork;
+        _googleClientId = configuration["Google:ClientId"]
+            ?? throw new InvalidOperationException("Google:ClientId is not configured.");
     }
 
     public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
@@ -117,7 +122,18 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> GoogleLoginAsync(string idToken)
     {
-        var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);
+        GoogleJsonWebSignature.Payload payload;
+        try
+        {
+            payload = await GoogleJsonWebSignature.ValidateAsync(idToken, new GoogleJsonWebSignature.ValidationSettings
+            {
+                Audience = new[] { _googleClientId }
+            });
+        }
+        catch (Exception ex) when (ex is InvalidJwtException or FormatException)
+        {
+            throw new BusinessRuleException("Invalid or expired Google sign-in token.");
+        }
         var email = payload.Email.Trim().ToLower();
         var user = await _userRepo.GetByEmailAsync(email);
 
@@ -386,6 +402,100 @@ public class AuthService : IAuthService
         return await BuildAuthResponseAsync(user);
     }
 
+    public async Task<TwoFactorEnrollmentStartDto> StartSelfServiceTwoFactorEnrollmentAsync(Guid userId)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User not found");
+
+        if (user.TwoFactorEnabled)
+            throw new BusinessRuleException("Two-factor authentication is already enabled");
+
+        var secretBytes = KeyGeneration.GenerateRandomKey(20);
+        var base32Secret = Base32Encoding.ToString(secretBytes);
+
+        user.TwoFactorSecret = _encryptionService.Encrypt(base32Secret);
+        await _userRepo.UpdateAsync(user);
+
+        var otpAuthUri = $"otpauth://totp/{TotpIssuer}:{Uri.EscapeDataString(user.Email)}" +
+                          $"?secret={base32Secret}&issuer={TotpIssuer}&digits=6&period=30";
+
+        return new TwoFactorEnrollmentStartDto
+        {
+            Secret = base32Secret,
+            OtpAuthUri = otpAuthUri
+        };
+    }
+
+    public async Task<List<string>> ConfirmSelfServiceTwoFactorEnrollmentAsync(Guid userId, string code)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User not found");
+
+        if (user.TwoFactorEnabled)
+            throw new BusinessRuleException("Two-factor authentication is already enabled");
+
+        if (string.IsNullOrEmpty(user.TwoFactorSecret))
+            throw new BusinessRuleException("Enrollment has not been started");
+
+        var base32Secret = _encryptionService.Decrypt(user.TwoFactorSecret);
+        var totp = new Totp(Base32Encoding.ToBytes(base32Secret));
+
+        if (!totp.VerifyTotp(code, out _, VerificationWindow.RfcSpecifiedNetworkDelay))
+            throw new BusinessRuleException("Invalid verification code");
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            user.TwoFactorEnabled = true;
+            await _userRepo.UpdateAsync(user);
+
+            var backupCodes = GenerateBackupCodes(user.Id, out var hashedCodes);
+            await _backupCodeRepo.AddRangeAsync(hashedCodes);
+
+            await _unitOfWork.CommitAsync();
+            return backupCodes;
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task DisableTwoFactorAsync(Guid userId, string currentPassword)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User not found");
+
+        if (!user.TwoFactorEnabled)
+            throw new BusinessRuleException("Two-factor authentication is not enabled");
+
+        if (string.IsNullOrEmpty(user.PasswordHash))
+            throw new BusinessRuleException("Account uses social login — password cannot be verified here");
+
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            throw new BusinessRuleException("Current password is incorrect");
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            user.TwoFactorEnabled = false;
+            user.TwoFactorSecret = null;
+            await _userRepo.UpdateAsync(user);
+
+            // Unused backup codes for a disabled 2FA setup are dead weight and
+            // a latent risk if 2FA is ever re-enabled and the old codes leak.
+            await _backupCodeRepo.DeleteAllForUserAsync(user.Id);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
+    }
+
     private static List<string> GenerateBackupCodes(Guid userId, out List<TwoFactorBackupCode> hashedCodes)
     {
         var plainCodes = new List<string>();
@@ -446,7 +556,8 @@ public class AuthService : IAuthService
             FirstName = user.FirstName,
             LastName = user.LastName,
             Role = user.Role.ToString(),
-            ProfileImageUrl = user.ProfileImageUrl
+            ProfileImageUrl = user.ProfileImageUrl,
+            TwoFactorEnabled = user.TwoFactorEnabled
         };
     }
 

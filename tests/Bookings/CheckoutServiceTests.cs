@@ -6,6 +6,7 @@ using Ube.Application.Features.Availability.Strategies;
 using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Content.Category;
 using Ube.Application.Features.Fraud;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums.Bookings;
@@ -26,6 +27,7 @@ public class CheckoutServiceTests
         Mock<IListingOfferRepository> OfferRepo,
         Mock<IPaymentService> PaymentService,
         Mock<IFraudDetectionService> FraudDetectionService,
+        Mock<INotificationService> NotificationService,
         Mock<IUnitOfWork> UnitOfWork,
         CheckoutService Service);
 
@@ -40,6 +42,7 @@ public class CheckoutServiceTests
         var offerRepo = new Mock<IListingOfferRepository>();
         var paymentService = new Mock<IPaymentService>();
         var fraudDetectionService = new Mock<IFraudDetectionService>();
+        var notificationService = new Mock<INotificationService>();
         var unitOfWork = new Mock<IUnitOfWork>();
 
         seasonalPricingRepo
@@ -96,9 +99,10 @@ public class CheckoutServiceTests
             strategySelector,
             paymentService.Object,
             fraudDetectionService.Object,
+            notificationService.Object,
             unitOfWork.Object);
 
-        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, offerRepo, paymentService, fraudDetectionService, unitOfWork, service);
+        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, offerRepo, paymentService, fraudDetectionService, notificationService, unitOfWork, service);
     }
 
     private static Listing MakeListing(Guid categoryId) => new()

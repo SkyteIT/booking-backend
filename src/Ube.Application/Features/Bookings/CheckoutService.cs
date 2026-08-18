@@ -4,11 +4,13 @@ using Ube.Application.Features.Availability;
 using Ube.Application.Features.Availability.Strategies;
 using Ube.Application.Features.Content.Category;
 using Ube.Application.Features.Fraud;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums.Bookings;
 using Ube.Domain.Enums.Listings;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
 
 namespace Ube.Application.Features.Bookings;
@@ -25,6 +27,7 @@ public class CheckoutService : ICheckoutService
     private readonly StrategySelector _strategySelector;
     private readonly IPaymentService _paymentService;
     private readonly IFraudDetectionService _fraudDetectionService;
+    private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
 
     public CheckoutService(
@@ -38,6 +41,7 @@ public class CheckoutService : ICheckoutService
         StrategySelector strategySelector,
         IPaymentService paymentService,
         IFraudDetectionService fraudDetectionService,
+        INotificationService notificationService,
         IUnitOfWork unitOfWork)
     {
         _bookingRepo = bookingRepo;
@@ -50,6 +54,7 @@ public class CheckoutService : ICheckoutService
         _strategySelector = strategySelector;
         _paymentService = paymentService;
         _fraudDetectionService = fraudDetectionService;
+        _notificationService = notificationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -202,6 +207,23 @@ public class CheckoutService : ICheckoutService
             var hydrated = await _bookingRepo.GetByIdAsync(booking.Id)
                 ?? throw new NotFoundException("Booking not found after creation");
             hydratedBookings.Add(MapToDetail(hydrated));
+
+            // Best-effort - a notification failure should never fail a
+            // checkout that has already been paid for and committed.
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = hydrated.Listing.VendorProfile.UserId,
+                    Title = "New booking request",
+                    Message = $"{hydrated.Customer.FirstName} {hydrated.Customer.LastName} booked {hydrated.Listing.Title} ({hydrated.BookingNumber}).",
+                    Type = (int)NotificationType.NewBookingRequest
+                }, ct);
+            }
+            catch
+            {
+                // Swallow - notification delivery is not part of the checkout contract.
+            }
         }
 
         return new CheckoutResultDto

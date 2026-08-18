@@ -41,6 +41,24 @@ public class NotificationRepository : INotificationRepository
     public async Task AddPreferenceAsync(NotificationPreference preference, CancellationToken ct = default)
         => await _db.NotificationPreferences.AddAsync(preference, ct);
 
+    public async Task<IReadOnlyList<PushSubscription>> GetPushSubscriptionsByUserIdAsync(Guid userId, CancellationToken ct = default)
+        => await _db.PushSubscriptions
+            .Where(x => x.UserId == userId)
+            .ToListAsync(ct);
+
+    public async Task<PushSubscription?> GetPushSubscriptionByEndpointAsync(string endpoint, CancellationToken ct = default)
+        => await _db.PushSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == endpoint, ct);
+
+    public async Task AddPushSubscriptionAsync(PushSubscription subscription, CancellationToken ct = default)
+        => await _db.PushSubscriptions.AddAsync(subscription, ct);
+
+    public async Task RemovePushSubscriptionAsync(string endpoint, CancellationToken ct = default)
+    {
+        var existing = await _db.PushSubscriptions.FirstOrDefaultAsync(x => x.Endpoint == endpoint, ct);
+        if (existing != null)
+            _db.PushSubscriptions.Remove(existing);
+    }
+
     public async Task SaveChangesAsync(CancellationToken ct = default)
         => await _db.SaveChangesAsync(ct);
 }

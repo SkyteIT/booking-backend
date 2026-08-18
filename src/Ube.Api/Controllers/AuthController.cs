@@ -84,6 +84,32 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    // Self-service opt-in 2FA - for roles where it isn't mandatory, driven
+    // by the current authenticated session rather than a login challenge.
+    [HttpPost("2fa/self-enroll/start")]
+    [Authorize]
+    public async Task<ActionResult<TwoFactorEnrollmentStartDto>> StartSelfServiceTwoFactorEnrollment()
+    {
+        var result = await _authService.StartSelfServiceTwoFactorEnrollmentAsync(_currentUserService.UserId);
+        return Ok(result);
+    }
+
+    [HttpPost("2fa/self-enroll/confirm")]
+    [Authorize]
+    public async Task<ActionResult<List<string>>> ConfirmSelfServiceTwoFactorEnrollment([FromBody] ConfirmSelfServiceTwoFactorDto request)
+    {
+        var backupCodes = await _authService.ConfirmSelfServiceTwoFactorEnrollmentAsync(_currentUserService.UserId, request.Code);
+        return Ok(backupCodes);
+    }
+
+    [HttpPost("2fa/disable")]
+    [Authorize]
+    public async Task<IActionResult> DisableTwoFactor([FromBody] DisableTwoFactorDto request)
+    {
+        await _authService.DisableTwoFactorAsync(_currentUserService.UserId, request.CurrentPassword);
+        return Ok(new { message = "Two-factor authentication disabled" });
+    }
+
     [HttpPost("2fa/verify")]
     [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> VerifyTwoFactorCode([FromBody] TwoFactorVerifyRequestDto request)

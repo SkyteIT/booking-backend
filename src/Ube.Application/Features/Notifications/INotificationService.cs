@@ -8,4 +8,6 @@ public interface INotificationService
     Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken);
     Task<IReadOnlyList<NotificationPreferenceDto>> GetPreferencesAsync(Guid userId, CancellationToken cancellationToken);
     Task<NotificationPreferenceDto> SavePreferenceAsync(Guid userId, UpdateNotificationPreferenceDto dto, CancellationToken cancellationToken);
+    Task SubscribeToPushAsync(Guid userId, SubscribePushDto dto, CancellationToken cancellationToken);
+    Task UnsubscribeFromPushAsync(Guid userId, string endpoint, CancellationToken cancellationToken);
 }

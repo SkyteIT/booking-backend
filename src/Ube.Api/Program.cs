@@ -46,6 +46,7 @@ using Ube.Infrastructure.Persistence.Repositories.Content;
 using Ube.Infrastructure.Persistence.Repositories.Notifications;
 using Ube.Infrastructure.Integrations.Smtp;
 using Ube.Infrastructure.Integrations.Sms;
+using Ube.Infrastructure.Integrations.Push;
 using Ube.Infrastructure.Services;
 using Ube.Application.Features.Cart;
 using Ube.Infrastructure.Persistence.Repositories.Cart;
@@ -162,6 +163,7 @@ builder.Services.AddScoped<IBannerService, BannerService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISmsService, SmsService>();
+builder.Services.AddScoped<IPushService, PushService>();
 
 // Cart
 builder.Services.AddScoped<ICartRepository, CartRepository>();

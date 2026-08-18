@@ -30,4 +30,11 @@ public class TwoFactorBackupCodeRepository : ITwoFactorBackupCodeRepository
         _db.TwoFactorBackupCodes.Update(code);
         await _db.SaveChangesAsync();
     }
+
+    public async Task DeleteAllForUserAsync(Guid userId)
+    {
+        var codes = await _db.TwoFactorBackupCodes.Where(x => x.UserId == userId).ToListAsync();
+        _db.TwoFactorBackupCodes.RemoveRange(codes);
+        await _db.SaveChangesAsync();
+    }
 }

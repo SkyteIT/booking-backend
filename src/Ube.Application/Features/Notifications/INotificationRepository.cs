@@ -14,5 +14,10 @@ public interface INotificationRepository
     Task<NotificationPreference?> GetPreferenceAsync(Guid userId, NotificationType type, CancellationToken ct = default);
     Task AddPreferenceAsync(NotificationPreference preference, CancellationToken ct = default);
 
+    Task<IReadOnlyList<PushSubscription>> GetPushSubscriptionsByUserIdAsync(Guid userId, CancellationToken ct = default);
+    Task<PushSubscription?> GetPushSubscriptionByEndpointAsync(string endpoint, CancellationToken ct = default);
+    Task AddPushSubscriptionAsync(PushSubscription subscription, CancellationToken ct = default);
+    Task RemovePushSubscriptionAsync(string endpoint, CancellationToken ct = default);
+
     Task SaveChangesAsync(CancellationToken ct = default);
 }

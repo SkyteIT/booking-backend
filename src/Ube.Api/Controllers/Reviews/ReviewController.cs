@@ -1,0 +1,43 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Ube.Application.Common.Interfaces.Services.Auth;
+using Ube.Application.Features.Reviews;
+
+namespace Ube.Api.Controllers.Reviews;
+[Authorize (Roles = "Customer,Vendor")]
+[ApiController ]
+[Route("api")]
+public class ReviewsController : ControllerBase
+{
+    private readonly IReviewService _service;
+    private readonly ICurrentUserService _currentUser;
+
+    public ReviewsController(
+        IReviewService service,
+        ICurrentUserService currentUser)
+    {
+        _service = service;
+        _currentUser = currentUser;
+    }
+
+    [Authorize]
+    // get reviews for a vendor with pagination and optional rating filter
+    [HttpGet("vendors/{vendorId}/reviews")]
+    public async Task<IActionResult> GetByVendor(
+        Guid vendorId,
+        [FromQuery] ReviewRequest options)
+    {
+        var result = await _service.GetReviewsByVendorAsync(vendorId, options);
+        return Ok(result);
+    }
+    // get average rating and total reviews for a vendor
+    [HttpGet("vendors/{vendorId}/reviews/rating")]
+    public async Task<IActionResult> GetRating(Guid vendorId)
+    {
+        var result = await _service.GetRatingAsync(vendorId);
+        return Ok(result);
+    }
+
+    
+    
+}

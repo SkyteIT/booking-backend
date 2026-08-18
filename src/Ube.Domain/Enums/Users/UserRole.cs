@@ -1,8 +1,8 @@
-namespace Ube.Domain.Enums;
+namespace Ube.Domain.Enums.Users;
 
 public enum UserRole
 {
-    Customer = 0,
+    User = 0,
     Vendor = 1,
     Admin = 2
 }

@@ -1,157 +1,168 @@
-using Microsoft.EntityFrameworkCore;
+using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.DTOs.Notification;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Notifications.Email;
 using Ube.Application.Interfaces;
 using Ube.Domain.Entities.Notifications;
-using Ube.Domain.Enums;
+using Ube.Domain.Enums.Notifications;
+using Microsoft.Extensions.Logging;
 
 namespace Ube.Application.Services;
 
 public class NotificationService : INotificationService
 {
-    private readonly IAppDbContext _context;
+    private readonly INotificationRepository _repo;
     private readonly IEmailService _emailService;
     private readonly ISmsService _smsService;
+    private readonly IRealtimeUpdateService _realtimeUpdateService;
+    private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
-        IAppDbContext context,
+        INotificationRepository repo,
         IEmailService emailService,
-        ISmsService smsService)
+        ISmsService smsService,
+        IRealtimeUpdateService realtimeUpdateService,
+        ILogger<NotificationService> logger)
     {
-        _context = context;
+        _repo = repo;
         _emailService = emailService;
         _smsService = smsService;
+        _realtimeUpdateService = realtimeUpdateService;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<NotificationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
-        return await _context.Notifications
-            .Where(x => x.UserId == userId)
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .Select(x => new NotificationDto
-            {
-                Id = x.Id,
-                UserId = x.UserId,
-                Title = x.Title,
-                Message = x.Message,
-                Type = x.Type.ToString(),
-                IsRead = x.IsRead,
-                CreatedAtUtc = x.CreatedAtUtc,
-                ReadAtUtc = x.ReadAtUtc
-            })
-            .ToListAsync(cancellationToken);
+        var notifications = await _repo.GetByUserIdAsync(userId, cancellationToken);
+        return notifications.Select(ToDto).ToList();
     }
+
+    public Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken)
+        => _repo.GetUnreadCountByUserIdAsync(userId, cancellationToken);
 
     public async Task<NotificationDto> CreateAsync(CreateNotificationDto dto, CancellationToken cancellationToken)
     {
-        // 1. Save notification
+        var type = ParseNotificationType(dto.Type);
+
         var notification = new Notification
         {
             UserId = dto.UserId,
             Title = dto.Title,
             Message = dto.Message,
-            Type = (NotificationType)dto.Type,
+            Type = type,
             IsRead = false
         };
 
-        _context.Notifications.Add(notification);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.AddAsync(notification, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
 
-        // 2. Get preference (NO USERS TABLE USED)
-        var preference = await _context.NotificationPreferences
-            .FirstOrDefaultAsync(x =>
-                x.UserId == dto.UserId &&
-                x.NotificationType == notification.Type,
-                cancellationToken);
+        var notificationDto = ToDto(notification);
+        var unreadCount = await _repo.GetUnreadCountByUserIdAsync(dto.UserId, cancellationToken);
 
-        // 3. EMAIL SEND
-        if (preference?.EmailEnabled == true &&
-            !string.IsNullOrEmpty(dto.Email))
+        await _realtimeUpdateService.PublishToUserAsync(
+            dto.UserId,
+            "notification.created",
+            notificationDto,
+            cancellationToken);
+
+        await _realtimeUpdateService.PublishToUserAsync(
+            dto.UserId,
+            "notification.summary",
+            new { userId = dto.UserId, unreadCount },
+            cancellationToken);
+
+        var preference = await _repo.GetPreferenceAsync(dto.UserId, notification.Type, cancellationToken);
+
+        if (preference?.EmailEnabled == true && !string.IsNullOrEmpty(dto.Email))
         {
-            await _emailService.SendEmailAsync(
-                dto.Email,
-                notification.Title,
-                notification.Message
-            );
+            try
+            {
+                await _emailService.SendEmailAsync(dto.Email, notification.Title, notification.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send notification email to {Email}", dto.Email);
+            }
         }
 
-        // 4. SMS SEND
-        if (preference?.SmsEnabled == true &&
-            !string.IsNullOrEmpty(dto.PhoneNumber))
+        if (preference?.SmsEnabled == true && !string.IsNullOrEmpty(dto.PhoneNumber))
         {
-            await _smsService.SendSmsAsync(
-                dto.PhoneNumber,
-                notification.Message
-            );
+            try
+            {
+                await _smsService.SendSmsAsync(dto.PhoneNumber, notification.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send notification SMS to {PhoneNumber}", dto.PhoneNumber);
+            }
         }
 
-        return new NotificationDto
-        {
-            Id = notification.Id,
-            UserId = notification.UserId,
-            Title = notification.Title,
-            Message = notification.Message,
-            Type = notification.Type.ToString(),
-            IsRead = notification.IsRead,
-            CreatedAtUtc = notification.CreatedAtUtc,
-            ReadAtUtc = notification.ReadAtUtc
-        };
+        return notificationDto;
     }
 
     public async Task<bool> MarkAsReadAsync(Guid id, CancellationToken cancellationToken)
     {
-        var notification = await _context.Notifications
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-
+        var notification = await _repo.GetByIdAsync(id, cancellationToken);
         if (notification is null) return false;
 
         notification.IsRead = true;
-        notification.ReadAtUtc = DateTime.UtcNow;
-        notification.UpdatedAtUtc = DateTime.UtcNow;
+        notification.ReadAt = DateTime.UtcNow;
+        notification.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        var unreadCount = await _repo.GetUnreadCountByUserIdAsync(notification.UserId, cancellationToken);
+        await _realtimeUpdateService.PublishToUserAsync(
+            notification.UserId,
+            "notification.read",
+            new { notificationId = notification.Id, unreadCount },
+            cancellationToken);
+
         return true;
     }
 
     public async Task<int> MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var notifications = await _context.Notifications
-            .Where(x => x.UserId == userId && !x.IsRead)
-            .ToListAsync(cancellationToken);
+        var notifications = await _repo.GetUnreadByUserIdAsync(userId, cancellationToken);
 
         foreach (var n in notifications)
         {
             n.IsRead = true;
-            n.ReadAtUtc = DateTime.UtcNow;
-            n.UpdatedAtUtc = DateTime.UtcNow;
+            n.ReadAt = DateTime.UtcNow;
+            n.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
+
+        await _realtimeUpdateService.PublishToUserAsync(
+            userId,
+            "notification.read-all",
+            new { userId, unreadCount = 0, updatedCount = notifications.Count },
+            cancellationToken);
+
         return notifications.Count;
     }
 
     public async Task<IReadOnlyList<NotificationPreferenceDto>> GetPreferencesAsync(Guid userId, CancellationToken cancellationToken)
     {
-        return await _context.NotificationPreferences
-            .Where(x => x.UserId == userId)
-            .OrderBy(x => x.NotificationType)
-            .Select(x => new NotificationPreferenceDto
-            {
-                Id = x.Id,
-                UserId = x.UserId,
-                NotificationType = x.NotificationType.ToString(),
-                EmailEnabled = x.EmailEnabled,
-                PushEnabled = x.PushEnabled,
-                SmsEnabled = x.SmsEnabled
-            })
-            .ToListAsync(cancellationToken);
+        var preferences = await _repo.GetPreferencesByUserIdAsync(userId, cancellationToken);
+        return preferences.Select(x => new NotificationPreferenceDto
+        {
+            Id = x.Id,
+            UserId = x.UserId,
+            NotificationType = x.NotificationType.ToString(),
+            EmailEnabled = x.EmailEnabled,
+            PushEnabled = x.PushEnabled,
+            SmsEnabled = x.SmsEnabled
+        }).ToList();
     }
 
     public async Task<NotificationPreferenceDto> SavePreferenceAsync(Guid userId, UpdateNotificationPreferenceDto dto, CancellationToken cancellationToken)
     {
-        var type = (NotificationType)dto.NotificationType;
+        var type = ParseNotificationType(dto.NotificationType);
 
-        var preference = await _context.NotificationPreferences
-            .FirstOrDefaultAsync(x => x.UserId == userId && x.NotificationType == type, cancellationToken);
+        var preference = await _repo.GetPreferenceAsync(userId, type, cancellationToken);
 
         if (preference is null)
         {
@@ -163,18 +174,17 @@ public class NotificationService : INotificationService
                 PushEnabled = dto.PushEnabled,
                 SmsEnabled = dto.SmsEnabled
             };
-
-            _context.NotificationPreferences.Add(preference);
+            await _repo.AddPreferenceAsync(preference, cancellationToken);
         }
         else
         {
             preference.EmailEnabled = dto.EmailEnabled;
             preference.PushEnabled = dto.PushEnabled;
             preference.SmsEnabled = dto.SmsEnabled;
-            preference.UpdatedAtUtc = DateTime.UtcNow;
+            preference.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
 
         return new NotificationPreferenceDto
         {
@@ -185,5 +195,25 @@ public class NotificationService : INotificationService
             PushEnabled = preference.PushEnabled,
             SmsEnabled = preference.SmsEnabled
         };
+    }
+
+    private static NotificationDto ToDto(Notification x) => new()
+    {
+        Id = x.Id,
+        UserId = x.UserId,
+        Title = x.Title,
+        Message = x.Message,
+        Type = x.Type.ToString(),
+        IsRead = x.IsRead,
+        CreatedAt = x.CreatedAt,
+        ReadAt = x.ReadAt
+    };
+
+    private static NotificationType ParseNotificationType(int type)
+    {
+        if (!Enum.IsDefined(typeof(NotificationType), type))
+            throw new BusinessRuleException($"Invalid notification type: {type}");
+
+        return (NotificationType)type;
     }
 }

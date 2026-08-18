@@ -1,22 +1,24 @@
-using Microsoft.EntityFrameworkCore;
+using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.DTOs.Category;
+using Ube.Application.Features.Content;
 using Ube.Application.Interfaces;
 using Ube.Domain.Constants;
-using Ube.Domain.Entities.Content;
+using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;
 
 namespace Ube.Application.Services;
 
 public class CategoryService : ICategoryService
 {
-    private readonly IAppDbContext _context;
+    private readonly ICategoryRepository _categoryRepo;
+    private readonly IListingRepository _listingRepo;
 
-    public CategoryService(IAppDbContext context)
+    public CategoryService(ICategoryRepository categoryRepo, IListingRepository listingRepo)
     {
-        _context = context;
+        _categoryRepo = categoryRepo;
+        _listingRepo = listingRepo;
     }
 
-    // ── Shared projection ──────────────────────────────────────────────────
     private static CategoryDto ToDto(Category x, int listingCount) => new()
     {
         Id = x.Id,
@@ -37,8 +39,8 @@ public class CategoryService : ICategoryService
         RequiresAdminApproval = x.RequiresAdminApproval,
         Status = x.Status.ToString(),
         ListingCount = listingCount,
-        CreatedAtUtc = x.CreatedAtUtc,
-        UpdatedAtUtc = x.UpdatedAtUtc,
+        CreatedAt = x.CreatedAt,
+        UpdatedAt = x.UpdatedAt,
     };
 
     private static RecordStatus ParseStatus(string? raw, RecordStatus fallback = RecordStatus.Active)
@@ -48,79 +50,44 @@ public class CategoryService : ICategoryService
         return fallback;
     }
 
-    // ── GetAll ─────────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<CategoryDto>> GetAllAsync(CancellationToken cancellationToken)
     {
-        var categories = await _context.Categories
-            .Where(x => x.Status != RecordStatus.Deleted
-                     && x.Name != CategoryConstants.UncategorizedName)
-            .Include(x => x.Listings)
-            .OrderBy(x => x.DisplayOrder)
-            .ToListAsync(cancellationToken);
-
+        var categories = await _categoryRepo.GetAllAsync(cancellationToken);
         return categories.Select(x => ToDto(x, x.Listings.Count)).ToList();
     }
 
-    // ── GetFiltered ────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<CategoryDto>> GetFilteredAsync(
         string? status, string? search, CancellationToken cancellationToken)
     {
-        var query = _context.Categories
-            .Where(x => x.Status != RecordStatus.Deleted
-                     && x.Name != CategoryConstants.UncategorizedName)
-            .Include(x => x.Listings)
-            .AsQueryable();
-
+        RecordStatus? recordStatus = null;
         if (!string.IsNullOrWhiteSpace(status) &&
-            Enum.TryParse<RecordStatus>(status, ignoreCase: true, out var recordStatus))
-        {
-            query = query.Where(x => x.Status == recordStatus);
-        }
+            Enum.TryParse<RecordStatus>(status, ignoreCase: true, out var parsed))
+            recordStatus = parsed;
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var lower = search.ToLower();
-            query = query.Where(x => x.Name.ToLower().Contains(lower));
-        }
-
-        var categories = await query.OrderBy(x => x.DisplayOrder).ToListAsync(cancellationToken);
+        var categories = await _categoryRepo.GetFilteredAsync(recordStatus, search, cancellationToken);
         return categories.Select(x => ToDto(x, x.Listings.Count)).ToList();
     }
 
-    // ── GetById ────────────────────────────────────────────────────────────
     public async Task<CategoryDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var x = await _context.Categories
-            .Include(x => x.Listings)
-            .FirstOrDefaultAsync(x => x.Id == id && x.Status != RecordStatus.Deleted, cancellationToken);
-
+        var x = await _categoryRepo.GetByIdAsync(id, includeListings: true, cancellationToken);
         return x is null ? null : ToDto(x, x.Listings.Count);
     }
 
-    // ── Create ─────────────────────────────────────────────────────────────
     public async Task<CategoryDto> CreateAsync(CreateCategoryDto dto, CancellationToken cancellationToken)
     {
         var trimmedName = dto.Name.Trim();
 
-        // Block if an active (non-deleted) category with this name already exists
-        var activeExists = await _context.Categories
-            .AnyAsync(x => x.Name.ToLower() == trimmedName.ToLower() &&
-                           x.Status != RecordStatus.Deleted, cancellationToken);
-
+        var activeExists = await _categoryRepo.ExistsByNameAsync(trimmedName, cancellationToken);
         if (activeExists)
             throw new InvalidOperationException($"A category named '{dto.Name}' already exists.");
 
-        // Check if a previously soft-deleted category with the same name exists
-        var deletedEntity = await _context.Categories
-            .Include(x => x.Listings)
-            .FirstOrDefaultAsync(x => x.Name.ToLower() == trimmedName.ToLower() &&
-                                      x.Status == RecordStatus.Deleted, cancellationToken);
+        var deletedEntity = await _categoryRepo.GetDeletedByNameAsync(trimmedName, cancellationToken);
 
         Category entity;
 
         if (deletedEntity is not null)
         {
-            // ── RESTORE path: reuse the same row so all FK references are preserved ──
             entity = deletedEntity;
             entity.Description = dto.Description ?? entity.Description;
             entity.BookingType = dto.BookingType ?? entity.BookingType;
@@ -137,11 +104,10 @@ public class CategoryService : ICategoryService
             entity.IsFeatured = dto.IsFeatured;
             entity.RequiresAdminApproval = dto.RequiresAdminApproval;
             entity.Status = ParseStatus(dto.Status);
-            entity.UpdatedAtUtc = DateTime.UtcNow;
+            entity.UpdatedAt = DateTime.UtcNow;
         }
         else
         {
-            // ── CREATE path: brand new category ──
             entity = new Category
             {
                 Name = trimmedName,
@@ -161,56 +127,37 @@ public class CategoryService : ICategoryService
                 RequiresAdminApproval = dto.RequiresAdminApproval,
                 Status = ParseStatus(dto.Status),
             };
-            _context.Categories.Add(entity);
+            await _categoryRepo.AddAsync(entity, cancellationToken);
         }
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _categoryRepo.SaveChangesAsync(cancellationToken);
 
-        // ── Re-link all orphaned listings that belong to this category ──────
-        var uncategorized = await _context.Categories
-            .FirstOrDefaultAsync(c => c.Name == CategoryConstants.UncategorizedName, cancellationToken);
-
+        var uncategorized = await _categoryRepo.GetUncategorizedAsync(cancellationToken);
         if (uncategorized is not null)
         {
-            var orphaned = await _context.Listings
-                .Where(l => l.CategoryId == uncategorized.Id
-                         && l.OriginalCategoryName != null
-                         && l.OriginalCategoryName.ToLower() == trimmedName.ToLower())
-                .ToListAsync(cancellationToken);
-
+            var orphaned = await _listingRepo.GetOrphanedByCategoryNameAsync(uncategorized.Id, trimmedName, cancellationToken);
             foreach (var listing in orphaned)
             {
                 listing.CategoryId = entity.Id;
-                listing.Status = RecordStatus.Active;
+                listing.IsActive = true;
             }
 
             if (orphaned.Count > 0)
-                await _context.SaveChangesAsync(cancellationToken);
+                await _categoryRepo.SaveChangesAsync(cancellationToken);
         }
 
-        var listingCount = await _context.Listings
-            .CountAsync(l => l.CategoryId == entity.Id, cancellationToken);
-
+        var listingCount = await _categoryRepo.CountListingsAsync(entity.Id, cancellationToken);
         return ToDto(entity, listingCount);
     }
 
-    // ── Update ─────────────────────────────────────────────────────────────
     public async Task<CategoryDto?> UpdateAsync(Guid id, UpdateCategoryDto dto, CancellationToken cancellationToken)
     {
-        var entity = await _context.Categories
-            .Include(x => x.Listings)
-            .FirstOrDefaultAsync(x => x.Id == id && x.Status != RecordStatus.Deleted, cancellationToken);
-
+        var entity = await _categoryRepo.GetByIdAsync(id, includeListings: true, cancellationToken);
         if (entity is null) return null;
 
-        // If the category name is being changed, update OriginalCategoryName
-        // on all its listings so re-linking still works if it's later deleted.
         if (dto.Name is not null && !dto.Name.Trim().Equals(entity.Name, StringComparison.OrdinalIgnoreCase))
         {
-            var affectedListings = await _context.Listings
-                .Where(l => l.CategoryId == entity.Id)
-                .ToListAsync(cancellationToken);
-
+            var affectedListings = await _listingRepo.GetByCategoryIdAsync(entity.Id, cancellationToken);
             foreach (var listing in affectedListings)
                 listing.OriginalCategoryName = dto.Name.Trim();
 
@@ -233,27 +180,20 @@ public class CategoryService : ICategoryService
         if (dto.RequiresAdminApproval.HasValue) entity.RequiresAdminApproval = dto.RequiresAdminApproval.Value;
         if (dto.Status is not null) entity.Status = ParseStatus(dto.Status, entity.Status);
 
-        entity.UpdatedAtUtc = DateTime.UtcNow;
-        await _context.SaveChangesAsync(cancellationToken);
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _categoryRepo.SaveChangesAsync(cancellationToken);
 
         return ToDto(entity, entity.Listings.Count);
     }
 
-    // ── Delete ─────────────────────────────────────────────────────────────
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        var entity = await _context.Categories
-            .Include(x => x.Listings)
-            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-
+        var entity = await _categoryRepo.GetByIdAsync(id, includeListings: true, cancellationToken);
         if (entity is null) return false;
 
         if (entity.Listings.Any())
         {
-            // Ensure the __Uncategorized__ holding category exists
-            var uncategorized = await _context.Categories
-                .FirstOrDefaultAsync(c => c.Name == CategoryConstants.UncategorizedName, cancellationToken);
-
+            var uncategorized = await _categoryRepo.GetUncategorizedAsync(cancellationToken);
             if (uncategorized is null)
             {
                 uncategorized = new Category
@@ -263,42 +203,35 @@ public class CategoryService : ICategoryService
                     Status = RecordStatus.Inactive,
                     DisplayOrder = int.MaxValue,
                 };
-                _context.Categories.Add(uncategorized);
-                await _context.SaveChangesAsync(cancellationToken);
+                await _categoryRepo.AddAsync(uncategorized, cancellationToken);
+                await _categoryRepo.SaveChangesAsync(cancellationToken);
             }
 
-            // Park listings under __Uncategorized__ and stamp OriginalCategoryName
-            // so they can be re-linked automatically when this category is re-created.
             foreach (var listing in entity.Listings)
             {
                 if (string.IsNullOrEmpty(listing.OriginalCategoryName))
                     listing.OriginalCategoryName = entity.Name;
 
                 listing.CategoryId = uncategorized.Id;
-                listing.Status = RecordStatus.Inactive;
+                listing.IsActive = false;
             }
         }
 
-        // Soft-delete the category
         entity.Status = RecordStatus.Deleted;
-        entity.UpdatedAtUtc = DateTime.UtcNow;
+        entity.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _categoryRepo.SaveChangesAsync(cancellationToken);
         return true;
     }
 
-    // ── Toggle status (Active ↔ Inactive) ──────────────────────────────────
     public async Task<CategoryDto?> ToggleStatusAsync(Guid id, bool isActive, CancellationToken cancellationToken)
     {
-        var entity = await _context.Categories
-            .Include(x => x.Listings)
-            .FirstOrDefaultAsync(x => x.Id == id && x.Status != RecordStatus.Deleted, cancellationToken);
-
+        var entity = await _categoryRepo.GetByIdAsync(id, includeListings: true, cancellationToken);
         if (entity is null) return null;
 
         entity.Status = isActive ? RecordStatus.Active : RecordStatus.Inactive;
-        entity.UpdatedAtUtc = DateTime.UtcNow;
-        await _context.SaveChangesAsync(cancellationToken);
+        entity.UpdatedAt = DateTime.UtcNow;
+        await _categoryRepo.SaveChangesAsync(cancellationToken);
 
         return ToDto(entity, entity.Listings.Count);
     }

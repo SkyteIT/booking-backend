@@ -6,9 +6,9 @@ public class SearchListingDto
     public string Title { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
-    public decimal PriceFrom { get; set; }
-    public decimal Rating { get; set; }
+    public decimal Price { get; set; }
+    public double AverageRating { get; set; }
     public bool IsFeatured { get; set; }
-    public bool IsAvailable { get; set; }
+    public bool IsActive { get; set; }
     public string? ThumbnailUrl { get; set; }
 }

@@ -1,90 +1,118 @@
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
-using Microsoft.Extensions.Configuration;
+using MimeKit.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
-using Ube.Application.Interfaces;
+using Ube.Application.Common.Models;
+using Ube.Application.Features.Notifications.Email;
 
 namespace Ube.Infrastructure.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _config;
+    private readonly EmailSettings _settings;
     private readonly ILogger<EmailService> _logger;
 
-    public EmailService(IConfiguration config, ILogger<EmailService> logger)
+    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
     {
-        _config = config;
+        _settings = settings.Value;
         _logger = logger;
     }
 
-    public async Task SendEmailAsync(string to, string subject, string message)
+    public Task SendVerificationEmailAsync(string email, string token)
     {
+        var clientBaseUrl = string.IsNullOrWhiteSpace(_settings.ClientBaseUrl)
+            ? "http://localhost:3000"
+            : _settings.ClientBaseUrl.Trim().TrimEnd('/');
+
+        var verificationLink = $"{clientBaseUrl}/verify-email?token={Uri.EscapeDataString(token)}";
+
+        var body = $"""
+            <h3>Welcome to Ube!</h3>
+            <p>Please verify your email by clicking the link below:</p>
+            <a href='{verificationLink}' style='display:inline-block;padding:10px 20px;
+               background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;'>
+               Verify Email
+            </a>
+            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
+               This link expires in 24 hours. If you didn't create an account, you can ignore this email.
+            </p>
+            """;
+
+        return SendEmailAsync(email, "Verify your Ube account", body);
+    }
+
+    public Task SendWelcomeEmailAsync(string email, string firstName)
+    {
+        var displayName = string.IsNullOrWhiteSpace(firstName) ? "there" : firstName.Trim();
+        var body = $"""
+            <h3>Welcome to Ube, {displayName}!</h3>
+            <p>Your booking system account has been created successfully.</p>
+            <p>You can now sign in and start using the platform.</p>
+            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
+               If you did not create this account, please ignore this email.
+            </p>
+            """;
+
+        return SendEmailAsync(email, "Welcome to Ube", body);
+    }
+
+    public async Task SendEmailAsync(string to, string subject, string htmlBody)
+    {
+        ValidateSettings();
+
         try
         {
-            var fromAddress = _config["Email:From"]
-                ?? throw new InvalidOperationException("Email:From is not configured.");
-            var smtpHost = _config["Email:SmtpHost"]
-                ?? throw new InvalidOperationException("Email:SmtpHost is not configured.");
-            var username = _config["Email:Username"]
-                ?? throw new InvalidOperationException("Email:Username is not configured.");
-            var password = _config["Email:Password"]
-                ?? throw new InvalidOperationException("Email:Password is not configured.");
-
-            if (!int.TryParse(_config["Email:Port"], out var port))
-                port = 587;
-
-            var email = new MimeMessage();
-            email.From.Add(MailboxAddress.Parse(fromAddress));
-            email.To.Add(MailboxAddress.Parse(to));
-            email.Subject = subject;
-
-            email.Body = new TextPart(MimeKit.Text.TextFormat.Plain)
-            {
-                Text = message
-            };
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
+            message.To.Add(MailboxAddress.Parse(to));
+            message.Subject = subject;
+            message.Body = new TextPart(TextFormat.Html) { Text = htmlBody };
 
             using var smtp = new SmtpClient();
+            smtp.ServerCertificateValidationCallback = AllowRevocationErrors;
 
-            // Fix: Bypass SSL certificate revocation check
-            // This is needed when Windows cannot reach the revocation server
-            // (common on restricted networks, university Wi-Fi, etc.)
-            smtp.ServerCertificateValidationCallback = (sender, certificate, chain, sslPolicyErrors) =>
-            {
-                // Allow if no errors, or only revocation check failed
-                if (sslPolicyErrors == SslPolicyErrors.None)
-                    return true;
-
-                // Only block if the certificate itself is invalid (wrong host, expired, etc.)
-                // Allow if the only issue is revocation check failure
-                if (chain != null)
-                {
-                    foreach (var status in chain.ChainStatus)
-                    {
-                        if (status.Status == X509ChainStatusFlags.RevocationStatusUnknown ||
-                            status.Status == X509ChainStatusFlags.OfflineRevocation)
-                            continue; // ignore revocation errors only
-
-                        return false; // block any other certificate error
-                    }
-                }
-
-                return true;
-            };
-
-            await smtp.ConnectAsync(smtpHost, port, SecureSocketOptions.StartTls);
-            await smtp.AuthenticateAsync(username, password);
-            await smtp.SendAsync(email);
+            await smtp.ConnectAsync(_settings.SmtpServer, _settings.Port,
+                _settings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.Auto);
+            await smtp.AuthenticateAsync(_settings.Username, _settings.Password);
+            await smtp.SendAsync(message);
             await smtp.DisconnectAsync(true);
 
-            _logger.LogInformation("Email sent successfully to {To}", to);
+            _logger.LogInformation("Email sent to {To}", to);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {To}", to);
             throw;
         }
+    }
+
+    private void ValidateSettings()
+    {
+        if (string.IsNullOrWhiteSpace(_settings.Username) ||
+            _settings.Username.Contains("my_email@", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("SMTP credentials are not configured.");
+    }
+
+    // Allows connections on restricted networks where revocation servers are unreachable.
+    // Only blocks truly invalid certificates (wrong host, expired, self-signed without trust).
+    private static bool AllowRevocationErrors(object sender, X509Certificate? certificate,
+        X509Chain? chain, SslPolicyErrors errors)
+    {
+        if (errors == SslPolicyErrors.None) return true;
+        if (chain != null)
+        {
+            foreach (var status in chain.ChainStatus)
+            {
+                if (status.Status is X509ChainStatusFlags.RevocationStatusUnknown
+                                  or X509ChainStatusFlags.OfflineRevocation)
+                    continue;
+                return false;
+            }
+        }
+        return true;
     }
 }

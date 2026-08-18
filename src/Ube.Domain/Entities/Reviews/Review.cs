@@ -15,10 +15,13 @@ public class Review
     public Listing Listing { get; set; } = null!;
 
     public Guid CustomerId { get; set; }
-    public User Customer { get; set; } = null!;
+    public User Customer { get; set; } = default!;
+    public Guid VendorId { get; set; }
 
     public int Rating { get; set; }
     public string Comment { get; set; } = string.Empty;
+    public string? VendorReply { get; set; }
+    public DateTime? VendorReplyAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }

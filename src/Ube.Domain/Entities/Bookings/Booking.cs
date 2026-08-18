@@ -7,6 +7,7 @@ namespace Ube.Domain.Entities.Bookings;
 public class Booking
 {
     public Guid Id { get; set; }
+    public string BookingNumber { get; set; } = string.Empty;
 
     public Guid ListingId { get; set; }
     public Listing Listing { get; set; } = null!;
@@ -24,4 +25,7 @@ public class Booking
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
+
+    // Optimistic concurrency — prevents two simultaneous status updates from both succeeding
+    public byte[] RowVersion { get; set; } = [];
 }

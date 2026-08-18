@@ -1,54 +1,42 @@
-using Microsoft.EntityFrameworkCore;
 using Ube.Application.DTOs.Banner;
+using Ube.Application.Features.Content;
 using Ube.Application.Interfaces;
+using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.DTOs.Notification;
 using Ube.Domain.Entities.Content;
 using Ube.Domain.Enums;
+using Ube.Domain.Enums.Notifications;
+using Ube.Domain.Enums.Content;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Application.Services;
 
 public class BannerService : IBannerService
 {
-    private readonly IAppDbContext _context;
+    private readonly IBannerRepository _repo;
+    private readonly IUserRepository _userRepo;
+    private readonly INotificationService _notificationService;
 
-    public BannerService(IAppDbContext context)
+    public BannerService(
+        IBannerRepository repo,
+        IUserRepository userRepo,
+        INotificationService notificationService)
     {
-        _context = context;
+        _repo = repo;
+        _userRepo = userRepo;
+        _notificationService = notificationService;
     }
 
     public async Task<IReadOnlyList<BannerDto>> GetAllAsync(CancellationToken cancellationToken)
     {
-        return await _context.Banners
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .Select(x => new BannerDto
-            {
-                Id = x.Id,
-                Title = x.Title,
-                Subtitle = x.Subtitle,
-                ImageUrl = x.ImageUrl,
-                Placement = x.Placement.ToString(),
-                StartDate = x.StartDate,
-                EndDate = x.EndDate,
-                Status = x.Status.ToString()
-            })
-            .ToListAsync(cancellationToken);
+        var banners = await _repo.GetAllAsync(cancellationToken);
+        return banners.Select(ToDto).ToList();
     }
 
     public async Task<BannerDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _context.Banners
-            .Where(x => x.Id == id)
-            .Select(x => new BannerDto
-            {
-                Id = x.Id,
-                Title = x.Title,
-                Subtitle = x.Subtitle,
-                ImageUrl = x.ImageUrl,
-                Placement = x.Placement.ToString(),
-                StartDate = x.StartDate,
-                EndDate = x.EndDate,
-                Status = x.Status.ToString()
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var banner = await _repo.GetByIdAsync(id, cancellationToken);
+        return banner is null ? null : ToDto(banner);
     }
 
     public async Task<BannerDto> CreateAsync(CreateBannerDto dto, CancellationToken cancellationToken)
@@ -64,25 +52,21 @@ public class BannerService : IBannerService
             Status = RecordStatus.Active
         };
 
-        _context.Banners.Add(banner);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.AddAsync(banner, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
 
-        return new BannerDto
-        {
-            Id = banner.Id,
-            Title = banner.Title,
-            Subtitle = banner.Subtitle,
-            ImageUrl = banner.ImageUrl,
-            Placement = banner.Placement.ToString(),
-            StartDate = banner.StartDate,
-            EndDate = banner.EndDate,
-            Status = banner.Status.ToString()
-        };
+        await NotifyCustomersAsync(
+            NotificationType.CustomerSystemAnnouncement,
+            "System announcement",
+            banner.Title,
+            cancellationToken);
+
+        return ToDto(banner);
     }
 
     public async Task<BannerDto?> UpdateAsync(Guid id, UpdateBannerDto dto, CancellationToken cancellationToken)
     {
-        var banner = await _context.Banners.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var banner = await _repo.GetByIdAsync(id, cancellationToken);
         if (banner is null) return null;
 
         banner.Title = dto.Title;
@@ -92,30 +76,68 @@ public class BannerService : IBannerService
         banner.StartDate = dto.StartDate;
         banner.EndDate = dto.EndDate;
         banner.Status = (RecordStatus)dto.Status;
-        banner.UpdatedAtUtc = DateTime.UtcNow;
+        banner.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
 
-        return new BannerDto
+        if (banner.Status == RecordStatus.Active)
         {
-            Id = banner.Id,
-            Title = banner.Title,
-            Subtitle = banner.Subtitle,
-            ImageUrl = banner.ImageUrl,
-            Placement = banner.Placement.ToString(),
-            StartDate = banner.StartDate,
-            EndDate = banner.EndDate,
-            Status = banner.Status.ToString()
-        };
+            await NotifyCustomersAsync(
+                NotificationType.CustomerSystemAnnouncement,
+                "System announcement",
+                banner.Title,
+                cancellationToken);
+        }
+
+        return ToDto(banner);
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-        var banner = await _context.Banners.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        var banner = await _repo.GetByIdAsync(id, cancellationToken);
         if (banner is null) return false;
 
-        _context.Banners.Remove(banner);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _repo.DeleteAsync(banner, cancellationToken);
+        await _repo.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private static BannerDto ToDto(Banner x) => new()
+    {
+        Id = x.Id,
+        Title = x.Title,
+        Subtitle = x.Subtitle,
+        ImageUrl = x.ImageUrl,
+        Placement = x.Placement.ToString(),
+        StartDate = x.StartDate,
+        EndDate = x.EndDate,
+        Status = x.Status.ToString()
+    };
+
+    private async Task NotifyCustomersAsync(
+        NotificationType type,
+        string title,
+        string message,
+        CancellationToken cancellationToken)
+    {
+        var customers = await _userRepo.GetByRoleAsync(UserRole.User);
+
+        foreach (var customer in customers)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = customer.Id,
+                    Title = title,
+                    Message = message,
+                    Type = (int)type
+                }, cancellationToken);
+            }
+            catch
+            {
+                // best-effort only
+            }
+        }
     }
 }

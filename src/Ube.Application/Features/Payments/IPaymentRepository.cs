@@ -8,6 +8,7 @@ public interface IPaymentRepository
     Task<Payment?> GetByIdempotencyKeyAsync(string idempotencyKey, CancellationToken ct = default);
     Task<IReadOnlyList<Payment>> GetByBookingIdAsync(Guid bookingId, CancellationToken ct = default);
     Task<IReadOnlyList<Payment>> GetCapturedInRangeAsync(DateTime periodStart, DateTime periodEnd, CancellationToken ct = default);
+    Task<IReadOnlyList<Payment>> GetCapturedByVendorInRangeAsync(Guid vendorProfileId, DateTime periodStart, DateTime periodEnd, CancellationToken ct = default);
     Task AddAsync(Payment payment, CancellationToken ct = default);
     Task UpdateAsync(Payment payment, CancellationToken ct = default);
 }

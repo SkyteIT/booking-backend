@@ -18,6 +18,8 @@ public class ReviewDto
     public string CustomerName { get; set; } = string.Empty;
     public int LikeCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
+    public string? VendorReply { get; set; }
+    public DateTime? VendorReplyAt { get; set; }
 }
 
 public class ReviewRequest : QueryOptions

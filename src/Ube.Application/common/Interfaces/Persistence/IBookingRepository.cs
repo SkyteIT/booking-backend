@@ -19,4 +19,5 @@ public interface IBookingRepository
     Task AddAsync(Booking booking, CancellationToken ct = default);
     Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(Guid customerId, BookingsRequest request, CancellationToken ct = default);
     Task<List<Booking>> GetBookingsPastEndDateAsync(DateTime asOf, CancellationToken ct = default);
+    Task<Dictionary<Guid, string>> GetBookingNumbersByIdsAsync(IEnumerable<Guid> bookingIds, CancellationToken ct = default);
 }

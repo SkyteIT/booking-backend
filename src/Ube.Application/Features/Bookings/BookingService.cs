@@ -122,10 +122,13 @@ public class BookingService : IBookingService
         if (booking.CustomerId != customerId)
             throw new NotFoundException("Booking not found");
 
-        var canReview = booking.Status == BookingStatus.Completed
-            && !await _reviewRepository.ExistsByBookingIdAsync(bookingId);
+        // One lookup covers both "can they still leave a review" and, if
+        // one already exists, its content (rating/comment/vendor reply) -
+        // shown right here instead of only on the separate My Reviews page.
+        var review = await _reviewRepository.GetByBookingIdAsync(bookingId);
+        var canReview = booking.Status == BookingStatus.Completed && review == null;
 
-        return MapToCustomerDetail(booking, customerId, canReview);
+        return MapToCustomerDetail(booking, customerId, canReview, review);
     }
 
     public async Task<BookingDetailDto> CancelBookingAsync(Guid bookingId, Guid customerId)
@@ -196,7 +199,8 @@ public class BookingService : IBookingService
     // CanUserCancelConfirmed has no StartDateTime check - a customer can
     // still cancel a Confirmed booking minutes before it starts. Existing
     // behavior of the already-tested rule, not introduced here.
-    private static BookingDetailDto MapToCustomerDetail(Domain.Entities.Bookings.Booking booking, Guid customerId, bool canReview) =>
+    private static BookingDetailDto MapToCustomerDetail(
+        Domain.Entities.Bookings.Booking booking, Guid customerId, bool canReview, Domain.Entities.Reviews.Review? review = null) =>
         new BookingDetailDto
         {
             BookingId = booking.Id,
@@ -215,7 +219,13 @@ public class BookingService : IBookingService
             CanCancel = booking.Status == BookingStatus.Pending
                 ? BookingValidationRules.CanUserCancelPendding(booking, customerId).IsSuccess
                 : BookingValidationRules.CanUserCancelConfirmed(booking, customerId).IsSuccess,
-            CanReview = canReview
+            CanReview = canReview,
+            ReviewId = review?.Id,
+            ReviewRating = review?.Rating,
+            ReviewComment = review?.Comment,
+            ReviewCreatedAt = review?.CreatedAt,
+            ReviewVendorReply = review?.VendorReply,
+            ReviewVendorReplyAt = review?.VendorReplyAt
         };
 
     private static BookingDetailDto MapToDetail(Domain.Entities.Bookings.Booking booking, Guid vendorId) =>

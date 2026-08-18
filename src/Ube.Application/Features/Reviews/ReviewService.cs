@@ -125,7 +125,9 @@ public class ReviewService : IReviewService
             CreatedAt = r.CreatedAt,
             CustomerName = r.Customer.FirstName + " " + r.Customer.LastName,
             LikeCount = likeCounts.GetValueOrDefault(r.Id),
-            IsLikedByCurrentUser = likedByMe.Contains(r.Id)
+            IsLikedByCurrentUser = likedByMe.Contains(r.Id),
+            VendorReply = r.VendorReply,
+            VendorReplyAt = r.VendorReplyAt
         }).ToList();
     }
 

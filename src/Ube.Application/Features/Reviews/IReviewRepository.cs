@@ -8,6 +8,7 @@ public interface IReviewRepository
     Task AddAsync(Review review);
 
     Task<bool> ExistsByBookingIdAsync(Guid bookingId);
+    Task<Review?> GetByBookingIdAsync(Guid bookingId);
 
     Task<(List<Review> Items, int TotalCount)> GetPagedByVendorAsync(
         Guid vendorId,

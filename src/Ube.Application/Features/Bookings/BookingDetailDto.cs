@@ -18,4 +18,14 @@ public class BookingDetailDto
     public bool CanReject { get; set; }
     public bool CanCancel { get; set; }
     public bool CanReview { get; set; }
+
+    // Populated when this booking already has a review, so the customer
+    // sees their own review (and any vendor reply) right here instead of
+    // having to navigate to My Reviews to find it.
+    public Guid? ReviewId { get; set; }
+    public int? ReviewRating { get; set; }
+    public string? ReviewComment { get; set; }
+    public DateTime? ReviewCreatedAt { get; set; }
+    public string? ReviewVendorReply { get; set; }
+    public DateTime? ReviewVendorReplyAt { get; set; }
 }

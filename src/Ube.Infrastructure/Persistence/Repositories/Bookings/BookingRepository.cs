@@ -96,6 +96,7 @@ public class BookingRepository : IBookingRepository
     public async Task<List<Booking>> GetAllBookingsByVendorIdAsync(Guid vendorId)
     {
         return await _db.Bookings
+            .Include(b => b.Listing)
             .Where(b => b.Listing.VendorProfile.UserId == vendorId)
             .ToListAsync();
     }
@@ -209,5 +210,19 @@ public class BookingRepository : IBookingRepository
         return await _db.Bookings
             .Where(b => b.Status == BookingStatus.Confirmed && b.EndDateTime < asOf)
             .ToListAsync(ct);
+    }
+
+    // Bulk-resolve the human-readable BookingNumber ("BKG-000001") for a
+    // set of booking ids - one grouped query, not one lookup per row, for
+    // callers (e.g. the ledger) that only have raw booking ids to display.
+    public async Task<Dictionary<Guid, string>> GetBookingNumbersByIdsAsync(IEnumerable<Guid> bookingIds, CancellationToken ct = default)
+    {
+        var ids = bookingIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, string>();
+
+        return await _db.Bookings
+            .Where(b => ids.Contains(b.Id))
+            .Select(b => new { b.Id, b.BookingNumber })
+            .ToDictionaryAsync(x => x.Id, x => x.BookingNumber, ct);
     }
 }

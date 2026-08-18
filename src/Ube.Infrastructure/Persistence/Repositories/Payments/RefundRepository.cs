@@ -59,6 +59,18 @@ public class RefundRepository : IRefundRepository
         return (items, totalCount);
     }
 
+    public async Task<Dictionary<Guid, decimal>> GetProcessedAmountsByPaymentIdsAsync(IEnumerable<Guid> paymentIds, CancellationToken ct = default)
+    {
+        var ids = paymentIds.Distinct().ToList();
+        if (ids.Count == 0) return new Dictionary<Guid, decimal>();
+
+        return await _db.Refunds
+            .Where(r => ids.Contains(r.PaymentId) && r.Status == RefundStatus.Processed)
+            .GroupBy(r => r.PaymentId)
+            .Select(g => new { PaymentId = g.Key, Total = g.Sum(r => r.Amount) })
+            .ToDictionaryAsync(x => x.PaymentId, x => x.Total, ct);
+    }
+
     public async Task AddAsync(Refund refund, CancellationToken ct = default)
     {
         await _db.Refunds.AddAsync(refund, ct);

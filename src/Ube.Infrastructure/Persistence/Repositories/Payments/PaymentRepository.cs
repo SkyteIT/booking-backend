@@ -25,6 +25,14 @@ public class PaymentRepository : IPaymentRepository
             .Where(x => x.Status == PaymentStatus.Captured && x.CreatedAt >= periodStart && x.CreatedAt <= periodEnd)
             .ToListAsync(ct);
 
+    // Ground truth for a vendor's Gross/Commission/Net breakdown - Amount,
+    
+    public async Task<IReadOnlyList<Payment>> GetCapturedByVendorInRangeAsync(Guid vendorProfileId, DateTime periodStart, DateTime periodEnd, CancellationToken ct = default)
+        => await _db.Payments
+            .Where(x => x.VendorProfileId == vendorProfileId && x.Status == PaymentStatus.Captured
+                && x.CreatedAt >= periodStart && x.CreatedAt <= periodEnd)
+            .ToListAsync(ct);
+
     public async Task AddAsync(Payment payment, CancellationToken ct = default)
     {
         await _db.Payments.AddAsync(payment, ct);

@@ -19,6 +19,11 @@ public interface IRefundRepository
     Task<IReadOnlyList<Refund>> GetByPaymentIdAsync(Guid paymentId, CancellationToken ct = default);
     Task<(List<RefundListItem> Items, int TotalCount)> GetPagedAsync(
         RefundStatus? status, int pageNumber, int pageSize, CancellationToken ct = default);
+    // Sum of Processed (money actually returned) refunds per payment id -
+    // one grouped query, not one lookup per payment, for the vendor
+    // earnings breakdown. Requested/Approved-but-not-yet-processed refunds
+    // haven't moved money yet, so they're excluded.
+    Task<Dictionary<Guid, decimal>> GetProcessedAmountsByPaymentIdsAsync(IEnumerable<Guid> paymentIds, CancellationToken ct = default);
     Task AddAsync(Refund refund, CancellationToken ct = default);
     Task UpdateAsync(Refund refund, CancellationToken ct = default);
 }

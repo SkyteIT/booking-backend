@@ -27,6 +27,13 @@ public class ReviewRepository : IReviewRepository
             .AnyAsync(x => x.BookingId == bookingId);
     }
 
+    // A booking has at most one review - used to surface the review (and
+    // any vendor reply) directly on the booking detail view.
+    public async Task<Review?> GetByBookingIdAsync(Guid bookingId)
+    {
+        return await _db.Reviews.FirstOrDefaultAsync(x => x.BookingId == bookingId);
+    }
+
     // Get reviews by vendor with QueryOptions
     public async Task<(List<Review> Items, int TotalCount)> GetPagedByVendorAsync(
         Guid vendorId,

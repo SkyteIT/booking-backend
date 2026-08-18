@@ -167,6 +167,7 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IRefundRepository, RefundRepository>();
 builder.Services.AddScoped<ILedgerRepository, LedgerRepository>();
+builder.Services.AddScoped<IVendorRevenueReportService, VendorRevenueReportService>();
 builder.Services.AddScoped<IPayoutBatchRepository, PayoutBatchRepository>();
 builder.Services.AddScoped<IVendorCommissionRepository, VendorCommissionRepository>();
 builder.Services.AddScoped<IPaymentAuditLogRepository, PaymentAuditLogRepository>();

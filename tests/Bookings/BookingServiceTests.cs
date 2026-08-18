@@ -6,6 +6,7 @@ using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Reviews;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
+using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
@@ -323,27 +324,42 @@ public class BookingServiceTests
         var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, BookingStatus.Completed);
 
         ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
-        ctx.ReviewRepo.Setup(r => r.ExistsByBookingIdAsync(bookingId)).ReturnsAsync(false);
+        ctx.ReviewRepo.Setup(r => r.GetByBookingIdAsync(bookingId)).ReturnsAsync((Review?)null);
 
         var result = await ctx.Service.GetCustomerBookingDetailAsync(bookingId, customerId);
 
         Assert.True(result.CanReview);
+        Assert.Null(result.ReviewId);
     }
 
     [Fact]
-    public async Task GetCustomerBookingDetail_CanReview_False_When_Review_Already_Exists()
+    public async Task GetCustomerBookingDetail_CanReview_False_And_Surfaces_Existing_Review()
     {
         var ctx = Build();
         var customerId = Guid.NewGuid();
         var bookingId = Guid.NewGuid();
         var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, BookingStatus.Completed);
+        var review = new Review
+        {
+            Id = Guid.NewGuid(),
+            BookingId = bookingId,
+            Rating = 4,
+            Comment = "Lovely stay",
+            CreatedAt = DateTime.UtcNow,
+            VendorReply = "Thanks for visiting!",
+            VendorReplyAt = DateTime.UtcNow
+        };
 
         ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
-        ctx.ReviewRepo.Setup(r => r.ExistsByBookingIdAsync(bookingId)).ReturnsAsync(true);
+        ctx.ReviewRepo.Setup(r => r.GetByBookingIdAsync(bookingId)).ReturnsAsync(review);
 
         var result = await ctx.Service.GetCustomerBookingDetailAsync(bookingId, customerId);
 
         Assert.False(result.CanReview);
+        Assert.Equal(review.Id, result.ReviewId);
+        Assert.Equal(4, result.ReviewRating);
+        Assert.Equal("Lovely stay", result.ReviewComment);
+        Assert.Equal("Thanks for visiting!", result.ReviewVendorReply);
     }
 
     [Theory]
@@ -359,11 +375,11 @@ public class BookingServiceTests
         var booking = MakeBooking(bookingId, Guid.NewGuid(), customerId, status);
 
         ctx.BookingRepo.Setup(r => r.GetByIdAsync(bookingId)).ReturnsAsync(booking);
+        ctx.ReviewRepo.Setup(r => r.GetByBookingIdAsync(bookingId)).ReturnsAsync((Review?)null);
 
         var result = await ctx.Service.GetCustomerBookingDetailAsync(bookingId, customerId);
 
         Assert.False(result.CanReview);
-        ctx.ReviewRepo.Verify(r => r.ExistsByBookingIdAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     // --- CompleteExpiredBookingsAsync ---

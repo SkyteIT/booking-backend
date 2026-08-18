@@ -26,6 +26,7 @@ public class SeasonalPricingServiceTests
     private static Ctx Build(Listing listing, Category category)
     {
         var ruleRepo = new Mock<ISeasonalPricingRepository>();
+        var offerRepo = new Mock<IListingOfferRepository>();
         var listingRepo = new Mock<IListingRepository>();
         var unitRepo = new Mock<IListingUnitRepository>();
         var categoryRepo = new Mock<ICategoryRepository>();
@@ -36,8 +37,10 @@ public class SeasonalPricingServiceTests
         vendorProfileRepo.Setup(r => r.GetVendorIdAsync(VendorUserId)).ReturnsAsync(new VendorProfile { Id = VendorProfileId });
         ruleRepo.Setup(r => r.HasOverlapAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
+        offerRepo.Setup(r => r.GetActiveDiscountForListingAsync(It.IsAny<Guid>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ListingOffer?)null);
 
-        var service = new SeasonalPricingService(ruleRepo.Object, listingRepo.Object, unitRepo.Object, categoryRepo.Object, vendorProfileRepo.Object);
+        var service = new SeasonalPricingService(ruleRepo.Object, offerRepo.Object, listingRepo.Object, unitRepo.Object, categoryRepo.Object, vendorProfileRepo.Object);
         return new Ctx(ruleRepo, listingRepo, unitRepo, categoryRepo, vendorProfileRepo, service);
     }
 

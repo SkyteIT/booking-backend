@@ -31,6 +31,9 @@ public class ListingResponse
     public List<string> Tags { get; set; } = new();
     public string? CancellationPolicy { get; set; }
 
+    public bool HasActiveOffer { get; set; }
+    public string? OfferBadgeText { get; set; }
+
     public HotelDetailsDto? HotelDetails { get; set; }
     public RestaurantDetailsDto? RestaurantDetails { get; set; }
     public EventDetailsDto? EventDetails { get; set; }

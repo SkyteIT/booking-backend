@@ -327,6 +327,8 @@ public class ListingService : IListingService
         Images = l.Images?.Select(i => i.ImageUrl).ToList() ?? new List<string>(),
         Tags = l.Tags != null ? l.Tags.Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>(),
         CancellationPolicy = l.CancellationPolicy,
+        HasActiveOffer = ActiveOffer(l) != null,
+        OfferBadgeText = FormatOfferBadge(ActiveOffer(l)),
         HotelDetails = l.HotelDetails == null ? null : new HotelDetailsDto
         {
             PricePerNight = l.HotelDetails.PricePerNight,
@@ -396,5 +398,22 @@ public class ListingService : IListingService
             Label = v.CategoryCustomField.Label,
             Value = v.Value
         }).ToList() ?? new List<ListingCustomFieldValueDto>()
+    };
+
+    // Any currently-active offer (perk-only included) - "does this
+    // listing have something running right now," same rule the search
+    // endpoint uses. Requires l.Offers to have been Include()'d.
+    private static ListingOffer? ActiveOffer(Listing l)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        return l.Offers?.FirstOrDefault(o => o.IsActive && o.StartDate <= today && o.EndDate >= today);
+    }
+
+    private static string? FormatOfferBadge(ListingOffer? offer) => offer?.DiscountType switch
+    {
+        null when offer == null => null,
+        OfferDiscountType.PercentageDiscount => $"{offer.DiscountValue:0.##}% OFF",
+        OfferDiscountType.FixedAmountDiscount => $"{offer.DiscountValue:0.##} OFF",
+        _ => "Special Offer"
     };
 }

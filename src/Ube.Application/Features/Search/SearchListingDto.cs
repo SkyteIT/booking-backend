@@ -11,4 +11,6 @@ public class SearchListingDto
     public bool IsFeatured { get; set; }
     public bool IsActive { get; set; }
     public string? ThumbnailUrl { get; set; }
+    public bool HasActiveOffer { get; set; }
+    public string? OfferBadgeText { get; set; }
 }

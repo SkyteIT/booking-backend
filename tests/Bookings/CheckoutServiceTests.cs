@@ -23,6 +23,7 @@ public class CheckoutServiceTests
         Mock<IBlockedDateRepository> BlockedDateRepo,
         Mock<ICategoryRepository> CategoryRepo,
         Mock<ISeasonalPricingRepository> SeasonalPricingRepo,
+        Mock<IListingOfferRepository> OfferRepo,
         Mock<IPaymentService> PaymentService,
         Mock<IFraudDetectionService> FraudDetectionService,
         Mock<IUnitOfWork> UnitOfWork,
@@ -36,6 +37,7 @@ public class CheckoutServiceTests
         var blockedDateRepo = new Mock<IBlockedDateRepository>();
         var categoryRepo = new Mock<ICategoryRepository>();
         var seasonalPricingRepo = new Mock<ISeasonalPricingRepository>();
+        var offerRepo = new Mock<IListingOfferRepository>();
         var paymentService = new Mock<IPaymentService>();
         var fraudDetectionService = new Mock<IFraudDetectionService>();
         var unitOfWork = new Mock<IUnitOfWork>();
@@ -43,6 +45,9 @@ public class CheckoutServiceTests
         seasonalPricingRepo
             .Setup(r => r.GetActiveInRangeAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<SeasonalPricingRule>());
+        offerRepo
+            .Setup(r => r.GetActiveDiscountForListingAsync(It.IsAny<Guid>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ListingOffer?)null);
 
         // A single always-available Capacity strategy - EnsureAvailableAsync
         // is not what these tests are about, so it never blocks checkout.
@@ -87,12 +92,13 @@ public class CheckoutServiceTests
             blockedDateRepo.Object,
             categoryRepo.Object,
             seasonalPricingRepo.Object,
+            offerRepo.Object,
             strategySelector,
             paymentService.Object,
             fraudDetectionService.Object,
             unitOfWork.Object);
 
-        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, paymentService, fraudDetectionService, unitOfWork, service);
+        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, offerRepo, paymentService, fraudDetectionService, unitOfWork, service);
     }
 
     private static Listing MakeListing(Guid categoryId) => new()
@@ -171,6 +177,42 @@ public class CheckoutServiceTests
         ctx.FraudDetectionService.Verify(f => f.CreateHoldFlagAsync(It.IsAny<Domain.Entities.Bookings.Booking>(), It.IsAny<BookingStatus>(), It.IsAny<PaymentCollectionMethod>(), It.IsAny<CancellationToken>()), Times.Never);
         ctx.FraudDetectionService.Verify(f => f.EvaluateFlagOnlyRulesAsync(It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
         ctx.UnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_Applies_Active_Offer_Discount_On_Top_Of_Total()
+    {
+        var ctx = Build();
+        var category = MakeCategory(BookingConfirmationType.Instant, ServiceCollectionModel.Prepay);
+        category.ServiceModel = PricingUnit.PerNight;
+        var listing = MakeListing(category.Id); // Price = 1000, 1-night request => flat total 1000
+
+        ctx.ListingRepo.Setup(r => r.GetByIdAsync(listing.Id)).ReturnsAsync(listing);
+        ctx.CategoryRepo.Setup(r => r.GetByIdAsync(category.Id, false, It.IsAny<CancellationToken>())).ReturnsAsync(category);
+
+        var offer = new ListingOffer
+        {
+            Id = Guid.NewGuid(),
+            ListingId = listing.Id,
+            Title = "Late Summer Deal",
+            DiscountType = OfferDiscountType.PercentageDiscount,
+            DiscountValue = 20,
+            IsActive = true
+        };
+        ctx.OfferRepo
+            .Setup(r => r.GetActiveDiscountForListingAsync(listing.Id, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(offer);
+
+        Domain.Entities.Bookings.Booking? addedBooking = null;
+        ctx.BookingRepo
+            .Setup(r => r.AddAsync(It.IsAny<Domain.Entities.Bookings.Booking>(), It.IsAny<CancellationToken>()))
+            .Callback<Domain.Entities.Bookings.Booking, CancellationToken>((b, _) => addedBooking = b)
+            .Returns(Task.CompletedTask);
+
+        await ctx.Service.CheckoutAsync(Guid.NewGuid(), MakeRequest(listing.Id));
+
+        Assert.NotNull(addedBooking);
+        Assert.Equal(800m, addedBooking!.TotalAmount); // 1000 flat total, then 20% offer discount
     }
 
     [Fact]

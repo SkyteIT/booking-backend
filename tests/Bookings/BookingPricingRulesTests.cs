@@ -111,4 +111,42 @@ public class BookingPricingRulesTests
         var total = BookingPricingRules.CalculateSeasonalTotal(1000m, 1, Start, Start.AddDays(2), new[] { rule });
         Assert.Equal(2000m, total); // falls back to flat base price
     }
+
+    private static ListingOffer MakeOffer(OfferDiscountType? type, decimal? value) => new()
+    {
+        Id = Guid.NewGuid(),
+        Title = "Test Offer",
+        StartDate = DateOnly.FromDateTime(Start),
+        EndDate = DateOnly.FromDateTime(Start.AddDays(30)),
+        DiscountType = type,
+        DiscountValue = value,
+        IsActive = true
+    };
+
+    [Fact]
+    public void ApplyOfferDiscount_Returns_Total_Unchanged_When_Offer_Is_Null()
+    {
+        Assert.Equal(1000m, BookingPricingRules.ApplyOfferDiscount(1000m, null));
+    }
+
+    [Fact]
+    public void ApplyOfferDiscount_Returns_Total_Unchanged_For_Pure_Perk_Offer()
+    {
+        var offer = MakeOffer(null, null);
+        Assert.Equal(1000m, BookingPricingRules.ApplyOfferDiscount(1000m, offer));
+    }
+
+    [Fact]
+    public void ApplyOfferDiscount_Applies_Percentage_Discount_Once()
+    {
+        var offer = MakeOffer(OfferDiscountType.PercentageDiscount, 20);
+        Assert.Equal(800m, BookingPricingRules.ApplyOfferDiscount(1000m, offer));
+    }
+
+    [Fact]
+    public void ApplyOfferDiscount_Applies_Fixed_Discount_And_Never_Goes_Negative()
+    {
+        var offer = MakeOffer(OfferDiscountType.FixedAmountDiscount, 1500);
+        Assert.Equal(0m, BookingPricingRules.ApplyOfferDiscount(1000m, offer));
+    }
 }

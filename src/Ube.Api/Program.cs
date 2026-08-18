@@ -109,6 +109,8 @@ builder.Services.AddScoped<IListingUnitRepository, ListingUnitRepository>();
 builder.Services.AddScoped<IListingUnitService, ListingUnitService>();
 builder.Services.AddScoped<ISeasonalPricingRepository, SeasonalPricingRepository>();
 builder.Services.AddScoped<ISeasonalPricingService, SeasonalPricingService>();
+builder.Services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
+builder.Services.AddScoped<IListingOfferService, ListingOfferService>();
 builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 // Register availability strategies
 builder.Services.AddScoped<IAvailabilityStrategy, CapacityStrategy>();

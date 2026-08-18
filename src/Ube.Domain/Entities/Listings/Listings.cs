@@ -49,4 +49,5 @@ public class Listing
 
     public ICollection<ListingCustomFieldValue> CustomFieldValues { get; set; } = new List<ListingCustomFieldValue>();
     public ICollection<ListingUnit> Units { get; set; } = new List<ListingUnit>();
+    public ICollection<ListingOffer> Offers { get; set; } = new List<ListingOffer>();
 }

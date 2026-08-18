@@ -21,6 +21,7 @@ public class CheckoutService : ICheckoutService
     private readonly IBlockedDateRepository _blockedDateRepo;
     private readonly ICategoryRepository _categoryRepo;
     private readonly ISeasonalPricingRepository _seasonalPricingRepo;
+    private readonly IListingOfferRepository _offerRepo;
     private readonly StrategySelector _strategySelector;
     private readonly IPaymentService _paymentService;
     private readonly IFraudDetectionService _fraudDetectionService;
@@ -33,6 +34,7 @@ public class CheckoutService : ICheckoutService
         IBlockedDateRepository blockedDateRepo,
         ICategoryRepository categoryRepo,
         ISeasonalPricingRepository seasonalPricingRepo,
+        IListingOfferRepository offerRepo,
         StrategySelector strategySelector,
         IPaymentService paymentService,
         IFraudDetectionService fraudDetectionService,
@@ -44,6 +46,7 @@ public class CheckoutService : ICheckoutService
         _blockedDateRepo = blockedDateRepo;
         _categoryRepo = categoryRepo;
         _seasonalPricingRepo = seasonalPricingRepo;
+        _offerRepo = offerRepo;
         _strategySelector = strategySelector;
         _paymentService = paymentService;
         _fraudDetectionService = fraudDetectionService;
@@ -111,6 +114,13 @@ public class CheckoutService : ICheckoutService
                     totalAmount = BookingPricingRules.CalculateTotal(
                         effectivePrice, item.Quantity, item.StartDateTime, item.EndDateTime, category.ServiceModel);
                 }
+
+                // Applied once per booking, on top of any seasonal
+                // adjustment - a vendor offer is a marketing deal, not a
+                // rate structure, so it never affects the per-night math.
+                var activeOffer = await _offerRepo.GetActiveDiscountForListingAsync(
+                    listing.Id, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+                totalAmount = BookingPricingRules.ApplyOfferDiscount(totalAmount, activeOffer);
 
                 var status = category.BookingType == BookingConfirmationType.Instant
                     ? BookingStatus.Confirmed

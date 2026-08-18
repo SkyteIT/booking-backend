@@ -11,6 +11,7 @@ namespace Ube.Application.Features.Listings;
 public class SeasonalPricingService : ISeasonalPricingService
 {
     private readonly ISeasonalPricingRepository _ruleRepo;
+    private readonly IListingOfferRepository _offerRepo;
     private readonly IListingRepository _listingRepo;
     private readonly IListingUnitRepository _unitRepo;
     private readonly ICategoryRepository _categoryRepo;
@@ -18,12 +19,14 @@ public class SeasonalPricingService : ISeasonalPricingService
 
     public SeasonalPricingService(
         ISeasonalPricingRepository ruleRepo,
+        IListingOfferRepository offerRepo,
         IListingRepository listingRepo,
         IListingUnitRepository unitRepo,
         ICategoryRepository categoryRepo,
         IVendorProfileRepository vendorProfileRepo)
     {
         _ruleRepo = ruleRepo;
+        _offerRepo = offerRepo;
         _listingRepo = listingRepo;
         _unitRepo = unitRepo;
         _categoryRepo = categoryRepo;
@@ -132,15 +135,23 @@ public class SeasonalPricingService : ISeasonalPricingService
         }
 
         var isDateBased = category.ServiceModel is PricingUnit.PerNight or PricingUnit.PerDay;
+        decimal total;
         if (!isDateBased)
         {
-            var flatTotal = BookingPricingRules.CalculateTotal(effectivePrice, quantity, startDate, endDate, category.ServiceModel);
-            return new PriceQuoteDto { TotalAmount = flatTotal, Currency = listing.Currency };
+            total = BookingPricingRules.CalculateTotal(effectivePrice, quantity, startDate, endDate, category.ServiceModel);
+        }
+        else
+        {
+            var rules = await _ruleRepo.GetActiveInRangeAsync(
+                listingId, listingUnitId, DateOnly.FromDateTime(startDate), DateOnly.FromDateTime(endDate), ct);
+            total = BookingPricingRules.CalculateSeasonalTotal(effectivePrice, quantity, startDate, endDate, rules);
         }
 
-        var rules = await _ruleRepo.GetActiveInRangeAsync(
-            listingId, listingUnitId, DateOnly.FromDateTime(startDate), DateOnly.FromDateTime(endDate), ct);
-        var total = BookingPricingRules.CalculateSeasonalTotal(effectivePrice, quantity, startDate, endDate, rules);
+        // Same lookup/apply CheckoutService uses - the quote can never
+        // drift from the real charge.
+        var activeOffer = await _offerRepo.GetActiveDiscountForListingAsync(listingId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+        total = BookingPricingRules.ApplyOfferDiscount(total, activeOffer);
+
         return new PriceQuoteDto { TotalAmount = total, Currency = listing.Currency };
     }
 

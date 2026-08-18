@@ -3,6 +3,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Search;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Enums;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Infrastructure.Persistence.Repositories.Listings;
 
@@ -77,25 +78,62 @@ public class ListingRepository : IListingRepository
         if (request.IsAvailable.HasValue)
             query = query.Where(x => x.IsActive == request.IsAvailable.Value);
 
-        return await query
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        // Any active offer counts here (perk-only included) - the badge/
+        // filter is "does this listing have something running right now,"
+        // not specifically "does it have a discount." Checkout's own
+        // lookup (GetActiveDiscountForListingAsync) is the one that stays
+        // discount-only, since only a discount can affect price.
+        if (request.HasActiveOffer == true)
+        {
+            query = query.Where(x => _db.ListingOffers.Any(o =>
+                o.ListingId == x.Id && o.IsActive &&
+                o.StartDate <= today && o.EndDate >= today));
+        }
+
+        var page = await query
             .OrderByDescending(x => x.IsFeatured)
             .ThenBy(x => x.Price)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(x => new SearchListingDto
+            .Select(x => new
             {
-                Id = x.Id,
-                Title = x.Title,
-                CategoryName = x.Category.Name,
-                Location = x.Location ?? string.Empty,
-                Price = x.Price,
-                AverageRating = x.AverageRating,
-                IsFeatured = x.IsFeatured,
-                IsActive = x.IsActive,
-                ThumbnailUrl = x.ThumbnailUrl
+                Listing = x,
+                ActiveOffer = _db.ListingOffers
+                    .Where(o => o.ListingId == x.Id && o.IsActive &&
+                                o.StartDate <= today && o.EndDate >= today)
+                    .Select(o => new { o.DiscountType, o.DiscountValue })
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
+
+        return page.Select(r => new SearchListingDto
+        {
+            Id = r.Listing.Id,
+            Title = r.Listing.Title,
+            CategoryName = r.Listing.Category.Name,
+            Location = r.Listing.Location ?? string.Empty,
+            Price = r.Listing.Price,
+            AverageRating = r.Listing.AverageRating,
+            IsFeatured = r.Listing.IsFeatured,
+            IsActive = r.Listing.IsActive,
+            ThumbnailUrl = r.Listing.ThumbnailUrl,
+            HasActiveOffer = r.ActiveOffer != null,
+            OfferBadgeText = r.ActiveOffer == null ? null : FormatOfferBadge(r.ActiveOffer.DiscountType, r.ActiveOffer.DiscountValue)
+        }).ToList();
     }
+
+    // Called only when an active offer row was actually found (the
+    // caller checks HasActiveOffer) - a null DiscountType there means a
+    // pure-perk offer, not "no offer at all."
+    private static string FormatOfferBadge(OfferDiscountType? type, decimal? value)
+        => type switch
+        {
+            OfferDiscountType.PercentageDiscount => $"{value:0.##}% OFF",
+            OfferDiscountType.FixedAmountDiscount => $"{value:0.##} OFF",
+            _ => "Special Offer"
+        };
 
     public async Task<Listing?> GetByIdWithDetailsAsync(Guid listingId, CancellationToken ct = default)
         => await _db.Listings
@@ -107,6 +145,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
             .FirstOrDefaultAsync(l => l.Id == listingId, ct);
@@ -121,6 +160,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
             .ToListAsync(ct);
@@ -135,6 +175,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
             .ToListAsync(ct);

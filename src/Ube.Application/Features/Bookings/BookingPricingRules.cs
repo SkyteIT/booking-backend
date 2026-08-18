@@ -59,4 +59,25 @@ public static class BookingPricingRules
 
         return nightsTotal * quantity;
     }
+
+    // Applies at most one offer's discount to an already-computed total
+    // (post seasonal pricing) - once per booking, not per night, since an
+    // offer is a marketing deal, not a rate structure. A null offer or an
+    // offer with no DiscountType (a pure perk) leaves the total untouched.
+    // Shared by CheckoutService and the price-quote endpoint so the two
+    // can never disagree about what a customer is actually charged.
+    public static decimal ApplyOfferDiscount(decimal total, ListingOffer? offer)
+    {
+        if (offer?.DiscountType is null || !offer.DiscountValue.HasValue)
+            return total;
+
+        var discounted = offer.DiscountType switch
+        {
+            OfferDiscountType.PercentageDiscount => total * (1 - offer.DiscountValue.Value / 100m),
+            OfferDiscountType.FixedAmountDiscount => total - offer.DiscountValue.Value,
+            _ => total
+        };
+
+        return Math.Max(0, discounted);
+    }
 }

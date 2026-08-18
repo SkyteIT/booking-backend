@@ -44,8 +44,7 @@ public class DashboardController : ControllerBase
             return Ok(result);
         }
 
-    // Daily/weekly/monthly net-revenue breakdown, sourced from the vendor's
-    // own ledger (net of commission/refunds) - SRS 3.2.5.
+    // Daily/weekly/monthly net-revenue breakdown, sourced from the vendor's own ledger 
     [HttpGet("revenue-report")]
     public async Task<IActionResult> GetRevenueReport([FromQuery] RevenueReportRequest request, CancellationToken ct)
     {

@@ -9,6 +9,7 @@ public class SearchListingsRequest
     public decimal? MaxPrice { get; set; }
     public decimal? MinRating { get; set; }
     public bool? IsAvailable { get; set; }
+    public bool? HasActiveOffer { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 12;
 }

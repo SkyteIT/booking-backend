@@ -14,6 +14,7 @@ namespace Ube.Infrastructure.Persistence.Seed;
 public static class TestDataSeeder
 {
     public static readonly Guid AdminUserId = Guid.Parse("aaaaaaaa-0000-0000-0000-aaaaaaaaaaaa");
+    public static readonly Guid SuperAdminUserId = Guid.Parse("99999999-0000-0000-0000-999999999999");
     public static readonly Guid VendorUserId = Guid.Parse("bbbbbbbb-0000-0000-0000-bbbbbbbbbbbb");
     public static readonly Guid VendorProfileId = Guid.Parse("bbbbbbbb-1111-1111-1111-bbbbbbbbbbbb");
 
@@ -60,6 +61,7 @@ public static class TestDataSeeder
     public static readonly Guid VendorApplication5Id = Guid.Parse("dddddddd-5555-5555-5555-dddddddddddd");
 
     public static readonly Guid AdminLocalizationId = Guid.Parse("aaaaaaaa-1111-1111-1111-aaaaaaaaaaaa");
+    public static readonly Guid SuperAdminLocalizationId = Guid.Parse("99999999-1111-1111-1111-999999999999");
     public static readonly Guid VendorLocalizationId = Guid.Parse("bbbbbbbb-3333-3333-3333-bbbbbbbbbbbb");
     public static readonly Guid Customer1LocalizationId = Guid.Parse("cccccccc-3333-3333-3333-cccccccccccc");
     public static readonly Guid Customer2LocalizationId = Guid.Parse("cccccccc-4444-4444-4444-cccccccccccc");
@@ -101,6 +103,7 @@ public static class TestDataSeeder
         var now = DateTime.UtcNow;
 
         UpsertUser(dbContext, AdminUserId, UserRole.Admin, "admin@ube.local", "System", "Admin", "+94770000000", true, now, cancellationToken);
+        UpsertUser(dbContext, SuperAdminUserId, UserRole.SuperAdmin, "superadmin@ube.local", "System", "SuperAdmin", "+94770000099", true, now, cancellationToken);
         UpsertUser(dbContext, VendorUserId, UserRole.Vendor, "vendor@ube.local", "Main", "Vendor", "+94770000001", true, now, cancellationToken);
         UpsertUser(dbContext, Customer1Id, UserRole.User, "customer1@ube.local", "Customer", "One", "+94770000011", true, now, cancellationToken);
         UpsertUser(dbContext, Customer2Id, UserRole.User, "customer2@ube.local", "Customer", "Two", "+94770000012", true, now, cancellationToken);
@@ -110,6 +113,7 @@ public static class TestDataSeeder
 
         // Ensure each user has localization settings
         UpsertUserLocalization(dbContext, AdminLocalizationId, AdminUserId, "en", "UTC", "LKR", now, cancellationToken);
+        UpsertUserLocalization(dbContext, SuperAdminLocalizationId, SuperAdminUserId, "en", "UTC", "LKR", now, cancellationToken);
         UpsertUserLocalization(dbContext, VendorLocalizationId, VendorUserId, "si-LK", "Asia/Colombo", "LKR", now, cancellationToken);
         UpsertUserLocalization(dbContext, Customer1LocalizationId, Customer1Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);
         UpsertUserLocalization(dbContext, Customer2LocalizationId, Customer2Id, "en", "Asia/Colombo", "LKR", now, cancellationToken);

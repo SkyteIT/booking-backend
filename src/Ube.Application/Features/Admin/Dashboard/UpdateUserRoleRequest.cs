@@ -5,4 +5,5 @@ namespace Ube.Application.Features.Admin.Dashboard;
 public class UpdateUserRoleRequest
 {
     public UserRole Role { get; set; }
+    public string? Reason { get; set; }
 }

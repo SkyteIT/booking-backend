@@ -33,6 +33,7 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<VendorPayout> VendorPayouts { get; set; } = default!;
     public DbSet<BlockedDate> BlockedDates { get; set; } = default!;
     public DbSet<UserLocalizationSettings> UserLocalizationSettings { get; set; } = default!;
+    public DbSet<RoleChangeRequest> RoleChangeRequests { get; set; } = default!;
     public DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; } = default!;
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = default!;
     public DbSet<TwoFactorChallenge> TwoFactorChallenges { get; set; } = default!;

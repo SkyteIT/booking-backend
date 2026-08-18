@@ -249,7 +249,7 @@ public class AuthService : IAuthService
     // challenge is resolved via enrollment or verification below.
     private async Task<AuthResponseDto> CompleteLoginOrChallengeAsync(User user)
     {
-        if (user.Role is UserRole.Admin or UserRole.Finance)
+        if (user.Role is UserRole.Admin or UserRole.Finance or UserRole.SuperAdmin)
         {
             var challenge = new TwoFactorChallenge
             {

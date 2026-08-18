@@ -1,5 +1,6 @@
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Users;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Application.Features.Admin.Dashboard;
 
@@ -9,6 +10,10 @@ public interface IAdminRepository
     Task<List<User>> GetAllUsersAsync();
     Task<User?> GetUserByIdAsync(Guid userId);
     Task UpdateUserAsync(User user);
+
+    // How many users currently hold any of the given roles - used to
+    // guard against demoting the last remaining Admin/SuperAdmin.
+    Task<int> CountByRolesAsync(IEnumerable<UserRole> roles);
 
     // Bookings
     Task<List<Booking>> GetAllBookingsAsync();

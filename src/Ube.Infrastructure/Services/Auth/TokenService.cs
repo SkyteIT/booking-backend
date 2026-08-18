@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Common.Models.JWT;
 using Ube.Domain.Entities.Users;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Infrastructure.Services.Auth;
 
@@ -26,15 +27,15 @@ public class TokenService : ITokenService
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, user.Email),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Email, user.Email),
+            new(ClaimTypes.Email, user.Email),
         };
+        claims.AddRange(RoleClaimsFor(user.Role).Select(r => new Claim(ClaimTypes.Role, r)));
 
         var token = new JwtSecurityToken(
             issuer: _jwtSettings.Issuer,
@@ -46,4 +47,12 @@ public class TokenService : ITokenService
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
+
+    // SuperAdmin gets every role claim it's meant to "watch everything"
+
+    private static IEnumerable<string> RoleClaimsFor(UserRole role) => role switch
+    {
+        UserRole.SuperAdmin => new[] { UserRole.SuperAdmin.ToString(), UserRole.Admin.ToString(), UserRole.Finance.ToString() },
+        _ => new[] { role.ToString() }
+    };
 }

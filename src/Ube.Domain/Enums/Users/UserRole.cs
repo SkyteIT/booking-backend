@@ -11,5 +11,13 @@ public enum UserRole
     // admin capability (user/vendor/category management). Assigned via
     // the existing PUT /api/admin/users/{userId}/role endpoint - no new
     // endpoint needed since UserRole is already the parameter type there.
-    Finance = 3
+    Finance = 3,
+
+    // Broader than Admin, not narrower - can read everything an Admin or
+    // Finance user can (TokenService grants SuperAdmin's JWT all three
+    // role claims), but role-change actions initiated by a plain Admin
+    // don't take effect immediately - they land in a RoleChangeRequest
+    // queue only a SuperAdmin can approve or reject. See
+    // Features/Users/RoleChangeRules.cs.
+    SuperAdmin = 4
 }

@@ -50,6 +50,7 @@ using Ube.Infrastructure.Services;
 using Ube.Application.Features.Cart;
 using Ube.Infrastructure.Persistence.Repositories.Cart;
 using Ube.Application.Features.Admin.Dashboard;
+using Ube.Application.Features.Users;
 using Ube.Infrastructure.Persistence.Repositories.Admin;
 using Ube.Application.Features.Payments;
 using Ube.Infrastructure.Persistence.Repositories.Payments;
@@ -169,6 +170,8 @@ builder.Services.AddScoped<ICartService, CartService>();
 // Admin dashboard
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IRoleChangeRequestRepository, RoleChangeRequestRepository>();
+builder.Services.AddScoped<IRoleChangeRequestService, RoleChangeRequestService>();
 
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IRefundRepository, RefundRepository>();

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Admin.Dashboard;
+using Ube.Application.Features.Users;
 
 namespace Ube.Api.Controllers.Admin;
 
@@ -10,10 +12,12 @@ namespace Ube.Api.Controllers.Admin;
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
+    private readonly ICurrentUserService _currentUser;
 
-    public AdminController(IAdminService adminService)
+    public AdminController(IAdminService adminService, ICurrentUserService currentUser)
     {
         _adminService = adminService;
+        _currentUser = currentUser;
     }
 
     // ── Dashboard ─────────────────────────────────────────────────────────────
@@ -42,10 +46,10 @@ public class AdminController : ControllerBase
     }
 
     [HttpPut("users/{userId:guid}/role")]
-    public async Task<ActionResult<AdminUserDto>> UpdateUserRole(Guid userId, [FromBody] UpdateUserRoleRequest request)
+    public async Task<ActionResult<RoleChangeOutcomeDto>> UpdateUserRole(Guid userId, [FromBody] UpdateUserRoleRequest request, CancellationToken ct)
     {
-        var user = await _adminService.UpdateUserRoleAsync(userId, request.Role);
-        return Ok(user);
+        var outcome = await _adminService.UpdateUserRoleAsync(userId, request.Role, _currentUser.UserId, request.Reason, ct);
+        return Ok(outcome);
     }
 
     [HttpPut("users/{userId:guid}/status")]

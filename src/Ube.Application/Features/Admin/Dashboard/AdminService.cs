@@ -1,6 +1,7 @@
 using System.Text;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Bookings;
+using Ube.Application.Features.Users;
 using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Bookings;
 
@@ -9,10 +10,12 @@ namespace Ube.Application.Features.Admin.Dashboard;
 public class AdminService : IAdminService
 {
     private readonly IAdminRepository _adminRepository;
+    private readonly IRoleChangeRequestService _roleChangeRequestService;
 
-    public AdminService(IAdminRepository adminRepository)
+    public AdminService(IAdminRepository adminRepository, IRoleChangeRequestService roleChangeRequestService)
     {
         _adminRepository = adminRepository;
+        _roleChangeRequestService = roleChangeRequestService;
     }
 
     // ── Dashboard ────────────────────────────────────────────────────────────
@@ -47,18 +50,34 @@ public class AdminService : IAdminService
         return user == null ? null : MapUserToDto(user);
     }
 
-    public async Task<AdminUserDto> UpdateUserRoleAsync(Guid userId, UserRole role)
+    public async Task<RoleChangeOutcomeDto> UpdateUserRoleAsync(Guid userId, UserRole role, Guid actorUserId, string? reason = null, CancellationToken ct = default)
     {
-        var user = await _adminRepository.GetUserByIdAsync(userId)
+        var target = await _adminRepository.GetUserByIdAsync(userId)
             ?? throw new NotFoundException($"User {userId} not found.");
 
-        user.Role = role;
-        user.UpdatedAt = DateTime.UtcNow;
+        var actor = await _adminRepository.GetUserByIdAsync(actorUserId)
+            ?? throw new NotFoundException("Acting user not found.");
 
-        await _adminRepository.UpdateUserAsync(user);
+        if (actor.Role != UserRole.SuperAdmin)
+        {
+            // Nothing changes yet - a plain Admin's ask becomes a pending
+            // request only a SuperAdmin can approve.
+            var request = await _roleChangeRequestService.CreateAsync(userId, role, actorUserId, reason, ct);
+            return new RoleChangeOutcomeDto { AppliedImmediately = false, Request = request };
+        }
+
+        var adminOrSuperAdminCount = await _adminRepository.CountByRolesAsync(new[] { UserRole.Admin, UserRole.SuperAdmin });
+        var check = RoleChangeRules.CanChangeRole(actorUserId, target, role, adminOrSuperAdminCount);
+        if (!check.IsSuccess)
+            throw new BusinessRuleException(check.ErrorMessage);
+
+        target.Role = role;
+        target.UpdatedAt = DateTime.UtcNow;
+
+        await _adminRepository.UpdateUserAsync(target);
         await _adminRepository.SaveChangesAsync();
 
-        return MapUserToDto(user);
+        return new RoleChangeOutcomeDto { AppliedImmediately = true, User = MapUserToDto(target) };
     }
 
     public async Task<AdminUserDto> UpdateUserStatusAsync(Guid userId, bool isSuspended)

@@ -6,6 +6,7 @@ using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
 using Ube.Domain.Enums.Users;
+using Ube.Domain.Enums;
 
 namespace Ube.Infrastructure.Persistence.Seed;
 
@@ -31,48 +32,82 @@ public static class TestDataSeeder
 
         var now = DateTime.UtcNow;
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == CustomerUserId, cancellationToken))
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("password");
+
+        var customerUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == CustomerUserId, cancellationToken);
+        if (customerUser != null)
+        {
+            if (string.IsNullOrEmpty(customerUser.PasswordHash))
+            {
+                customerUser.PasswordHash = passwordHash;
+            }
+        }
+        else
         {
             dbContext.Users.Add(new User
             {
                 Id = CustomerUserId,
                 Email = "customer@test.local",
+                PasswordHash = passwordHash,
                 FirstName = "Isuru",
                 LastName = "Kavinda",
                 PhoneNumber = "+94770000001",
                 IsEmailVerified = true,
                 AuthProvider = AuthProvider.Local,
-                CreatedAt = now
+                CreatedAt = now,
+                Role = UserRole.Customer
             });
         }
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == UserId, cancellationToken))
+        var vendorUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == UserId, cancellationToken);
+        if (vendorUser != null)
+        {
+            vendorUser.Role = UserRole.Vendor;
+            if (string.IsNullOrEmpty(vendorUser.PasswordHash))
+            {
+                vendorUser.PasswordHash = passwordHash;
+            }
+        }
+        else
         {
             dbContext.Users.Add(new User
             {
                 Id = UserId,
                 Email = "vendor@testU.local",
+                PasswordHash = passwordHash,
                 FirstName = "Main",
                 LastName = "Vendor",
                 PhoneNumber = "+94770000002",
                 IsEmailVerified = true,
                 AuthProvider = AuthProvider.Local,
-                CreatedAt = now
+                CreatedAt = now,
+                Role = UserRole.Vendor
             });
         }
 
-        if (!await dbContext.Users.AnyAsync(x => x.Id == OtherVendorUserId, cancellationToken))
+        var otherVendorUser = await dbContext.Users.FirstOrDefaultAsync(x => x.Id == OtherVendorUserId, cancellationToken);
+        if (otherVendorUser != null)
+        {
+            otherVendorUser.Role = UserRole.Vendor;
+            if (string.IsNullOrEmpty(otherVendorUser.PasswordHash))
+            {
+                otherVendorUser.PasswordHash = passwordHash;
+            }
+        }
+        else
         {
             dbContext.Users.Add(new User
             {
                 Id = OtherVendorUserId,
                 Email = "other-vendor@test.local",
+                PasswordHash = passwordHash,
                 FirstName = "Other",
                 LastName = "Vendor",
                 PhoneNumber = "+94770000003",
                 IsEmailVerified = true,
                 AuthProvider = AuthProvider.Local,
-                CreatedAt = now
+                CreatedAt = now,
+                Role = UserRole.Vendor
             });
         }
 

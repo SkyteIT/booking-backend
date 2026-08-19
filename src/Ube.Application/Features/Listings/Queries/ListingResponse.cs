@@ -22,6 +22,7 @@ public class ListingResponse
     public string? Location { get; set; }
 
     public bool IsActive { get; set; }
+    public bool IsAvailable { get; set; }
 
     // Flattened fields
     public string CategoryName { get; set; } = string.Empty;

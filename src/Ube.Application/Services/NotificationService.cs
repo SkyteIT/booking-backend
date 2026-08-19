@@ -1,5 +1,6 @@
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Services;
+using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.DTOs.Notification;
 using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Notifications.Email;
@@ -13,6 +14,7 @@ namespace Ube.Application.Services;
 public class NotificationService : INotificationService
 {
     private readonly INotificationRepository _repo;
+    private readonly IUserRepository _userRepo;
     private readonly IEmailService _emailService;
     private readonly ISmsService _smsService;
     private readonly IRealtimeUpdateService _realtimeUpdateService;
@@ -20,12 +22,14 @@ public class NotificationService : INotificationService
 
     public NotificationService(
         INotificationRepository repo,
+        IUserRepository userRepo,
         IEmailService emailService,
         ISmsService smsService,
         IRealtimeUpdateService realtimeUpdateService,
         ILogger<NotificationService> logger)
     {
         _repo = repo;
+        _userRepo = userRepo;
         _emailService = emailService;
         _smsService = smsService;
         _realtimeUpdateService = realtimeUpdateService;
@@ -73,16 +77,19 @@ public class NotificationService : INotificationService
             cancellationToken);
 
         var preference = await _repo.GetPreferenceAsync(dto.UserId, notification.Type, cancellationToken);
+        var recipientEmail = string.IsNullOrWhiteSpace(dto.Email)
+            ? (await _userRepo.GetByIdAsync(dto.UserId))?.Email
+            : dto.Email;
 
-        if (preference?.EmailEnabled == true && !string.IsNullOrEmpty(dto.Email))
+        if (preference?.EmailEnabled == true && !string.IsNullOrWhiteSpace(recipientEmail))
         {
             try
             {
-                await _emailService.SendEmailAsync(dto.Email, notification.Title, notification.Message);
+                await _emailService.SendEmailAsync(recipientEmail!, notification.Title, notification.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to send notification email to {Email}", dto.Email);
+                _logger.LogWarning(ex, "Failed to send notification email to {Email}", recipientEmail);
             }
         }
 

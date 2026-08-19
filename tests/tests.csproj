@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\src\Ube.Application\Ube.Application.csproj" />
+    <ProjectReference Include="..\src\Ube.Infrastructure\Ube.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

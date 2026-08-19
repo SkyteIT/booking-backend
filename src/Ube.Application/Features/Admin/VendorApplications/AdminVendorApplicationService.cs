@@ -11,6 +11,8 @@ using Ube.Application.DTOs.Notification;
 using Ube.Application.Interfaces;
 using Ube.Domain.Enums.Notifications;
 using Ube.Application.Common.Interfaces.Services;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 
 
@@ -24,6 +26,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IUnitOfWork _unitOfWork;
     private readonly INotificationService _notificationService;
     private readonly IRealtimeUpdateService _realtimeUpdateService;
+    private readonly ILogger<AdminVendorApplicationService> _logger;
     
     public AdminVendorApplicationService(
         IVendorApplicationRepository applicationRepo,
@@ -31,7 +34,8 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         IVendorProfileRepository vendorRepo,
         IUnitOfWork unitOfWork,
         INotificationService notificationService,
-        IRealtimeUpdateService realtimeUpdateService)
+        IRealtimeUpdateService realtimeUpdateService,
+        ILogger<AdminVendorApplicationService> logger)
     {
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
@@ -39,12 +43,14 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
         _realtimeUpdateService = realtimeUpdateService;
+        _logger = logger;
     }
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
     {
         Domain.Entities.Vendors.VendorApplication? application = null;
         Domain.Entities.Users.User? user = null;
+        var reviewStatus = VendorApplicationStatus.Pending;
 
         // traaction
         await _unitOfWork.BeginTransactionAsync();
@@ -68,7 +74,9 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                 throw new NotFoundException("User not found");
 
             // Approval Flow
-            if (dto.Status == VendorApplicationStatus.Approved)
+            reviewStatus = ResolveReviewStatus(dto.Status, dto.Action);
+
+            if (reviewStatus == VendorApplicationStatus.Approved)
             {
                 var existingVendor = await _vendorRepo.GetVendorIdAsync(user.Id);
 
@@ -112,7 +120,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             }
 
             // Rejection Flow
-            else if (dto.Status == VendorApplicationStatus.Rejected)
+            else if (reviewStatus == VendorApplicationStatus.Rejected)
             {
                 //Rule: Validate rejection
                 var rejectRule = VendorApplicationRules.ValidateRejection(dto.RejectionReason);
@@ -137,18 +145,23 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             // Commit transaction
             await _unitOfWork.CommitAsync();
         }
-        catch
+        catch (Exception ex)
         {
             // Rollback transaction on error
             await _unitOfWork.RollbackAsync();
-            throw new BusinessRuleException("An error occurred while reviewing the application");
+            _logger.LogError(ex, "Failed to review vendor application {ApplicationId} by admin {AdminId}", applicationId, adminId);
+
+            if (ex is BusinessRuleException or NotFoundException or ForbiddenException)
+                throw;
+
+            throw new BusinessRuleException(ex.Message);
         }
 
         if (application is null || user is null)
             return;
 
-        await NotifyApplicationReviewedAsync(application, user, dto.Status);
-        await PublishDashboardRefreshAsync(application.Id, user.Id, dto.Status.ToString());
+        await NotifyApplicationReviewedAsync(application, user, reviewStatus);
+        await PublishDashboardRefreshAsync(application.Id, user.Id, reviewStatus.ToString());
     }
     // Method to get application details
     public async Task<ApplicationDetailDto> GetDetailsAsync(Guid applicationId)
@@ -252,5 +265,34 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         {
             // Realtime refresh is best-effort.
         }
+    }
+
+    private static VendorApplicationStatus ResolveReviewStatus(string status, string? action)
+    {
+        var candidates = new List<string?>();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            candidates.Add(status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(action))
+        {
+            candidates.Add(action);
+        }
+
+        foreach (var candidate in candidates.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()))
+        {
+            if (Enum.TryParse<VendorApplicationStatus>(candidate, ignoreCase: true, out var parsedStatus))
+                return parsedStatus;
+
+            if (candidate.Equals("approve", StringComparison.OrdinalIgnoreCase))
+                return VendorApplicationStatus.Approved;
+
+            if (candidate.Equals("reject", StringComparison.OrdinalIgnoreCase))
+                return VendorApplicationStatus.Rejected;
+        }
+
+        throw new BusinessRuleException("Invalid application status");
     }
 }

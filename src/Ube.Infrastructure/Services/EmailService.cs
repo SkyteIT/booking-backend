@@ -60,6 +60,24 @@ public class EmailService : IEmailService
         return SendEmailAsync(email, "Welcome to Ube", body);
     }
 
+    public Task SendVendorApplicationSubmittedEmailAsync(string email, string firstName, string businessName)
+    {
+        var displayName = string.IsNullOrWhiteSpace(firstName) ? "there" : firstName.Trim();
+        var safeBusinessName = string.IsNullOrWhiteSpace(businessName) ? "your business" : businessName.Trim();
+        var body = $"""
+            <h3>Vendor application submitted</h3>
+            <p>Hi {displayName},</p>
+            <p>Your vendor application for <strong>{safeBusinessName}</strong> has been submitted successfully.</p>
+            <p>Status: <strong>Pending review</strong></p>
+            <p>Our admin team will review your application and update you once a decision has been made.</p>
+            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
+               If you did not submit this application, please contact support immediately.
+            </p>
+            """;
+
+        return SendEmailAsync(email, "Vendor application submitted", body);
+    }
+
     public async Task SendEmailAsync(string to, string subject, string htmlBody)
     {
         ValidateSettings();

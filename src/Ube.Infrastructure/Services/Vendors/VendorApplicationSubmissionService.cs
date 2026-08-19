@@ -6,6 +6,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.DTOs.Notification;
 using Ube.Application.Features.Admin.VendorApplications;
+using Ube.Application.Features.Notifications.Email;
 using Ube.Application.Features.Vendors;
 using Ube.Application.Interfaces;
 using Ube.Domain.Entities.Vendors;
@@ -30,6 +31,7 @@ public class VendorApplicationSubmissionService : IVendorApplicationSubmissionSe
     private readonly IWebHostEnvironment _environment;
     private readonly IUserRepository _userRepository;
     private readonly IVendorApplicationRepository _applicationRepository;
+    private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
     private readonly IRealtimeUpdateService _realtimeUpdateService;
     private readonly ILogger<VendorApplicationSubmissionService> _logger;
@@ -38,6 +40,7 @@ public class VendorApplicationSubmissionService : IVendorApplicationSubmissionSe
         IWebHostEnvironment environment,
         IUserRepository userRepository,
         IVendorApplicationRepository applicationRepository,
+        IEmailService emailService,
         INotificationService notificationService,
         IRealtimeUpdateService realtimeUpdateService,
         ILogger<VendorApplicationSubmissionService> logger)
@@ -45,6 +48,7 @@ public class VendorApplicationSubmissionService : IVendorApplicationSubmissionSe
         _environment = environment;
         _userRepository = userRepository;
         _applicationRepository = applicationRepository;
+        _emailService = emailService;
         _notificationService = notificationService;
         _realtimeUpdateService = realtimeUpdateService;
         _logger = logger;
@@ -104,6 +108,7 @@ public class VendorApplicationSubmissionService : IVendorApplicationSubmissionSe
 
         await NotifyAdminsAsync(application, cancellationToken);
         await PublishDashboardRefreshAsync(application, cancellationToken);
+        await SendCustomerConfirmationEmailAsync(user, application);
 
         return application.Id;
     }
@@ -203,6 +208,21 @@ public class VendorApplicationSubmissionService : IVendorApplicationSubmissionSe
         catch (Exception ex)
         {
             _logger.LogDebug(ex, "Failed to publish dashboard refresh for vendor application {ApplicationId}", application.Id);
+        }
+    }
+
+    private async Task SendCustomerConfirmationEmailAsync(Domain.Entities.Users.User user, VendorApplication application)
+    {
+        try
+        {
+            await _emailService.SendVendorApplicationSubmittedEmailAsync(
+                user.Email,
+                user.FirstName,
+                application.BusinessName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send vendor application confirmation email to {Email} for application {ApplicationId}", user.Email, application.Id);
         }
     }
 }

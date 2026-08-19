@@ -26,6 +26,16 @@ public class Listing
 
     public string? Location { get; set; }
 
+    public string ListingType { get; set; } = "Activity";
+
+    public string ImagesJson { get; set; } = "[]";
+
+    public string TagsJson { get; set; } = "[]";
+
+    public string? CancellationPolicy { get; set; }
+
+    public string? DetailsJson { get; set; }
+
     public bool IsActive { get; set; } = true;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -16,6 +16,9 @@ public class CartItemConfiguration : IEntityTypeConfiguration<CartItem>
         builder.Property(ci => ci.TotalPrice)
             .HasPrecision(18, 2);
 
+        builder.Property(ci => ci.GuestCount)
+            .HasDefaultValue(1);
+
         builder.HasOne(ci => ci.Cart)
             .WithMany(c => c.Items)
             .HasForeignKey(ci => ci.CartId)

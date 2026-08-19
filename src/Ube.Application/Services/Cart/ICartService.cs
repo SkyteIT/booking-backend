@@ -4,10 +4,9 @@ namespace Ube.Application.Services.Cart;
 
 public interface ICartService
 {
-    Task<CartDto?> GetCartByUserIdAsync(Guid userId);
-    Task<CartDto> GetOrCreateCartAsync(Guid userId);
-    Task<CartDto> AddToCartAsync(Guid userId, AddToCartRequest request);
-    Task<CartDto> UpdateCartItemAsync(Guid userId, UpdateCartItemRequest request);
-    Task<bool> RemoveFromCartAsync(Guid userId, Guid cartItemId);
-    Task<bool> ClearCartAsync(Guid userId);
+    Task<CartDto> GetCartAsync(Guid userId, CancellationToken cancellationToken = default);
+    Task<CartDto> AddItemAsync(Guid userId, AddToCartRequest request, CancellationToken cancellationToken = default);
+    Task<CartDto> UpdateItemAsync(Guid userId, UpdateCartItemRequest request, CancellationToken cancellationToken = default);
+    Task<CartDto> RemoveItemAsync(Guid userId, Guid cartItemId, CancellationToken cancellationToken = default);
+    Task ClearAsync(Guid userId, CancellationToken cancellationToken = default);
 }

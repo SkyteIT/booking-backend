@@ -14,6 +14,12 @@ public class CartItem
 
     public int Quantity { get; set; }
 
+    public int GuestCount { get; set; } = 1;
+
+    public DateTime? StartDate { get; set; }
+
+    public DateTime? EndDate { get; set; }
+
     public decimal UnitPrice { get; set; }
 
     public decimal TotalPrice { get; set; }

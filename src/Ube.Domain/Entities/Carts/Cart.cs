@@ -19,6 +19,5 @@ public class Cart
 
     public DateTime? UpdatedAt { get; set; }
 
-    // Navigation property
     public ICollection<CartItem> Items { get; set; } = new List<CartItem>();
 }

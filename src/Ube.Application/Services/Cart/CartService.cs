@@ -1,231 +1,145 @@
-//using Microsoft.EntityFrameworkCore;
 using Ube.Application.DTOs.Cart;
-using Ube.Domain.Entities.Carts;
-//using Ube.Infrastructure.Persistence;
 using Ube.Application.Interfaces.Repositories;
-
-
+using Ube.Domain.Entities.Carts;
+using CartEntity = Ube.Domain.Entities.Carts.Cart;
 
 namespace Ube.Application.Services.Cart;
 
-public class CartService : ICartService
+public sealed class CartService : ICartService
 {
-    /*
-    private readonly ApplicationDbContext _context;
+    private readonly ICartRepository _repository;
 
-    public CartService(ApplicationDbContext context)
+    public CartService(ICartRepository repository)
     {
-        _context = context;
+        _repository = repository;
     }
 
-    */
-
-    private readonly ICartRepository _cartRepository;
-
-    public CartService(ICartRepository cartRepository)
+    public async Task<CartDto> GetCartAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        _cartRepository = cartRepository;
+        var cart = await GetOrCreateCartAsync(userId);
+        return Map(cart);
     }
 
-
-    /// <summary>
-    /// Gets the cart for a specific user.
-    /// </summary>
-    public async Task<CartDto?> GetCartByUserIdAsync(Guid userId)
+    public async Task<CartDto> AddItemAsync(Guid userId, AddToCartRequest request, CancellationToken cancellationToken = default)
     {
-        var cart = await _cartRepository.GetByUserIdAsync(userId);
+        if (request.Quantity <= 0) throw new ArgumentException("Quantity must be greater than zero.");
+        if (request.GuestCount <= 0) throw new ArgumentException("Guest count must be greater than zero.");
 
-        return cart == null ? null : MapToDto(cart);
-    }
+        var startDate = request.StartDate?.Date ?? DateTime.UtcNow.Date;
+        var endDate = request.EndDate?.Date ?? startDate.AddDays(1);
+        if (endDate <= startDate) throw new ArgumentException("End date must be after start date.");
 
-    /// <summary>
-    /// Gets an existing cart or creates a new one if it doesn't exist.
-    /// </summary>
-    public async Task<CartDto> GetOrCreateCartAsync(Guid userId)
-    {
-        var cart = await _cartRepository.GetByUserIdAsync(userId);
+        var listing = await _repository.GetListingByIdAsync(request.ListingId);
+        if (listing is null || !listing.IsActive) throw new KeyNotFoundException("Listing was not found or is inactive.");
 
-        if (cart != null)
-            return MapToDto(cart);
-
-        cart = new Domain.Entities.Carts.Cart
+        var cart = await GetOrCreateCartAsync(userId);
+        var item = cart.Items.FirstOrDefault(existing =>
+            existing.ListingId == request.ListingId &&
+            existing.StartDate?.Date == startDate &&
+            existing.EndDate?.Date == endDate);
+        if (item is null)
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            TotalPrice = 0,
-            ItemCount = 0,
-            CreatedAt = DateTime.UtcNow,
-            Items = new List<CartItem>()
-        };
-
-        await _cartRepository.AddAsync(cart);
-        await _cartRepository.SaveChangesAsync();
-
-        return MapToDto(cart);
-    }
-
-
-
-
-
-    /// <summary>
-    /// Adds an item to the user's cart.
-    /// </summary>
-public async Task<CartDto> AddToCartAsync(Guid userId, AddToCartRequest request)
-{
-    var cart = await _cartRepository.GetByUserIdAsync(userId);
-
-    if (cart == null)
-    {
-        cart = new Domain.Entities.Carts.Cart
+            item = new CartItem
+            {
+                Id = Guid.NewGuid(),
+                CartId = cart.Id,
+                ListingId = listing.Id,
+                Listing = listing,
+                Quantity = request.Quantity,
+                GuestCount = request.GuestCount,
+                StartDate = startDate,
+                EndDate = endDate,
+                UnitPrice = listing.Price,
+                TotalPrice = CalculateTotal(listing.Price, request.Quantity, request.GuestCount, startDate, endDate),
+            };
+            cart.Items.Add(item);
+            await _repository.AddCartItemAsync(item);
+        }
+        else
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            TotalPrice = 0,
-            ItemCount = 0,
-            CreatedAt = DateTime.UtcNow,
-            Items = new List<CartItem>()
-        };
+            item.Quantity += request.Quantity;
+            item.GuestCount = request.GuestCount;
+            item.TotalPrice = CalculateTotal(item.UnitPrice, item.Quantity, item.GuestCount, startDate, endDate);
+        }
 
-        await _cartRepository.AddAsync(cart);
-        await _cartRepository.SaveChangesAsync();
+        Recalculate(cart);
+        await _repository.SaveChangesAsync();
+        return Map(cart);
     }
 
-
-
-    var listing = await _cartRepository.GetListingByIdAsync(request.ListingId);
-    if (listing == null)
-        throw new InvalidOperationException($"Listing with ID {request.ListingId} not found.");
-
-    var existingItem = cart.Items.FirstOrDefault(i => i.ListingId == request.ListingId);
-
-    if (existingItem != null)
+    public async Task<CartDto> UpdateItemAsync(Guid userId, UpdateCartItemRequest request, CancellationToken cancellationToken = default)
     {
-        existingItem.Quantity += request.Quantity;
-        existingItem.TotalPrice = existingItem.Quantity * existingItem.UnitPrice;
-    }
-    else
-    {
-        var cartItem = new CartItem
-        {
-            Id = Guid.NewGuid(),
-            CartId = cart.Id,
-            ListingId = request.ListingId,
-            Quantity = request.Quantity,
-            UnitPrice = listing.Price,
-            TotalPrice = request.Quantity * listing.Price,
-            AddedAt = DateTime.UtcNow
-        };
+        if (request.Quantity <= 0) throw new ArgumentException("Quantity must be greater than zero.");
+        if (request.GuestCount.HasValue && request.GuestCount.Value <= 0)
+            throw new ArgumentException("Guest count must be greater than zero.");
+        var cart = await GetOrCreateCartAsync(userId);
+        var item = cart.Items.FirstOrDefault(existing => existing.Id == request.CartItemId);
+        if (item is null) throw new KeyNotFoundException("Cart item was not found.");
 
-        await _cartRepository.AddCartItemAsync(cartItem);
-        cart.Items.Add(cartItem);
-        
+        item.Quantity = request.Quantity;
+        item.GuestCount = request.GuestCount ?? item.GuestCount;
+        item.StartDate = request.StartDate?.Date ?? item.StartDate;
+        item.EndDate = request.EndDate?.Date ?? item.EndDate;
+        if (item.StartDate.HasValue && item.EndDate.HasValue && item.EndDate <= item.StartDate)
+            throw new ArgumentException("End date must be after start date.");
+        item.TotalPrice = CalculateTotal(
+            item.UnitPrice,
+            item.Quantity,
+            item.GuestCount <= 0 ? 1 : item.GuestCount,
+            item.StartDate?.Date ?? DateTime.UtcNow.Date,
+            item.EndDate?.Date ?? DateTime.UtcNow.Date.AddDays(1));
+        Recalculate(cart);
+        await _repository.SaveChangesAsync();
+        return Map(cart);
     }
 
-    UpdateCartTotals(cart);
-
-    await _cartRepository.SaveChangesAsync();
-
-    return MapToDto(cart);
-}
-
-    /// <summary>
-    /// Updates the quantity of an item in the cart.
-    /// </summary>
-public async Task<CartDto> UpdateCartItemAsync(Guid userId, UpdateCartItemRequest request)
-{
-    var cart = await _cartRepository.GetByUserIdAsync(userId);
-
-    if (cart == null)
-        throw new InvalidOperationException($"Cart not found for user {userId}.");
-
-    var cartItem = cart.Items.FirstOrDefault(i => i.Id == request.CartItemId);
-
-    if (cartItem == null)
-        throw new InvalidOperationException($"Cart item with ID {request.CartItemId} not found.");
-
-
-    if (request.Quantity <= 0)
-        throw new InvalidOperationException("Quantity must be greater than 0.");
-
-    cartItem.Quantity = request.Quantity;
-    cartItem.TotalPrice = request.Quantity * cartItem.UnitPrice;
-
-    UpdateCartTotals(cart);
-
-    await _cartRepository.SaveChangesAsync();
-
-    return MapToDto(cart);
-}
-
-
-
-    /// <summary>
-    /// Removes an item from the cart.
-    /// </summary>
-    public async Task<bool> RemoveFromCartAsync(Guid userId, Guid cartItemId)
-{
-    var cart = await _cartRepository.GetByUserIdAsync(userId);
-
-    if (cart == null)
-        return false;
-
-    var cartItem = cart.Items.FirstOrDefault(i => i.Id == cartItemId);
-
-    if (cartItem == null)
-        return false;
-
-    cart.Items.Remove(cartItem);
-
-    await _cartRepository.RemoveItemAsync(cartItem);
-
-    UpdateCartTotals(cart);
-
-    await _cartRepository.SaveChangesAsync();
-
-    return true;
-}
-
-
-
-    /// <summary>
-    /// Clears all items from the user's cart.
-    /// </summary>
-    public async Task<bool> ClearCartAsync(Guid userId)
-{
-    var cart = await _cartRepository.GetByUserIdAsync(userId);
-
-    if (cart == null)
-        return false;
-
-    foreach (var item in cart.Items.ToList())
+    public async Task<CartDto> RemoveItemAsync(Guid userId, Guid cartItemId, CancellationToken cancellationToken = default)
     {
-        await _cartRepository.RemoveItemAsync(item);
+        var cart = await GetOrCreateCartAsync(userId);
+        var item = cart.Items.FirstOrDefault(existing => existing.Id == cartItemId);
+        if (item is null) throw new KeyNotFoundException("Cart item was not found.");
+
+        await _repository.RemoveItemAsync(item);
+        cart.Items.Remove(item);
+        Recalculate(cart);
+        await _repository.SaveChangesAsync();
+        return Map(cart);
     }
 
-    //cart.Items.Clear();
-
-    cart.TotalPrice = 0;
-    cart.ItemCount = 0;
-    cart.UpdatedAt = DateTime.UtcNow;
-
-    await _cartRepository.SaveChangesAsync();
-
-    return true;
-}
-
-
-
-
-    // Helper methods
-    private void UpdateCartTotals(Domain.Entities.Carts.Cart cart)
+    public async Task ClearAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        cart.TotalPrice = cart.Items.Sum(i => i.TotalPrice);
-        cart.ItemCount = cart.Items.Sum(i => i.Quantity);
+        var cart = await GetOrCreateCartAsync(userId);
+        foreach (var item in cart.Items.ToList()) await _repository.RemoveItemAsync(item);
+        cart.Items.Clear();
+        Recalculate(cart);
+        await _repository.SaveChangesAsync();
+    }
+
+    private async Task<CartEntity> GetOrCreateCartAsync(Guid userId)
+    {
+        var cart = await _repository.GetCartWithItemsAsync(userId);
+        if (cart is not null) return cart;
+
+        cart = new CartEntity { Id = Guid.NewGuid(), UserId = userId };
+        await _repository.AddAsync(cart);
+        await _repository.SaveChangesAsync();
+        return cart;
+    }
+
+    private static void Recalculate(CartEntity cart)
+    {
+        cart.ItemCount = cart.Items.Sum(item => item.Quantity);
+        cart.TotalPrice = cart.Items.Sum(item => item.TotalPrice);
         cart.UpdatedAt = DateTime.UtcNow;
     }
 
-    private CartDto MapToDto(Domain.Entities.Carts.Cart cart)
+    private static decimal CalculateTotal(decimal unitPrice, int quantity, int guestCount, DateTime startDate, DateTime endDate)
+    {
+        var days = Math.Max(1, (endDate.Date - startDate.Date).Days);
+        return unitPrice * quantity * guestCount * days;
+    }
+
+    private static CartDto Map(CartEntity cart)
     {
         return new CartDto
         {
@@ -236,16 +150,17 @@ public async Task<CartDto> UpdateCartItemAsync(Guid userId, UpdateCartItemReques
             ItemCount = cart.ItemCount,
             CreatedAt = cart.CreatedAt,
             UpdatedAt = cart.UpdatedAt,
-            Items = cart.Items.Select(i => new CartItemDto
+            Items = cart.Items.Select(item => new CartItemDto
             {
-                Id = i.Id,
-                CartId = i.CartId,
-                ListingId = i.ListingId,
-                Quantity = i.Quantity,
-                UnitPrice = i.UnitPrice,
-                TotalPrice = i.TotalPrice,
-                AddedAt = i.AddedAt
-            }).ToList()
+                Id = item.Id,
+                ListingId = item.ListingId,
+                Quantity = item.Quantity,
+                GuestCount = item.GuestCount,
+                StartDate = item.StartDate,
+                EndDate = item.EndDate,
+                UnitPrice = item.UnitPrice,
+                TotalPrice = item.TotalPrice,
+            }).ToList(),
         };
     }
 }

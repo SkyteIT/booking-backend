@@ -28,6 +28,16 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
         builder.Property(l => l.Location)
             .HasMaxLength(500);
 
+        builder.Property(l => l.ListingType)
+            .HasMaxLength(30)
+            .IsRequired();
+
+        builder.Property(l => l.ImagesJson)
+            .IsRequired();
+
+        builder.Property(l => l.TagsJson)
+            .IsRequired();
+
         builder.HasOne(l => l.VendorProfile)
             .WithMany(vp => vp.Listings)
             .HasForeignKey(l => l.VendorProfileId)

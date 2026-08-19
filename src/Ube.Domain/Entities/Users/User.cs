@@ -1,4 +1,5 @@
 using Ube.Domain.Enums.Users;
+using Ube.Domain.Enums;
 
 
 namespace Ube.Domain.Entities.Users;
@@ -28,5 +29,5 @@ public class User
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
-    public string Role { get; set; } = "User";
+    public UserRole Role { get; set; } = UserRole.Customer;
 }

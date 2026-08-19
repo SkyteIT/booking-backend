@@ -6,7 +6,11 @@ using Ube.Application.Features.Bookings;
 
 namespace Ube.Api.Controllers.Bookings;
 
-[Authorize(Roles = "User")]
+// Any authenticated account can book/browse as a customer - a vendor
+// shopping for themselves is a real, expected scenario, not just plain
+// "User" accounts. Every action below is self-scoped by the caller's own
+// id, so widening this carries no cross-account data risk.
+[Authorize(Roles = "User,Vendor,Admin,Finance,SuperAdmin")]
 [ApiController]
 [Route("api/bookings")]
 public class CustomerBookingsController : ControllerBase

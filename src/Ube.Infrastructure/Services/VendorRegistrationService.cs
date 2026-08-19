@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Ube.Application.Features.Bookings;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.VendorRegistration;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Vendors;
+using Ube.Domain.Enums.Notifications;
+using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Vendors;
 
 namespace Ube.Infrastructure.Services;
@@ -10,13 +13,16 @@ namespace Ube.Infrastructure.Services;
 public class VendorRegistrationService : IVendorRegistrationService
 {
     private readonly IVendorApplicationRepository _repo;
+    private readonly IAdminAlertService _adminAlertService;
     private readonly ILogger<VendorRegistrationService> _logger;
 
     public VendorRegistrationService(
         IVendorApplicationRepository repo,
+        IAdminAlertService adminAlertService,
         ILogger<VendorRegistrationService> logger)
     {
         _repo = repo;
+        _adminAlertService = adminAlertService;
         _logger = logger;
     }
 
@@ -54,6 +60,12 @@ public class VendorRegistrationService : IVendorRegistrationService
         await _repo.AddAsync(application);
 
         _logger.LogInformation("Vendor application {ApplicationId} submitted by user {UserId}", application.Id, userId);
+
+        await _adminAlertService.NotifyRolesAsync(
+            new[] { UserRole.Admin, UserRole.SuperAdmin },
+            "New vendor application submitted",
+            $"{application.BusinessName} has applied to become a vendor and is awaiting review.",
+            NotificationType.VendorApplicationSubmitted);
 
         return application.Id;
     }

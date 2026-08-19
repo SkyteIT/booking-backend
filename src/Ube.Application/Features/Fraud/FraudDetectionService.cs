@@ -5,12 +5,15 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Bookings;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Fraud;
 using Ube.Domain.Enums.Bookings;
 using Ube.Domain.Enums.Fraud;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Application.Features.Fraud;
 
@@ -20,6 +23,7 @@ public class FraudDetectionService : IFraudDetectionService
     private readonly IBookingRepository _bookingRepo;
     private readonly IUserRepository _userRepo;
     private readonly IPaymentService _paymentService;
+    private readonly IAdminAlertService _adminAlertService;
     private readonly FraudDetectionOptions _options;
     private readonly ILogger<FraudDetectionService> _logger;
 
@@ -28,6 +32,7 @@ public class FraudDetectionService : IFraudDetectionService
         IBookingRepository bookingRepo,
         IUserRepository userRepo,
         IPaymentService paymentService,
+        IAdminAlertService adminAlertService,
         IOptions<FraudDetectionOptions> options,
         ILogger<FraudDetectionService> logger)
     {
@@ -35,6 +40,7 @@ public class FraudDetectionService : IFraudDetectionService
         _bookingRepo = bookingRepo;
         _userRepo = userRepo;
         _paymentService = paymentService;
+        _adminAlertService = adminAlertService;
         _options = options.Value;
         _logger = logger;
     }
@@ -65,6 +71,7 @@ public class FraudDetectionService : IFraudDetectionService
         };
 
         await _flagRepo.AddAsync(flag, ct);
+        await NotifyAdminsAsync(flag.RuleTriggered, flag.Details, ct);
     }
 
     public async Task EvaluateFlagOnlyRulesAsync(Guid customerId, Guid bookingId, CancellationToken ct = default)
@@ -77,6 +84,7 @@ public class FraudDetectionService : IFraudDetectionService
             var recentCount = await _bookingRepo.CountByCustomerSinceAsync(customerId, velocitySince, ct);
             if (recentCount >= _options.MaxBookingsPerWindow)
             {
+                var details = $"{recentCount} bookings created in the last {_options.VelocityWindowMinutes} minutes.";
                 await _flagRepo.AddAsync(new FraudFlag
                 {
                     Id = Guid.NewGuid(),
@@ -84,14 +92,16 @@ public class FraudDetectionService : IFraudDetectionService
                     CustomerId = customerId,
                     RuleTriggered = FraudRuleType.BookingVelocity,
                     Severity = FraudFlagSeverity.FlagOnly,
-                    Details = $"{recentCount} bookings created in the last {_options.VelocityWindowMinutes} minutes."
+                    Details = details
                 }, ct);
+                await NotifyAdminsAsync(FraudRuleType.BookingVelocity, details, ct);
             }
 
             var cancellationSince = DateTime.UtcNow.AddDays(-_options.CancellationWindowDays);
             var cancelledCount = await _bookingRepo.CountCancelledByCustomerSinceAsync(customerId, cancellationSince, ct);
             if (cancelledCount > _options.MaxCancellationsPerWindow)
             {
+                var details = $"{cancelledCount} bookings cancelled in the last {_options.CancellationWindowDays} days.";
                 await _flagRepo.AddAsync(new FraudFlag
                 {
                     Id = Guid.NewGuid(),
@@ -99,8 +109,9 @@ public class FraudDetectionService : IFraudDetectionService
                     CustomerId = customerId,
                     RuleTriggered = FraudRuleType.RepeatedCancellations,
                     Severity = FraudFlagSeverity.FlagOnly,
-                    Details = $"{cancelledCount} bookings cancelled in the last {_options.CancellationWindowDays} days."
+                    Details = details
                 }, ct);
+                await NotifyAdminsAsync(FraudRuleType.RepeatedCancellations, details, ct);
             }
         }
         catch (Exception ex)
@@ -108,6 +119,14 @@ public class FraudDetectionService : IFraudDetectionService
             _logger.LogError(ex, "Fraud flag-only rule evaluation failed for booking {BookingId}", bookingId);
         }
     }
+
+    private Task NotifyAdminsAsync(FraudRuleType rule, string details, CancellationToken ct) =>
+        _adminAlertService.NotifyRolesAsync(
+            new[] { UserRole.Admin, UserRole.SuperAdmin },
+            "Fraud flag raised",
+            $"{rule}: {details}",
+            NotificationType.FraudFlagRaised,
+            ct);
 
     public async Task<PagedResult<AdminFraudFlagDto>> GetPagedAsync(FraudFlagStatus? status, int pageNumber, int pageSize, CancellationToken ct = default)
     {

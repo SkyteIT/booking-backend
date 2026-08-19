@@ -73,6 +73,12 @@ public class PayoutExportService : IPayoutExportService
         return ToDto(run);
     }
 
+    public async Task<IReadOnlyList<PayoutExportRunDto>> GetPendingAsync(CancellationToken ct = default)
+    {
+        var runs = await _exportRepo.GetPendingAsync(ct);
+        return runs.Select(ToDto).ToList();
+    }
+
     public async Task<PayoutExportApprovalResult> ApproveAsync(Guid approvedByUserId, Guid exportRunId, CancellationToken ct = default)
     {
         var run = await _exportRepo.GetByIdAsync(exportRunId, ct)

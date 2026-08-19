@@ -2,7 +2,10 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Content.Category;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
 
 namespace Ube.Application.Features.Payments;
@@ -20,19 +23,25 @@ public class VendorAdvanceService : IVendorAdvanceService
     private readonly ICategoryRepository _categoryRepo;
     private readonly ILedgerRepository _ledgerRepo;
     private readonly IPaymentAuditLogRepository _auditRepo;
+    private readonly IVendorProfileRepository _vendorRepo;
+    private readonly INotificationService _notificationService;
 
     public VendorAdvanceService(
         IPaymentRepository paymentRepo,
         IBookingRepository bookingRepo,
         ICategoryRepository categoryRepo,
         ILedgerRepository ledgerRepo,
-        IPaymentAuditLogRepository auditRepo)
+        IPaymentAuditLogRepository auditRepo,
+        IVendorProfileRepository vendorRepo,
+        INotificationService notificationService)
     {
         _paymentRepo = paymentRepo;
         _bookingRepo = bookingRepo;
         _categoryRepo = categoryRepo;
         _ledgerRepo = ledgerRepo;
         _auditRepo = auditRepo;
+        _vendorRepo = vendorRepo;
+        _notificationService = notificationService;
     }
 
     public async Task<VendorAdvanceDto> IssueAdvanceAsync(Guid actorUserId, IssueVendorAdvanceRequest request, CancellationToken ct = default)
@@ -82,6 +91,25 @@ public class VendorAdvanceService : IVendorAdvanceService
             EntityId = payment.Id,
             MetadataJson = $"{{\"amount\":{amount}}}"
         }, ct);
+
+        var vendor = await _vendorRepo.GetByIdAsync(payment.VendorProfileId);
+        if (vendor != null)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = vendor.UserId,
+                    Title = "Advance issued",
+                    Message = $"An advance of {amount:F2} {payment.Currency} was issued against your payment for {booking.BookingNumber}.",
+                    Type = (int)NotificationType.VendorAdvanceIssued
+                }, ct);
+            }
+            catch
+            {
+                // Best-effort - a notification failure never blocks an advance that's already posted to the ledger.
+            }
+        }
 
         return new VendorAdvanceDto
         {

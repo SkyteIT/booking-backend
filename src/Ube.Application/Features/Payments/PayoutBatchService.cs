@@ -1,5 +1,8 @@
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
 
 namespace Ube.Application.Features.Payments;
@@ -10,17 +13,23 @@ public class PayoutBatchService : IPayoutBatchService
     private readonly ILedgerRepository _ledgerRepo;
     private readonly IPaymentAuditLogRepository _auditRepo;
     private readonly IVendorInvoiceRepository _invoiceRepo;
+    private readonly IVendorProfileRepository _vendorRepo;
+    private readonly INotificationService _notificationService;
 
     public PayoutBatchService(
         IPayoutBatchRepository batchRepo,
         ILedgerRepository ledgerRepo,
         IPaymentAuditLogRepository auditRepo,
-        IVendorInvoiceRepository invoiceRepo)
+        IVendorInvoiceRepository invoiceRepo,
+        IVendorProfileRepository vendorRepo,
+        INotificationService notificationService)
     {
         _batchRepo = batchRepo;
         _ledgerRepo = ledgerRepo;
         _auditRepo = auditRepo;
         _invoiceRepo = invoiceRepo;
+        _vendorRepo = vendorRepo;
+        _notificationService = notificationService;
     }
 
     public async Task<PayoutBatchDto> ComputeAsync(ComputePayoutBatchRequest request, CancellationToken ct = default)
@@ -93,6 +102,25 @@ public class PayoutBatchService : IPayoutBatchService
             EntityType = nameof(PayoutBatch),
             EntityId = batch.Id
         }, ct);
+
+        var vendor = await _vendorRepo.GetByIdAsync(batch.VendorProfileId);
+        if (vendor != null)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = vendor.UserId,
+                    Title = "Payout processed",
+                    Message = $"A payout of {batch.TotalAmount:F2} has been settled for {batch.PeriodStart:yyyy-MM-dd} to {batch.PeriodEnd:yyyy-MM-dd}.",
+                    Type = (int)NotificationType.PayoutProcessed
+                }, ct);
+            }
+            catch
+            {
+                // Best-effort - a notification failure never blocks a payout that's already settled.
+            }
+        }
 
         return ToDto(batch);
     }

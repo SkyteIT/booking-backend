@@ -23,4 +23,6 @@ public interface IAuthService
     Task<AuthResponseDto> RefreshTokenAsync(string refreshToken);
     Task LogoutAsync(string refreshToken);
     Task<CurrentUserDto?> GetCurrentUserAsync(Guid userId);
+    Task<CurrentUserDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto);
+    Task<CurrentUserDto> UpdateProfileImageAsync(Guid userId, string imageUrl);
 }

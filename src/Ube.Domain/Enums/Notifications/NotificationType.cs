@@ -16,5 +16,11 @@ public enum NotificationType
     RefundPending = 12,
     SystemMaintenance = 13,
     GatewayError = 14,
-    RevenueTargetAchieved = 15
+    RevenueTargetAchieved = 15,
+    VendorAdvanceIssued = 16,
+    VendorInvoiceOverdue = 17,
+    RefundProcessed = 18,
+    PaymentDisputeOpened = 19,
+    VendorApplicationSubmitted = 20,
+    FraudFlagRaised = 21
 }

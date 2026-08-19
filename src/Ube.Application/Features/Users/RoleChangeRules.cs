@@ -22,4 +22,21 @@ public static class RoleChangeRules
 
         return Result.Success();
     }
+
+    // Suspension is a lighter action than a role change (fully reversible,
+    // no data mutation beyond a flag), but a plain Admin suspending a
+    // SuperAdmin is still a real privilege-escalation path - the
+    // suspended SuperAdmin can no longer act, while the suspending Admin
+    // remains fully powered. Same hierarchy protection as role changes,
+    // applied to status instead.
+    public static Result CanChangeStatus(Guid actorUserId, User target, UserRole actorRole)
+    {
+        if (target.Id == actorUserId)
+            return Result.Failure("You cannot suspend your own account.");
+
+        if (target.Role == UserRole.SuperAdmin && actorRole != UserRole.SuperAdmin)
+            return Result.Failure("Only a SuperAdmin can suspend a SuperAdmin account.");
+
+        return Result.Success();
+    }
 }

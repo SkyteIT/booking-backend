@@ -5,7 +5,7 @@ using Ube.Application.Features.Questions;
 
 namespace Ube.Api.Controllers.Questions;
 
-[Authorize(Roles = "User")]
+[Authorize(Roles = "User,Vendor,Admin,Finance,SuperAdmin")]
 [ApiController]
 [Route("api/listings/{listingId}/questions")]
 public class CustomerQuestionsController : ControllerBase

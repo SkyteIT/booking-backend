@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Admin.Dashboard;
 using Ube.Application.Features.Users;
+using Ube.Application.Features.Vendors;
 
 namespace Ube.Api.Controllers.Admin;
 
@@ -27,6 +28,15 @@ public class AdminController : ControllerBase
     {
         var stats = await _adminService.GetDashboardStatsAsync();
         return Ok(stats);
+    }
+
+    // ── Vendors ───────────────────────────────────────────────────────────────
+
+    [HttpGet("vendors")]
+    public async Task<ActionResult<List<AdminVendorSummaryDto>>> GetAllVendors()
+    {
+        var vendors = await _adminService.GetAllVendorsAsync();
+        return Ok(vendors);
     }
 
     // ── Users ─────────────────────────────────────────────────────────────────
@@ -55,7 +65,7 @@ public class AdminController : ControllerBase
     [HttpPut("users/{userId:guid}/status")]
     public async Task<ActionResult<AdminUserDto>> UpdateUserStatus(Guid userId, [FromBody] UpdateUserStatusRequest request)
     {
-        var user = await _adminService.UpdateUserStatusAsync(userId, request.IsSuspended);
+        var user = await _adminService.UpdateUserStatusAsync(userId, request.IsSuspended, _currentUser.UserId);
         return Ok(user);
     }
 

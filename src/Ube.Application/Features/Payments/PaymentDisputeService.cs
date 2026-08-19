@@ -1,8 +1,12 @@
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Models.Pagination;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Application.Features.Payments;
 
@@ -17,17 +21,26 @@ public class PaymentDisputeService : IPaymentDisputeService
     private readonly IPaymentRepository _paymentRepo;
     private readonly ILedgerRepository _ledgerRepo;
     private readonly IPaymentAuditLogRepository _auditRepo;
+    private readonly IVendorProfileRepository _vendorRepo;
+    private readonly INotificationService _notificationService;
+    private readonly IAdminAlertService _adminAlertService;
 
     public PaymentDisputeService(
         IPaymentDisputeRepository disputeRepo,
         IPaymentRepository paymentRepo,
         ILedgerRepository ledgerRepo,
-        IPaymentAuditLogRepository auditRepo)
+        IPaymentAuditLogRepository auditRepo,
+        IVendorProfileRepository vendorRepo,
+        INotificationService notificationService,
+        IAdminAlertService adminAlertService)
     {
         _disputeRepo = disputeRepo;
         _paymentRepo = paymentRepo;
         _ledgerRepo = ledgerRepo;
         _auditRepo = auditRepo;
+        _vendorRepo = vendorRepo;
+        _notificationService = notificationService;
+        _adminAlertService = adminAlertService;
     }
 
     public async Task<PaymentDisputeDto> RecordDisputeAsync(Guid actorUserId, RecordDisputeRequest request, CancellationToken ct = default)
@@ -112,6 +125,34 @@ public class PaymentDisputeService : IPaymentDisputeService
             EntityId = dispute.Id,
             MetadataJson = $"{{\"amount\":{request.Amount},\"reason\":\"{request.Reason}\"}}"
         }, ct);
+
+        var vendor = await _vendorRepo.GetByIdAsync(payment.VendorProfileId);
+        if (vendor != null)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = vendor.UserId,
+                    Title = "Payment dispute opened",
+                    Message = $"A dispute of {request.Amount:F2} {payment.Currency} was opened: {request.Reason}.",
+                    Type = (int)NotificationType.PaymentDisputeOpened
+                }, ct);
+            }
+            catch
+            {
+                // Best-effort - a notification failure never blocks a dispute that's already recorded.
+            }
+        }
+
+        // Admin can't act on disputes (Finance-only), but needs visibility to
+        // support the customer - see the Admin/Finance money-management split.
+        await _adminAlertService.NotifyRolesAsync(
+            new[] { UserRole.Admin, UserRole.SuperAdmin },
+            "Payment dispute opened",
+            $"A dispute of {request.Amount:F2} {payment.Currency} was opened: {request.Reason}.",
+            NotificationType.PaymentDisputeOpened,
+            ct);
 
         return ToDto(dispute);
     }

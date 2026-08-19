@@ -43,8 +43,11 @@ public class RefundsController : ControllerBase
         return Ok(result);
     }
 
+    // Admin can see the refund queue (customer support needs the
+    // context), but only Finance actually moves money - approving/
+    // rejecting is deliberately Finance-only, not Admin,Finance.
     [HttpPut("{id:guid}/approve")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> Approve(Guid id, CancellationToken ct)
     {
         var result = await _refundService.ApproveAsync(_currentUser.UserId, id, ct);
@@ -52,7 +55,7 @@ public class RefundsController : ControllerBase
     }
 
     [HttpPut("{id:guid}/reject")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> Reject(Guid id, [FromBody] string reason, CancellationToken ct)
     {
         var result = await _refundService.RejectAsync(_currentUser.UserId, id, reason, ct);

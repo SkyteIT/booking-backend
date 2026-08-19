@@ -5,6 +5,10 @@ public interface IPayoutExportService
     // Maker: locks every currently-Pending batch into this export run.
     Task<PayoutExportRunDto> RequestExportAsync(Guid requestedByUserId, CancellationToken ct = default);
 
+    // Any admin needs to discover a run someone else started, not just
+    // the browser session that requested it.
+    Task<IReadOnlyList<PayoutExportRunDto>> GetPendingAsync(CancellationToken ct = default);
+
     // Checker: must be a different admin than the requester. If the run's
     // total is under the configured threshold, this generates and returns
     // the file immediately (Result.File is set). If it's over the

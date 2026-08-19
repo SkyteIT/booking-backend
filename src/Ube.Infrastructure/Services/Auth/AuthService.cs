@@ -557,7 +557,56 @@ public class AuthService : IAuthService
             LastName = user.LastName,
             Role = user.Role.ToString(),
             ProfileImageUrl = user.ProfileImageUrl,
-            TwoFactorEnabled = user.TwoFactorEnabled
+            TwoFactorEnabled = user.TwoFactorEnabled,
+            PhoneNumber = user.PhoneNumber
+        };
+    }
+
+    public async Task<CurrentUserDto> UpdateProfileImageAsync(Guid userId, string imageUrl)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User not found");
+
+        user.ProfileImageUrl = imageUrl;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepo.UpdateAsync(user);
+
+        return new CurrentUserDto
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role.ToString(),
+            ProfileImageUrl = user.ProfileImageUrl,
+            TwoFactorEnabled = user.TwoFactorEnabled,
+            PhoneNumber = user.PhoneNumber
+        };
+    }
+
+    public async Task<CurrentUserDto> UpdateProfileAsync(Guid userId, UpdateProfileDto dto)
+    {
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User not found");
+
+        user.FirstName = dto.FirstName.Trim();
+        user.LastName = dto.LastName.Trim();
+        user.PhoneNumber = dto.PhoneNumber?.Trim();
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _userRepo.UpdateAsync(user);
+
+        return new CurrentUserDto
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role.ToString(),
+            ProfileImageUrl = user.ProfileImageUrl,
+            TwoFactorEnabled = user.TwoFactorEnabled,
+            PhoneNumber = user.PhoneNumber
         };
     }
 

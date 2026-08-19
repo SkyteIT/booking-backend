@@ -28,7 +28,7 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "User")]
+    [Authorize(Roles = "User,Vendor,Admin,Finance,SuperAdmin")]
     public async Task<IActionResult> Initiate(InitiatePaymentRequest request, CancellationToken ct)
     {
         var result = await _paymentService.InitiateAsync(_currentUser.UserId, request, ct);

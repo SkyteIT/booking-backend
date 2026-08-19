@@ -5,7 +5,12 @@ using Ube.Application.Features.Reviews;
 
 namespace Ube.Api.Controllers;
 
-[Authorize (Roles = "User")]
+// Any authenticated account can review as a customer - a vendor who
+// booked something for themselves is a real scenario. Every action below
+// is self-scoped by the caller's own id, and ReviewRules.
+// PreventReviewOwnBusiness already independently blocks a vendor from
+// reviewing their own listing, so widening this carries no risk.
+[Authorize(Roles = "User,Vendor,Admin,Finance,SuperAdmin")]
 [ApiController]
 [Route("api/reviews")]
 public class CustomerReviewsController : ControllerBase

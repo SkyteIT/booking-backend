@@ -5,6 +5,8 @@ using Ube.Application.Features.Payments;
 
 namespace Ube.Api.Controllers.Payments;
 
+// Admin can view everything here (customer support needs the context),
+// but every action that actually moves or exports money is Finance-only.
 [ApiController]
 [Authorize(Roles = "Admin,Finance")]
 [Route("api/payout-batches")]
@@ -25,13 +27,22 @@ public class PayoutBatchesController : ControllerBase
     }
 
     [HttpPost("compute")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> Compute(ComputePayoutBatchRequest request, CancellationToken ct)
     {
         var result = await _payoutBatchService.ComputeAsync(request, ct);
         return Ok(result);
     }
 
+    [HttpGet("vendor/{vendorProfileId:guid}")]
+    public async Task<IActionResult> GetForVendor(Guid vendorProfileId, CancellationToken ct)
+    {
+        var result = await _payoutBatchService.GetForVendorAsync(vendorProfileId, ct);
+        return Ok(result);
+    }
+
     [HttpPost("{id:guid}/settle")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> Settle(Guid id, CancellationToken ct)
     {
         var result = await _payoutBatchService.SettleAsync(_currentUser.UserId, id, ct);
@@ -40,9 +51,17 @@ public class PayoutBatchesController : ControllerBase
 
     // Maker: locks every Pending batch into one export run.
     [HttpPost("export/request")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> RequestExport(CancellationToken ct)
     {
         var result = await _payoutExportService.RequestExportAsync(_currentUser.UserId, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("export/pending")]
+    public async Task<IActionResult> GetPendingExports(CancellationToken ct)
+    {
+        var result = await _payoutExportService.GetPendingAsync(ct);
         return Ok(result);
     }
 
@@ -52,6 +71,7 @@ public class PayoutBatchesController : ControllerBase
     // approval and returns JSON showing the run is now
     // PendingSeniorApproval - a THIRD admin must call export/{id}/senior-approve.
     [HttpPost("export/{id:guid}/approve")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> ApproveExport(Guid id, CancellationToken ct)
     {
         var result = await _payoutExportService.ApproveAsync(_currentUser.UserId, id, ct);
@@ -63,6 +83,7 @@ public class PayoutBatchesController : ControllerBase
     // Only valid while the run is PendingSeniorApproval. Must be a THIRD
     // admin, different from both the requester and the first approver.
     [HttpPost("export/{id:guid}/senior-approve")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> GrantSeniorApproval(Guid id, CancellationToken ct)
     {
         var result = await _payoutExportService.GrantSeniorApprovalAsync(_currentUser.UserId, id, ct);
@@ -70,6 +91,7 @@ public class PayoutBatchesController : ControllerBase
     }
 
     [HttpPost("export/{id:guid}/reject")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> RejectExport(Guid id, CancellationToken ct)
     {
         var result = await _payoutExportService.RejectAsync(_currentUser.UserId, id, ct);
@@ -84,6 +106,7 @@ public class PayoutBatchesController : ControllerBase
     }
 
     [HttpPut("export/threshold")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> UpdateExportThreshold(UpdatePayoutExportThresholdRequest request, CancellationToken ct)
     {
         var result = await _payoutExportService.UpdateThresholdAsync(_currentUser.UserId, request, ct);

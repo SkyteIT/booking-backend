@@ -162,8 +162,10 @@ builder.Services.AddScoped<ISearchService, SearchService>();
 builder.Services.AddScoped<IBannerService, BannerService>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<Ube.Application.Features.Notifications.IAdminAlertService, Ube.Application.Features.Notifications.AdminAlertService>();
 builder.Services.AddScoped<ISmsService, SmsService>();
 builder.Services.AddScoped<IPushService, PushService>();
+builder.Services.AddScoped<Ube.Application.Features.Support.ISupportService, Ube.Application.Features.Support.SupportService>();
 
 // Cart
 builder.Services.AddScoped<ICartRepository, CartRepository>();
@@ -174,6 +176,8 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IRoleChangeRequestRepository, RoleChangeRequestRepository>();
 builder.Services.AddScoped<IRoleChangeRequestService, RoleChangeRequestService>();
+builder.Services.AddScoped<Ube.Application.Common.Interfaces.Persistence.IEmailChangeRequestRepository, Ube.Infrastructure.Persistence.Repositories.Users.EmailChangeRequestRepository>();
+builder.Services.AddScoped<IEmailChangeRequestService, EmailChangeRequestService>();
 
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IRefundRepository, RefundRepository>();

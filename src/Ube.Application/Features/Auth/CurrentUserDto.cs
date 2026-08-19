@@ -8,4 +8,5 @@ public class CurrentUserDto
     public string Role { get; set; } = string.Empty;
     public string? ProfileImageUrl { get; set; }
     public bool TwoFactorEnabled { get; set; }
+    public string? PhoneNumber { get; set; }
 }

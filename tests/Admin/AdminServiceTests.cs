@@ -2,6 +2,7 @@ using Moq;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Admin.Dashboard;
 using Ube.Application.Features.Users;
+using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Enums.Users;
 
@@ -12,14 +13,16 @@ public class AdminServiceTests
     private sealed record Ctx(
         Mock<IAdminRepository> AdminRepo,
         Mock<IRoleChangeRequestService> RoleChangeRequestService,
+        Mock<IVendorProfileRepository> VendorProfileRepo,
         AdminService Service);
 
     private static Ctx Build()
     {
         var adminRepo = new Mock<IAdminRepository>();
         var roleChangeRequestService = new Mock<IRoleChangeRequestService>();
-        var service = new AdminService(adminRepo.Object, roleChangeRequestService.Object);
-        return new Ctx(adminRepo, roleChangeRequestService, service);
+        var vendorProfileRepo = new Mock<IVendorProfileRepository>();
+        var service = new AdminService(adminRepo.Object, roleChangeRequestService.Object, vendorProfileRepo.Object);
+        return new Ctx(adminRepo, roleChangeRequestService, vendorProfileRepo, service);
     }
 
     private static User MakeUser(UserRole role) => new()

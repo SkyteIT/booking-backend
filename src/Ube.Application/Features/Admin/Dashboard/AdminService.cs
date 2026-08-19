@@ -2,6 +2,7 @@ using System.Text;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Users;
+using Ube.Application.Features.Vendors;
 using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Bookings;
 
@@ -11,11 +12,32 @@ public class AdminService : IAdminService
 {
     private readonly IAdminRepository _adminRepository;
     private readonly IRoleChangeRequestService _roleChangeRequestService;
+    private readonly IVendorProfileRepository _vendorProfileRepository;
 
-    public AdminService(IAdminRepository adminRepository, IRoleChangeRequestService roleChangeRequestService)
+    public AdminService(
+        IAdminRepository adminRepository,
+        IRoleChangeRequestService roleChangeRequestService,
+        IVendorProfileRepository vendorProfileRepository)
     {
         _adminRepository = adminRepository;
         _roleChangeRequestService = roleChangeRequestService;
+        _vendorProfileRepository = vendorProfileRepository;
+    }
+
+    // ── Vendors ──────────────────────────────────────────────────────────────
+
+    public async Task<List<AdminVendorSummaryDto>> GetAllVendorsAsync()
+    {
+        var vendors = await _vendorProfileRepository.GetAllAsync();
+        return vendors.Select(v => new AdminVendorSummaryDto
+        {
+            VendorProfileId = v.Id,
+            BusinessName = v.BusinessName,
+            UserId = v.UserId,
+            OwnerName = $"{v.User.FirstName} {v.User.LastName}",
+            OwnerEmail = v.User.Email,
+            IsActive = v.IsActive
+        }).ToList();
     }
 
     // ── Dashboard ────────────────────────────────────────────────────────────
@@ -80,10 +102,20 @@ public class AdminService : IAdminService
         return new RoleChangeOutcomeDto { AppliedImmediately = true, User = MapUserToDto(target) };
     }
 
-    public async Task<AdminUserDto> UpdateUserStatusAsync(Guid userId, bool isSuspended)
+    public async Task<AdminUserDto> UpdateUserStatusAsync(Guid userId, bool isSuspended, Guid actorUserId)
     {
         var user = await _adminRepository.GetUserByIdAsync(userId)
             ?? throw new NotFoundException($"User {userId} not found.");
+
+        if (isSuspended)
+        {
+            var actor = await _adminRepository.GetUserByIdAsync(actorUserId)
+                ?? throw new NotFoundException("Acting user not found.");
+
+            var check = RoleChangeRules.CanChangeStatus(actorUserId, user, actor.Role);
+            if (!check.IsSuccess)
+                throw new BusinessRuleException(check.ErrorMessage);
+        }
 
         user.IsEmailVerified = !isSuspended;
         user.UpdatedAt = DateTime.UtcNow;

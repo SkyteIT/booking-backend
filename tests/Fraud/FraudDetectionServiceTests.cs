@@ -5,6 +5,7 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models;
 using Ube.Application.Features.Fraud;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Payments;
 using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Fraud;
@@ -22,6 +23,7 @@ public class FraudDetectionServiceTests
         Mock<IBookingRepository> BookingRepo,
         Mock<IUserRepository> UserRepo,
         Mock<IPaymentService> PaymentService,
+        Mock<IAdminAlertService> AdminAlertService,
         FraudDetectionOptions Options,
         FraudDetectionService Service);
 
@@ -31,6 +33,7 @@ public class FraudDetectionServiceTests
         var bookingRepo = new Mock<IBookingRepository>();
         var userRepo = new Mock<IUserRepository>();
         var paymentService = new Mock<IPaymentService>();
+        var adminAlertService = new Mock<IAdminAlertService>();
         var opts = options ?? new FraudDetectionOptions();
 
         var service = new FraudDetectionService(
@@ -38,10 +41,11 @@ public class FraudDetectionServiceTests
             bookingRepo.Object,
             userRepo.Object,
             paymentService.Object,
+            adminAlertService.Object,
             Options.Create(opts),
             NullLogger<FraudDetectionService>.Instance);
 
-        return new Ctx(flagRepo, bookingRepo, userRepo, paymentService, opts, service);
+        return new Ctx(flagRepo, bookingRepo, userRepo, paymentService, adminAlertService, opts, service);
     }
 
     private static User MakeUser(DateTime createdAt) => new()

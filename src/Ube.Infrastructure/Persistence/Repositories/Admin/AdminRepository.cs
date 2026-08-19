@@ -45,6 +45,15 @@ public class AdminRepository : IAdminRepository
         return await _context.Users.CountAsync(u => roleList.Contains(u.Role));
     }
 
+    public async Task<List<User>> GetByRolesAsync(IEnumerable<UserRole> roles)
+    {
+        var roleList = roles.ToList();
+        return await _context.Users
+            .Where(u => roleList.Contains(u.Role))
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     // ── Bookings ──────────────────────────────────────────────────────────────
 
     public async Task<List<Booking>> GetAllBookingsAsync()

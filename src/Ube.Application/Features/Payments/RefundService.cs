@@ -3,8 +3,12 @@ using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Content.Category;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Application.Features.Payments;
 
@@ -17,6 +21,9 @@ public class RefundService : IRefundService
     private readonly ICategoryRepository _categoryRepo;
     private readonly IPaymentAuditLogRepository _auditRepo;
     private readonly IPaymentGatewayClient _gateway;
+    private readonly IVendorProfileRepository _vendorRepo;
+    private readonly INotificationService _notificationService;
+    private readonly IAdminAlertService _adminAlertService;
 
     public RefundService(
         IRefundRepository refundRepo,
@@ -25,7 +32,10 @@ public class RefundService : IRefundService
         IBookingRepository bookingRepo,
         ICategoryRepository categoryRepo,
         IPaymentAuditLogRepository auditRepo,
-        IPaymentGatewayClient gateway)
+        IPaymentGatewayClient gateway,
+        IVendorProfileRepository vendorRepo,
+        INotificationService notificationService,
+        IAdminAlertService adminAlertService)
     {
         _refundRepo = refundRepo;
         _paymentRepo = paymentRepo;
@@ -34,6 +44,9 @@ public class RefundService : IRefundService
         _categoryRepo = categoryRepo;
         _auditRepo = auditRepo;
         _gateway = gateway;
+        _vendorRepo = vendorRepo;
+        _notificationService = notificationService;
+        _adminAlertService = adminAlertService;
     }
 
     public async Task<RefundDto> RequestAsync(Guid requestedByUserId, bool isAdmin, RequestRefundRequest request, CancellationToken ct = default)
@@ -84,7 +97,18 @@ public class RefundService : IRefundService
         await _refundRepo.AddAsync(refund, ct);
 
         if (autoApprove)
+        {
             await ProcessApprovedRefundAsync(refund, payment, approvedByUserId: null, ct);
+        }
+        else
+        {
+            await _adminAlertService.NotifyRolesAsync(
+                new[] { UserRole.Finance, UserRole.SuperAdmin },
+                "Refund needs approval",
+                $"A refund of {refundAmount:F2} {payment.Currency} is pending your approval: {request.Reason}.",
+                NotificationType.RefundPending,
+                ct);
+        }
 
         return ToDto(refund);
     }
@@ -227,6 +251,25 @@ public class RefundService : IRefundService
             EntityType = nameof(Refund),
             EntityId = refund.Id
         }, ct);
+
+        var vendor = await _vendorRepo.GetByIdAsync(payment.VendorProfileId);
+        if (vendor != null)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = vendor.UserId,
+                    Title = "Refund processed",
+                    Message = $"A refund of {refund.Amount:F2} {payment.Currency} was processed for {refund.Reason}.",
+                    Type = (int)NotificationType.RefundProcessed
+                }, ct);
+            }
+            catch
+            {
+                // Best-effort - a notification failure never blocks a refund that's already gone through the gateway.
+            }
+        }
     }
 
     private static RefundDto ToDto(Refund r) => new()

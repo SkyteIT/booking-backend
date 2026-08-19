@@ -20,7 +20,10 @@ public class PaymentDisputesController : ControllerBase
         _currentUser = currentUser;
     }
 
+    // Admin can view disputes, but recording/resolving one moves money -
+    // Finance-only, same as Refunds.
     [HttpPost]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> RecordDispute(RecordDisputeRequest request, CancellationToken ct)
     {
         var result = await _disputeService.RecordDisputeAsync(_currentUser.UserId, request, ct);
@@ -28,6 +31,7 @@ public class PaymentDisputesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/resolve")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> ResolveDispute(Guid id, ResolveDisputeRequest request, CancellationToken ct)
     {
         var result = await _disputeService.ResolveDisputeAsync(_currentUser.UserId, id, request, ct);

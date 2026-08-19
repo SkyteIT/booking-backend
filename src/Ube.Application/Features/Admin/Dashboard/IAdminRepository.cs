@@ -15,6 +15,10 @@ public interface IAdminRepository
     // guard against demoting the last remaining Admin/SuperAdmin.
     Task<int> CountByRolesAsync(IEnumerable<UserRole> roles);
 
+    // All users currently holding any of the given roles - used to fan
+    // out admin/finance alert notifications (see IAdminAlertService).
+    Task<List<User>> GetByRolesAsync(IEnumerable<UserRole> roles);
+
     // Bookings
     Task<List<Booking>> GetAllBookingsAsync();
     Task<Booking?> GetBookingByIdAsync(Guid bookingId);

@@ -25,6 +25,15 @@ public class VendorProfileRepository : IVendorProfileRepository
         .AsNoTracking()
         .FirstOrDefaultAsync(v => v.Id == vendorProfileId);
     }
+    // Method to list every vendor profile (admin-facing pickers/listings)
+    public async Task<IReadOnlyList<VendorProfile>> GetAllAsync()
+    {
+        return await _db.VendorProfiles
+        .AsNoTracking()
+        .Include(v => v.User)
+        .OrderBy(v => v.BusinessName)
+        .ToListAsync();
+    }
     // Method to update vendor profile
     public async Task UpdateAsync(VendorProfile profile)
     {

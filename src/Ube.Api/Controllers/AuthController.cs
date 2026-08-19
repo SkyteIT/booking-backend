@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
+using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Auth;
+using Ube.Application.Features.Vendors;
 
 namespace Ube.Api.Controllers;
 
@@ -140,6 +142,56 @@ public class AuthController : ControllerBase
         var user = await _authService.GetCurrentUserAsync(_currentUserService.UserId);
         if (user == null) return NotFound();
 
+        return Ok(user);
+    }
+
+    // Generic - works for any authenticated role. Vendors have their own
+    // richer profile (business name, bio, etc.) via VendorProfileController;
+    // this covers the basic name/phone fields every account has.
+    [HttpPut("profile")]
+    [Authorize]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+    {
+        var user = await _authService.UpdateProfileAsync(_currentUserService.UserId, dto);
+        return Ok(user);
+    }
+
+    // Generic - same file validation/storage as VendorProfileController's
+    // upload-image, just not restricted to the Vendor role.
+    [HttpPost("profile/upload-image")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadProfileImage([FromForm] UploadImageRequest request)
+    {
+        var file = request.File;
+
+        if (file == null || file.Length == 0)
+            throw new BusinessRuleException("Invalid file");
+
+        var allowedTypes = new[] { ".jpg", ".jpeg", ".png" };
+        var extension = Path.GetExtension(file.FileName).ToLower();
+        if (!allowedTypes.Contains(extension))
+            throw new BusinessRuleException("Only JPG/PNG files are allowed");
+
+        const long maxFileSize = 2 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+            throw new BusinessRuleException("File size must not exceed 2MB");
+
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var folderPath = Path.Combine("wwwroot", "images", "profiles");
+
+        if (!Directory.Exists(folderPath))
+            Directory.CreateDirectory(folderPath);
+
+        var filePath = Path.Combine(folderPath, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var imageUrl = $"/images/profiles/{fileName}";
+        var user = await _authService.UpdateProfileImageAsync(_currentUserService.UserId, imageUrl);
         return Ok(user);
     }
 }

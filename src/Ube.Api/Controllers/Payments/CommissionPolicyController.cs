@@ -5,8 +5,11 @@ using Ube.Application.Features.Payments;
 
 namespace Ube.Api.Controllers.Payments;
 
+// Commission rates directly drive vendor payouts and platform revenue -
+// money management. Admin can view policy (customer/vendor support needs
+// the context), but setting/revoking rates and tiers is Finance-only.
 [ApiController]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Finance")]
 [Route("api/commission-policy")]
 public class CommissionPolicyController : ControllerBase
 {
@@ -32,6 +35,7 @@ public class CommissionPolicyController : ControllerBase
     }
 
     [HttpPost("overrides")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> CreateOverride(CreateCommissionOverrideRequest request, CancellationToken ct)
     {
         var result = await _service.CreateOverrideAsync(_currentUser.UserId, request, ct);
@@ -39,6 +43,7 @@ public class CommissionPolicyController : ControllerBase
     }
 
     [HttpPost("overrides/{id:guid}/revoke")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> RevokeOverride(Guid id, CancellationToken ct)
     {
         var result = await _service.RevokeOverrideAsync(_currentUser.UserId, id, ct);
@@ -60,6 +65,7 @@ public class CommissionPolicyController : ControllerBase
     }
 
     [HttpPost("loyalty-tiers")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> CreateLoyaltyTier(CreateLoyaltyTierRequest request, CancellationToken ct)
     {
         var result = await _service.CreateLoyaltyTierAsync(_currentUser.UserId, request, ct);
@@ -67,6 +73,7 @@ public class CommissionPolicyController : ControllerBase
     }
 
     [HttpPut("loyalty-tiers/{id:guid}")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> UpdateLoyaltyTier(Guid id, UpdateLoyaltyTierRequest request, CancellationToken ct)
     {
         var result = await _service.UpdateLoyaltyTierAsync(_currentUser.UserId, id, request, ct);
@@ -74,6 +81,7 @@ public class CommissionPolicyController : ControllerBase
     }
 
     [HttpDelete("loyalty-tiers/{id:guid}")]
+    [Authorize(Roles = "Finance")]
     public async Task<IActionResult> DeleteLoyaltyTier(Guid id, CancellationToken ct)
     {
         await _service.DeleteLoyaltyTierAsync(_currentUser.UserId, id, ct);

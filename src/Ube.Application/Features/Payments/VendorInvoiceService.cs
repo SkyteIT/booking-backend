@@ -1,7 +1,10 @@
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Payments;
+using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Payments;
+using Ube.Domain.Enums.Users;
 
 namespace Ube.Application.Features.Payments;
 
@@ -17,19 +20,25 @@ public class VendorInvoiceService : IVendorInvoiceService
     private readonly ILedgerRepository _ledgerRepo;
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly IPaymentAuditLogRepository _auditRepo;
+    private readonly INotificationService _notificationService;
+    private readonly IAdminAlertService _adminAlertService;
 
     public VendorInvoiceService(
         IVendorInvoiceRepository invoiceRepo,
         IPayoutBatchRepository batchRepo,
         ILedgerRepository ledgerRepo,
         IVendorProfileRepository vendorRepo,
-        IPaymentAuditLogRepository auditRepo)
+        IPaymentAuditLogRepository auditRepo,
+        INotificationService notificationService,
+        IAdminAlertService adminAlertService)
     {
         _invoiceRepo = invoiceRepo;
         _batchRepo = batchRepo;
         _ledgerRepo = ledgerRepo;
         _vendorRepo = vendorRepo;
         _auditRepo = auditRepo;
+        _notificationService = notificationService;
+        _adminAlertService = adminAlertService;
     }
 
     public async Task<VendorInvoiceDto> ComputeAsync(ComputeVendorInvoiceRequest request, CancellationToken ct = default)
@@ -135,6 +144,31 @@ public class VendorInvoiceService : IVendorInvoiceService
             EntityType = nameof(VendorCommissionInvoice),
             EntityId = invoice.Id
         }, ct);
+
+        if (vendor != null)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = vendor.UserId,
+                    Title = "Invoice overdue - account suspended",
+                    Message = $"Your commission invoice for {invoice.AmountOwed:F2} was overdue and your account has been suspended until it's paid.",
+                    Type = (int)NotificationType.VendorInvoiceOverdue
+                }, ct);
+            }
+            catch
+            {
+                // Best-effort - a notification failure never blocks the suspension that already happened.
+            }
+        }
+
+        await _adminAlertService.NotifyRolesAsync(
+            new[] { UserRole.Finance, UserRole.SuperAdmin },
+            "Vendor invoice overdue",
+            $"Invoice for {invoice.AmountOwed:F2} is overdue and the vendor's account has been suspended.",
+            NotificationType.VendorInvoiceOverdue,
+            ct);
 
         return ToDto(invoice);
     }

@@ -32,5 +32,5 @@ public class VendorProfile
     public DateTime? UpdatedAt { get; set; }
 
     // Navigation Property
-    public User User { get; set; }
+    public User User { get; set; } = null!;
 }

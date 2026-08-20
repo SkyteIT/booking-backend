@@ -1,4 +1,5 @@
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Content.Category;
@@ -149,7 +150,7 @@ public class SeasonalPricingService : ISeasonalPricingService
 
         // Same lookup/apply CheckoutService uses - the quote can never
         // drift from the real charge.
-        var activeOffer = await _offerRepo.GetActiveDiscountForListingAsync(listingId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+        var activeOffer = await _offerRepo.GetActiveDiscountForListingAsync(listingId, BusinessDate.Today, ct);
         total = BookingPricingRules.ApplyOfferDiscount(total, activeOffer);
 
         return new PriceQuoteDto { TotalAmount = total, Currency = listing.Currency };

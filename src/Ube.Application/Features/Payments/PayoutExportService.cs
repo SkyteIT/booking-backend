@@ -213,12 +213,12 @@ public class PayoutExportService : IPayoutExportService
             var payout = await _vendorPayoutRepo.GetByVendorIdAsync(batch.VendorProfileId);
 
             var businessName = vendor?.BusinessName ?? "UNKNOWN";
-            var bankName = payout?.BankName ?? "";
+            var bankName = string.IsNullOrEmpty(payout?.BankName) ? "" : SafeDecrypt(payout.BankName);
             var accountNumber = payout != null && !string.IsNullOrEmpty(payout.AccountNumber)
                 ? SafeDecrypt(payout.AccountNumber)
                 : "MISSING-PAYOUT-DETAILS";
-            var accountHolder = payout?.AccountHolderName ?? "";
-            var branch = payout?.Branch ?? "";
+            var accountHolder = string.IsNullOrEmpty(payout?.AccountHolderName) ? "" : SafeDecrypt(payout.AccountHolderName);
+            var branch = string.IsNullOrEmpty(payout?.Branch) ? "" : SafeDecrypt(payout.Branch);
 
             csv.AppendLine(string.Join(',',
                 batch.VendorProfileId,

@@ -20,26 +20,6 @@ public class CategoryRepository : ICategoryRepository
             .OrderBy(x => x.DisplayOrder)
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<Category>> GetFilteredAsync(RecordStatus? status, string? search, CancellationToken ct = default)
-    {
-        var query = _db.Categories
-            .Where(x => x.Status != RecordStatus.Deleted && x.Name != CategoryConstants.UncategorizedName)
-            .Include(x => x.Listings)
-            .Include(x => x.CustomFields)
-            .AsQueryable();
-
-        if (status.HasValue)
-            query = query.Where(x => x.Status == status.Value);
-
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var lower = search.ToLower();
-            query = query.Where(x => x.Name.ToLower().Contains(lower));
-        }
-
-        return await query.OrderBy(x => x.DisplayOrder).ToListAsync(ct);
-    }
-
     public async Task<Category?> GetByIdAsync(Guid id, bool includeListings = false, CancellationToken ct = default)
     {
         IQueryable<Category> query = _db.Categories.Where(x => x.Id == id && x.Status != RecordStatus.Deleted)

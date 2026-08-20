@@ -41,6 +41,7 @@ public class ReviewRepository : IReviewRepository
     {
         var query = _db.Reviews
             .Include(x => x.Customer)
+            .Include(x => x.Listing)
             .Where(x => x.VendorId == vendorId && !x.IsHidden)
             .AsQueryable();
 

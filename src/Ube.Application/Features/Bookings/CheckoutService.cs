@@ -1,4 +1,5 @@
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Availability;
 using Ube.Application.Features.Availability.Strategies;
@@ -124,7 +125,7 @@ public class CheckoutService : ICheckoutService
                 // adjustment - a vendor offer is a marketing deal, not a
                 // rate structure, so it never affects the per-night math.
                 var activeOffer = await _offerRepo.GetActiveDiscountForListingAsync(
-                    listing.Id, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+                    listing.Id, BusinessDate.Today, ct);
                 totalAmount = BookingPricingRules.ApplyOfferDiscount(totalAmount, activeOffer);
 
                 var status = category.BookingType == BookingConfirmationType.Instant

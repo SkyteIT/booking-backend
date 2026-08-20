@@ -1,6 +1,7 @@
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Helpers;
 using Ube.Application.Features.Content.Category;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Listings;
@@ -405,7 +406,7 @@ public class ListingService : IListingService
     // endpoint uses. Requires l.Offers to have been Include()'d.
     private static ListingOffer? ActiveOffer(Listing l)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = BusinessDate.Today;
         return l.Offers?.FirstOrDefault(o => o.IsActive && o.StartDate <= today && o.EndDate >= today);
     }
 

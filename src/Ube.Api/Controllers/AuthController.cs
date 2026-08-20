@@ -40,7 +40,7 @@ public class AuthController : ControllerBase
     [HttpPost("google-login")]
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginRequest request)
     {
-        var result = await _authService.GoogleLoginAsync(request.IdToken);
+        var result = await _authService.GoogleLoginAsync(request.IdToken, request.DeviceToken);
         return Ok(result);
     }
 
@@ -82,7 +82,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<ActionResult<TwoFactorEnrollmentResultDto>> ConfirmTwoFactorEnrollment([FromBody] TwoFactorVerifyRequestDto request)
     {
-        var result = await _authService.ConfirmTwoFactorEnrollmentAsync(request.ChallengeToken, request.Code);
+        var result = await _authService.ConfirmTwoFactorEnrollmentAsync(request.ChallengeToken, request.Code, request.RememberDevice);
         return Ok(result);
     }
 
@@ -116,7 +116,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> VerifyTwoFactorCode([FromBody] TwoFactorVerifyRequestDto request)
     {
-        var result = await _authService.VerifyTwoFactorCodeAsync(request.ChallengeToken, request.Code);
+        var result = await _authService.VerifyTwoFactorCodeAsync(request.ChallengeToken, request.Code, request.RememberDevice);
         return Ok(result);
     }
 
@@ -154,6 +154,20 @@ public class AuthController : ControllerBase
     {
         var user = await _authService.UpdateProfileAsync(_currentUserService.UserId, dto);
         return Ok(user);
+    }
+
+    // Generic - works for any authenticated role. Doesn't take effect until
+    // the link sent to the NEW address is clicked (see VerifyEmailAsync) -
+    // no admin/SuperAdmin approval involved, since a self-service change
+    // to your own account carries no privilege risk once ownership of the
+    // new inbox is proven. Contrast with EmailChangeRequestsController,
+    // which is the maker-checker flow for staff roles specifically.
+    [HttpPost("email/change-request")]
+    [Authorize]
+    public async Task<IActionResult> RequestEmailChange([FromBody] RequestEmailChangeDto dto)
+    {
+        await _authService.RequestEmailChangeAsync(_currentUserService.UserId, dto.NewEmail);
+        return Ok(new { message = "Check your new email address for a link to confirm the change." });
     }
 
     // Generic - same file validation/storage as VendorProfileController's

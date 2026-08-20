@@ -14,4 +14,9 @@ public class AuthResponseDto
     public bool RequiresTwoFactor { get; set; } = false;
     public bool RequiresEnrollment { get; set; } = false;
     public string? ChallengeToken { get; set; }
+
+    // Only set right after a "remember this device" 2FA verification - the
+    // client stores this and sends it back as LoginRequestDto.DeviceToken
+    // on future logins to skip the challenge.
+    public string? DeviceToken { get; set; }
 }

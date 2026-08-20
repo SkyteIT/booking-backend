@@ -24,11 +24,10 @@ public class NotificationController : ControllerBase
         _currentUser = currentUser;
     }
 
-    // GET: api/notifications/user/{userId}
-    // Get all notifications for the authenticated user (route userId is ignored -
-    // a caller can only ever see their own notifications)
-    [HttpGet("user/{userId:guid}")]
-    public async Task<IActionResult> GetByUserId(Guid userId, CancellationToken cancellationToken)
+    // GET: api/notifications/mine
+    // Get all notifications for the authenticated user
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine(CancellationToken cancellationToken)
     {
         var result = await _service.GetByUserIdAsync(_currentUser.UserId, cancellationToken);
         return Ok(result); // 200 OK with data
@@ -55,10 +54,10 @@ public class NotificationController : ControllerBase
         return updated ? NoContent() : NotFound();
     }
 
-    // PUT: api/notifications/user/{userId}/read-all
-    // Mark all notifications of the authenticated user as read (route userId ignored)
-    [HttpPut("user/{userId:guid}/read-all")]
-    public async Task<IActionResult> MarkAllAsRead(Guid userId, CancellationToken cancellationToken)
+    // PUT: api/notifications/read-all
+    // Mark all notifications of the authenticated user as read
+    [HttpPut("read-all")]
+    public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken)
     {
         var count = await _service.MarkAllAsReadAsync(_currentUser.UserId, cancellationToken);
 
@@ -66,20 +65,19 @@ public class NotificationController : ControllerBase
         return Ok(new { updatedCount = count });
     }
 
-    // GET: api/notifications/preferences/{userId}
-    // Get notification preferences (email, SMS, push) for the authenticated user (route userId ignored)
-    [HttpGet("preferences/{userId:guid}")]
-    public async Task<IActionResult> GetPreferences(Guid userId, CancellationToken cancellationToken)
+    // GET: api/notifications/preferences
+    // Get notification preferences (email, SMS, push) for the authenticated user
+    [HttpGet("preferences")]
+    public async Task<IActionResult> GetPreferences(CancellationToken cancellationToken)
     {
         var result = await _service.GetPreferencesAsync(_currentUser.UserId, cancellationToken);
         return Ok(result);
     }
 
-    // PUT: api/notifications/preferences/{userId}
-    // Update notification preferences for the authenticated user (route userId ignored)
-    [HttpPut("preferences/{userId:guid}")]
+    // PUT: api/notifications/preferences
+    // Update notification preferences for the authenticated user
+    [HttpPut("preferences")]
     public async Task<IActionResult> SavePreference(
-        Guid userId,
         [FromBody] UpdateNotificationPreferenceDto dto,
         CancellationToken cancellationToken)
     {

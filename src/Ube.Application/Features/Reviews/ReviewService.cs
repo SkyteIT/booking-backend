@@ -149,7 +149,9 @@ public class ReviewService : IReviewService
             LikeCount = likeCounts.GetValueOrDefault(r.Id),
             IsLikedByCurrentUser = likedByMe.Contains(r.Id),
             VendorReply = r.VendorReply,
-            VendorReplyAt = r.VendorReplyAt
+            VendorReplyAt = r.VendorReplyAt,
+            ListingId = r.ListingId,
+            ListingTitle = r.Listing?.Title ?? string.Empty
         }).ToList();
     }
 

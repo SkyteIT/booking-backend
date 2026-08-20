@@ -20,6 +20,11 @@ public class ReviewDto
     public bool IsLikedByCurrentUser { get; set; }
     public string? VendorReply { get; set; }
     public DateTime? VendorReplyAt { get; set; }
+
+    // A vendor manages multiple listings, so their aggregate review feed
+    // (GetReviewsByVendorAsync) needs to say which one each review is for.
+    public Guid ListingId { get; set; }
+    public string ListingTitle { get; set; } = string.Empty;
 }
 
 public class ReviewRequest : QueryOptions

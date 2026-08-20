@@ -49,11 +49,22 @@ public class VendorPayoutService : IVendorPayoutService
 
         return new VendorPayoutDto
         {
-            BankName = payout.BankName,
+            BankName = SafeDecrypt(payout.BankName),
             AccountNumber = MaskingHelper.MaskAccountNumber(decryptedAccount),
-            AccountHolderName = payout.AccountHolderName,
-            Branch = payout.Branch
+            AccountHolderName = SafeDecrypt(payout.AccountHolderName),
+            Branch = SafeDecrypt(payout.Branch)
         };
+    }
+
+    // Bank details are encrypted at rest (same policy as AccountNumber) -
+    // a decrypt failure (e.g. a pre-encryption legacy row) falls back to
+    // the raw stored value rather than throwing, since these three are
+    // sometimes shown as-is (unlike AccountNumber, which is always masked).
+    private string SafeDecrypt(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        try { return _encryptionService.Decrypt(value); }
+        catch { return value; }
     }
 
     public async Task UpdateAsync(Guid userId, UpdateVendorPayoutDto dto)
@@ -81,10 +92,10 @@ public class VendorPayoutService : IVendorPayoutService
             await _repo.AddAsync(payout);
         }
 
-        payout.BankName = dto.BankName;
+        payout.BankName = _encryptionService.Encrypt(dto.BankName);
         payout.AccountNumber = _encryptionService.Encrypt(dto.AccountNumber);
-        payout.AccountHolderName = dto.AccountHolderName;
-        payout.Branch = dto.Branch;
+        payout.AccountHolderName = _encryptionService.Encrypt(dto.AccountHolderName);
+        payout.Branch = _encryptionService.Encrypt(dto.Branch);
         payout.UpdatedAt = DateTime.UtcNow;
 
         await _repo.UpdateAsync(payout);

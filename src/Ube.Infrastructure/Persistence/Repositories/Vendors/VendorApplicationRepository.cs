@@ -19,6 +19,12 @@ public class VendorApplicationRepository : IVendorApplicationRepository
     public async Task<VendorApplication?> GetByIdAsync(Guid id)
         => await _db.VendorApplications.FindAsync(id);
 
+    public async Task<VendorApplication?> GetLatestByUserIdAsync(Guid userId)
+        => await _db.VendorApplications
+            .Where(a => a.UserId == userId)
+            .OrderByDescending(a => a.SubmittedAt)
+            .FirstOrDefaultAsync();
+
     public async Task AddAsync(VendorApplication application)
     {
         _db.VendorApplications.Add(application);

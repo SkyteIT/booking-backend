@@ -12,4 +12,7 @@ public class EmailVerificationToken
     public bool IsUsed { get; set; } = false;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+
+    public string? PendingEmail { get; set; }
 }

@@ -146,6 +146,7 @@ builder.Services.AddScoped<IEmailVerificationRepository, EmailVerificationReposi
 builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
 builder.Services.AddScoped<ITwoFactorChallengeRepository, TwoFactorChallengeRepository>();
 builder.Services.AddScoped<ITwoFactorBackupCodeRepository, TwoFactorBackupCodeRepository>();
+builder.Services.AddScoped<ITrustedDeviceRepository, TrustedDeviceRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 

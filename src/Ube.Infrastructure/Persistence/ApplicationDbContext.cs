@@ -39,6 +39,7 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = default!;
     public DbSet<TwoFactorChallenge> TwoFactorChallenges { get; set; } = default!;
     public DbSet<TwoFactorBackupCode> TwoFactorBackupCodes { get; set; } = default!;
+    public DbSet<TrustedDevice> TrustedDevices { get; set; } = default!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = default!;
     public DbSet<Banner> Banners { get; set; } = default!;
     public DbSet<Promotion> Promotions { get; set; } = default!;

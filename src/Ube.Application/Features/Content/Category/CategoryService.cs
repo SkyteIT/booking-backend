@@ -90,18 +90,6 @@ public class CategoryService : ICategoryService
         return categories.Select(x => ToDto(x, x.Listings.Count)).ToList();
     }
 
-    public async Task<IReadOnlyList<CategoryDto>> GetFilteredAsync(
-        string? status, string? search, CancellationToken cancellationToken)
-    {
-        RecordStatus? recordStatus = null;
-        if (!string.IsNullOrWhiteSpace(status) &&
-            Enum.TryParse<RecordStatus>(status, ignoreCase: true, out var parsed))
-            recordStatus = parsed;
-
-        var categories = await _categoryRepo.GetFilteredAsync(recordStatus, search, cancellationToken);
-        return categories.Select(x => ToDto(x, x.Listings.Count)).ToList();
-    }
-
     public async Task<CategoryDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var x = await _categoryRepo.GetByIdAsync(id, includeListings: true, cancellationToken);

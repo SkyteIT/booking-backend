@@ -23,6 +23,7 @@ public class AuthService : IAuthService
     private readonly IPasswordResetRepository _passwordResetRepo;
     private readonly ITwoFactorChallengeRepository _twoFactorRepo;
     private readonly ITwoFactorBackupCodeRepository _backupCodeRepo;
+    private readonly ITrustedDeviceRepository _trustedDeviceRepo;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
     private readonly IEmailService _emailService;
     private readonly IEncryptionService _encryptionService;
@@ -32,6 +33,7 @@ public class AuthService : IAuthService
 
     private const int BackupCodeCount = 10;
     private const string TotpIssuer = "Ube";
+    private const int TrustedDeviceDays = 7;
 
     public AuthService(
         IUserRepository userRepo,
@@ -40,6 +42,7 @@ public class AuthService : IAuthService
         IPasswordResetRepository passwordResetRepo,
         ITwoFactorChallengeRepository twoFactorRepo,
         ITwoFactorBackupCodeRepository backupCodeRepo,
+        ITrustedDeviceRepository trustedDeviceRepo,
         IRefreshTokenRepository refreshTokenRepo,
         IEmailService emailService,
         IEncryptionService encryptionService,
@@ -53,6 +56,7 @@ public class AuthService : IAuthService
         _passwordResetRepo = passwordResetRepo;
         _twoFactorRepo = twoFactorRepo;
         _backupCodeRepo = backupCodeRepo;
+        _trustedDeviceRepo = trustedDeviceRepo;
         _refreshTokenRepo = refreshTokenRepo;
         _emailService = emailService;
         _encryptionService = encryptionService;
@@ -117,10 +121,10 @@ public class AuthService : IAuthService
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new BusinessRuleException("Invalid credentials");
 
-        return await CompleteLoginOrChallengeAsync(user);
+        return await CompleteLoginOrChallengeAsync(user, request.DeviceToken);
     }
 
-    public async Task<AuthResponseDto> GoogleLoginAsync(string idToken)
+    public async Task<AuthResponseDto> GoogleLoginAsync(string idToken, string? deviceToken = null)
     {
         GoogleJsonWebSignature.Payload payload;
         try
@@ -157,7 +161,7 @@ public class AuthService : IAuthService
             await _userRepo.AddAsync(user);
         }
 
-        return await CompleteLoginOrChallengeAsync(user);
+        return await CompleteLoginOrChallengeAsync(user, deviceToken);
     }
 
     public async Task VerifyEmailAsync(string token)
@@ -179,7 +183,24 @@ public class AuthService : IAuthService
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            user.IsEmailVerified = true;
+            if (record.PendingEmail != null)
+            {
+                // Email-change confirmation, not a registration verify -
+                // deliberately does NOT touch IsEmailVerified, which
+                // doubles as this account's suspension flag (see
+                // AdminService.UpdateUserStatusAsync). Flipping it here
+                // would let a suspended account un-suspend itself just by
+                // changing its email.
+                if (await _userRepo.ExistsByEmailAsync(record.PendingEmail))
+                    throw new BusinessRuleException("This email is now in use by another account");
+
+                user.Email = record.PendingEmail;
+            }
+            else
+            {
+                user.IsEmailVerified = true;
+            }
+
             record.IsUsed = true;
             await _userRepo.UpdateAsync(user);
             await _emailVerificationRepo.UpdateAsync(record);
@@ -190,6 +211,33 @@ public class AuthService : IAuthService
             await _unitOfWork.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task RequestEmailChangeAsync(Guid userId, string newEmail)
+    {
+        var normalized = newEmail.Trim().ToLower();
+
+        var user = await _userRepo.GetByIdAsync(userId)
+            ?? throw new NotFoundException("User not found");
+
+        if (normalized == user.Email)
+            throw new BusinessRuleException("This is already your email address");
+
+        if (await _userRepo.ExistsByEmailAsync(normalized))
+            throw new BusinessRuleException("This email is already in use");
+
+        var token = new EmailVerificationToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Token = GenerateSecureToken(),
+            ExpiryDate = DateTime.UtcNow.AddHours(24),
+            IsUsed = false,
+            PendingEmail = normalized
+        };
+        await _emailVerificationRepo.AddAsync(token);
+
+        await _emailService.SendEmailChangeVerificationEmailAsync(normalized, token.Token);
     }
 
     public async Task RequestPasswordResetAsync(string email)
@@ -263,10 +311,29 @@ public class AuthService : IAuthService
     // Admin/Finance logins never go straight to a token - they get an opaque,
     // short-lived challenge instead. Real tokens only get issued once the
     // challenge is resolved via enrollment or verification below.
-    private async Task<AuthResponseDto> CompleteLoginOrChallengeAsync(User user)
+    //
+    // Exception: a deviceToken matching an unexpired TrustedDevice (from an
+    // earlier "remember this device" verification) skips the challenge
+    // entirely - same pattern WhatsApp Web uses so a recognized browser
+    // isn't re-prompted on every single login.
+    private async Task<AuthResponseDto> CompleteLoginOrChallengeAsync(User user, string? deviceToken = null)
     {
         if (user.Role is UserRole.Admin or UserRole.Finance or UserRole.SuperAdmin)
         {
+            if (!string.IsNullOrEmpty(deviceToken))
+            {
+                var trusted = await _trustedDeviceRepo.GetValidAsync(user.Id, HashDeviceToken(deviceToken));
+                if (trusted != null)
+                {
+                    // Sliding window, like WhatsApp - using the device
+                    // resets its 7-day trust period instead of it quietly
+                    // expiring on a regularly-used browser.
+                    trusted.ExpiresAt = DateTime.UtcNow.AddDays(TrustedDeviceDays);
+                    await _trustedDeviceRepo.UpdateAsync(trusted);
+                    return await BuildAuthResponseAsync(user);
+                }
+            }
+
             var challenge = new TwoFactorChallenge
             {
                 Id = Guid.NewGuid(),
@@ -330,7 +397,7 @@ public class AuthService : IAuthService
         };
     }
 
-    public async Task<TwoFactorEnrollmentResultDto> ConfirmTwoFactorEnrollmentAsync(string challengeToken, string code)
+    public async Task<TwoFactorEnrollmentResultDto> ConfirmTwoFactorEnrollmentAsync(string challengeToken, string code, bool rememberDevice = false)
     {
         var (user, challenge) = await ValidateChallengeAsync(challengeToken);
 
@@ -361,6 +428,20 @@ public class AuthService : IAuthService
             await _unitOfWork.CommitAsync();
 
             var auth = await BuildAuthResponseAsync(user);
+
+            if (rememberDevice)
+            {
+                var rawToken = GenerateSecureToken();
+                await _trustedDeviceRepo.AddAsync(new TrustedDevice
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = user.Id,
+                    TokenHash = HashDeviceToken(rawToken),
+                    ExpiresAt = DateTime.UtcNow.AddDays(TrustedDeviceDays)
+                });
+                auth.DeviceToken = rawToken;
+            }
+
             return new TwoFactorEnrollmentResultDto { Auth = auth, BackupCodes = backupCodes };
         }
         catch
@@ -370,7 +451,7 @@ public class AuthService : IAuthService
         }
     }
 
-    public async Task<AuthResponseDto> VerifyTwoFactorCodeAsync(string challengeToken, string code)
+    public async Task<AuthResponseDto> VerifyTwoFactorCodeAsync(string challengeToken, string code, bool rememberDevice = false)
     {
         var (user, challenge) = await ValidateChallengeAsync(challengeToken);
 
@@ -399,7 +480,22 @@ public class AuthService : IAuthService
         challenge.IsUsed = true;
         await _twoFactorRepo.UpdateAsync(challenge);
 
-        return await BuildAuthResponseAsync(user);
+        var auth = await BuildAuthResponseAsync(user);
+
+        if (rememberDevice)
+        {
+            var rawToken = GenerateSecureToken();
+            await _trustedDeviceRepo.AddAsync(new TrustedDevice
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TokenHash = HashDeviceToken(rawToken),
+                ExpiresAt = DateTime.UtcNow.AddDays(TrustedDeviceDays)
+            });
+            auth.DeviceToken = rawToken;
+        }
+
+        return auth;
     }
 
     public async Task<TwoFactorEnrollmentStartDto> StartSelfServiceTwoFactorEnrollmentAsync(Guid userId)
@@ -470,6 +566,15 @@ public class AuthService : IAuthService
         if (!user.TwoFactorEnabled)
             throw new BusinessRuleException("Two-factor authentication is not enabled");
 
+        // Admin/Finance/SuperAdmin are forced through the 2FA challenge on every
+        // login regardless of this flag (see CompleteLoginOrChallengeAsync) - if
+        // disable were allowed here, TwoFactorSecret gets nulled below and the
+        // very next login would force a brand-new QR enrollment, every time,
+        // forever. Disabling was never actually a supported end-state for these
+        // roles; reject it outright instead of leaving that trap in place.
+        if (user.Role is UserRole.Admin or UserRole.Finance or UserRole.SuperAdmin)
+            throw new BusinessRuleException("Two-factor authentication is required for your role and cannot be disabled.");
+
         if (string.IsNullOrEmpty(user.PasswordHash))
             throw new BusinessRuleException("Account uses social login — password cannot be verified here");
 
@@ -486,6 +591,11 @@ public class AuthService : IAuthService
             // Unused backup codes for a disabled 2FA setup are dead weight and
             // a latent risk if 2FA is ever re-enabled and the old codes leak.
             await _backupCodeRepo.DeleteAllForUserAsync(user.Id);
+
+            // Trusted devices only exist to skip a 2FA challenge - with 2FA
+            // off there's nothing left for them to skip, and keeping them
+            // around would silently un-expire if 2FA is ever re-enabled.
+            await _trustedDeviceRepo.DeleteAllForUserAsync(user.Id);
 
             await _unitOfWork.CommitAsync();
         }
@@ -614,6 +724,12 @@ public class AuthService : IAuthService
 
     private static string GenerateSecureToken()
         => Convert.ToHexString(RandomNumberGenerator.GetBytes(64));
+
+    // Only the hash is ever persisted - the raw token lives in the client's
+    // browser storage and is the actual bearer credential, so it must never
+    // be recoverable from the database.
+    private static string HashDeviceToken(string rawToken)
+        => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken)));
 
     private async Task<AuthResponseDto> BuildAuthResponseAsync(User user)
     {

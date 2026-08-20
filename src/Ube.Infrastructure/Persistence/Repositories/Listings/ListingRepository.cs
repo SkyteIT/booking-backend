@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Search;
 using Ube.Domain.Entities.Listings;
@@ -78,7 +79,7 @@ public class ListingRepository : IListingRepository
         if (request.IsAvailable.HasValue)
             query = query.Where(x => x.IsActive == request.IsAvailable.Value);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = BusinessDate.Today;
 
         // Any active offer counts here (perk-only included) - the badge/
         // filter is "does this listing have something running right now,"

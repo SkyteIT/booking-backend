@@ -16,21 +16,23 @@ public class VendorPayoutConfiguration : IEntityTypeConfiguration<VendorPayout>
                .HasForeignKey<VendorPayout>(x => x.VendorProfileId)
                .OnDelete(DeleteBehavior.Cascade);
 
-        // Fields
+        // Fields - lengths sized for AES-CBC ciphertext (IV + padded
+        // block, Base64-encoded), not the plaintext, since all four are
+        // encrypted at rest via IEncryptionService.
         builder.Property(x => x.BankName)
                .IsRequired()
-               .HasMaxLength(100);
+               .HasMaxLength(250);
 
         builder.Property(x => x.AccountNumber)
                .IsRequired()
-               .HasMaxLength(50);
+               .HasMaxLength(250);
 
         builder.Property(x => x.AccountHolderName)
                .IsRequired()
-               .HasMaxLength(100);
+               .HasMaxLength(250);
 
         builder.Property(x => x.Branch)
-               .HasMaxLength(100);
+               .HasMaxLength(250);
 
         builder.Property(x => x.CreatedAt)
                .IsRequired();

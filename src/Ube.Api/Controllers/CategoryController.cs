@@ -23,17 +23,6 @@ public class CategoryController : ControllerBase
         return Ok(result);
     }
 
-    // GET: api/categories/filter?status=Active&search=hotels
-    [HttpGet("filter")]
-    public async Task<IActionResult> GetFiltered(
-        [FromQuery] string? status,
-        [FromQuery] string? search,
-        CancellationToken cancellationToken)
-    {
-        var result = await _service.GetFilteredAsync(status, search, cancellationToken);
-        return Ok(result);
-    }
-
     // GET: api/categories/{id}
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)

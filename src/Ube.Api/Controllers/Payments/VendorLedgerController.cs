@@ -8,9 +8,15 @@ using Ube.Application.Features.Vendors;
 
 namespace Ube.Api.Controllers.Payments;
 
+// Own, more specific base route - "api/vendor" bare is also the base
+// several other vendor controllers build sub-paths under
+// (VendorProfileController, VendorPayoutController, DashboardController,
+// VendorBookingsController, VendorReviewsController); no collision today
+// since every action here already specifies its own sub-path, but this
+// keeps that from becoming a real risk as more get added.
 [ApiController]
 [Authorize(Roles = "Vendor")]
-[Route("api/vendor")]
+[Route("api/vendor/finance")]
 public class VendorLedgerController : ControllerBase
 {
     private readonly ILedgerRepository _ledgerRepo;

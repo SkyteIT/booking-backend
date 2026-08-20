@@ -23,6 +23,7 @@ public class TwoFactorAuthTests
     private readonly Mock<IPasswordResetRepository> _passwordResetRepo = new();
     private readonly Mock<ITwoFactorChallengeRepository> _twoFactorRepo = new();
     private readonly Mock<ITwoFactorBackupCodeRepository> _backupCodeRepo = new();
+    private readonly Mock<ITrustedDeviceRepository> _trustedDeviceRepo = new();
     private readonly Mock<IRefreshTokenRepository> _refreshTokenRepo = new();
     private readonly Mock<IEmailService> _emailService = new();
     private readonly Mock<IEncryptionService> _encryptionService = new();
@@ -45,6 +46,7 @@ public class TwoFactorAuthTests
             _passwordResetRepo.Object,
             _twoFactorRepo.Object,
             _backupCodeRepo.Object,
+            _trustedDeviceRepo.Object,
             _refreshTokenRepo.Object,
             _emailService.Object,
             _encryptionService.Object,

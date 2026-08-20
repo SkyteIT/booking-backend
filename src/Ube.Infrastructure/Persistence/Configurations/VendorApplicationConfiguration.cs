@@ -16,7 +16,9 @@ public class VendorApplicationConfiguration : IEntityTypeConfiguration<VendorApp
         builder.Property(x => x.Description).IsRequired().HasMaxLength(1000);
         builder.Property(x => x.Address).IsRequired().HasMaxLength(500);
         builder.Property(x => x.Website).HasMaxLength(300);
-        builder.Property(x => x.TaxId).HasMaxLength(100);
+        // Encrypted at rest via IEncryptionService - sized for AES-CBC
+        // ciphertext (IV + padded block, Base64-encoded), not the plaintext.
+        builder.Property(x => x.TaxId).HasMaxLength(250);
 
         builder.Property(x => x.FirstName).IsRequired().HasMaxLength(100);
         builder.Property(x => x.LastName).IsRequired().HasMaxLength(100);

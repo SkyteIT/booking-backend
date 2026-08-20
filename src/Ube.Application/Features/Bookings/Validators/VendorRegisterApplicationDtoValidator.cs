@@ -20,12 +20,14 @@ public class VendorRegisterApplicationDtoValidator : AbstractValidator<VendorReg
 
         RuleFor(x => x.Website)
             .MaximumLength(300)
-            .Must(url => Uri.TryCreate(url, UriKind.Absolute, out _))
+            .Matches(@"^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$")
             .When(x => !string.IsNullOrWhiteSpace(x.Website))
             .WithMessage("Website must be a valid URL");
 
         RuleFor(x => x.TaxId)
-            .MaximumLength(100);
+            .NotEmpty().WithMessage("Tax ID / EIN is required")
+            .MaximumLength(100)
+            .Matches(@"^[A-Za-z0-9\-]{4,100}$").WithMessage("Tax ID must be 4-100 alphanumeric characters");
 
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("First name is required")
@@ -42,7 +44,7 @@ public class VendorRegisterApplicationDtoValidator : AbstractValidator<VendorReg
 
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required")
-            .Matches(@"^\+?[0-9\s\-]{7,20}$").WithMessage("Phone number is not valid")
+            .Matches(@"^\+?[0-9\s\-()]{7,20}$").WithMessage("Phone number is not valid")
             .MaximumLength(20);
 
         RuleFor(x => x.Categories)

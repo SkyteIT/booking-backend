@@ -4,6 +4,7 @@ using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Vendors;
 using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Models.Pagination;
@@ -18,13 +19,24 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IUserRepository _userRepo;
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly IUnitOfWork _unitOfWork;
-    
-    public AdminVendorApplicationService(IVendorApplicationRepository applicationRepo, IUserRepository userRepo, IVendorProfileRepository vendorRepo, IUnitOfWork unitOfWork)
+    private readonly IEncryptionService _encryptionService;
+
+    public AdminVendorApplicationService(IVendorApplicationRepository applicationRepo, IUserRepository userRepo, IVendorProfileRepository vendorRepo, IUnitOfWork unitOfWork, IEncryptionService encryptionService)
     {
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
         _vendorRepo = vendorRepo;
         _unitOfWork = unitOfWork;
+        _encryptionService = encryptionService;
+    }
+
+    // TaxId is encrypted at rest; a decrypt failure (a pre-encryption
+    // legacy row) falls back to the raw stored value instead of throwing.
+    private string? SafeDecryptTaxId(string? taxId)
+    {
+        if (string.IsNullOrEmpty(taxId)) return taxId;
+        try { return _encryptionService.Decrypt(taxId); }
+        catch { return taxId; }
     }
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
@@ -143,7 +155,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             Description = app.Description,
             Address = app.Address,
             Website = app.Website,
-            TaxId = app.TaxId,
+            TaxId = SafeDecryptTaxId(app.TaxId),
             FirstName = app.FirstName,
             LastName = app.LastName,
             Email = app.Email,

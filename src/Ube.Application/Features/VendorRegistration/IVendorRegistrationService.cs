@@ -8,4 +8,8 @@ public interface IVendorRegistrationService
         Stream? businessLicense, string? businessLicenseExt,
         Stream? insuranceCertificate, string? insuranceCertificateExt,
         Stream? taxDocument, string? taxDocumentExt);
+
+    // Self-service - lets the applicant check their own most recent
+    // submission's status without Admin needing to tell them directly.
+    Task<MyVendorApplicationStatusDto?> GetMyStatusAsync(Guid userId);
 }

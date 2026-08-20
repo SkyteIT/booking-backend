@@ -5,13 +5,19 @@ public interface IAuthService
 {
     Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request);
     Task<AuthResponseDto> LoginAsync(LoginRequestDto request);
-    Task<AuthResponseDto> GoogleLoginAsync(string idToken);
+    Task<AuthResponseDto> GoogleLoginAsync(string idToken, string? deviceToken = null);
     Task VerifyEmailAsync(string token);
+
+    // Self-service - any authenticated user can change their own email;
+    // it only takes effect once they click the confirmation link sent to
+    // the NEW address (proof they actually control it).
+    Task RequestEmailChangeAsync(Guid userId, string newEmail);
+
     Task RequestPasswordResetAsync(string email);
     Task ResetPasswordAsync(string token, string newPassword);
     Task<TwoFactorEnrollmentStartDto> StartTwoFactorEnrollmentAsync(string challengeToken);
-    Task<TwoFactorEnrollmentResultDto> ConfirmTwoFactorEnrollmentAsync(string challengeToken, string code);
-    Task<AuthResponseDto> VerifyTwoFactorCodeAsync(string challengeToken, string code);
+    Task<TwoFactorEnrollmentResultDto> ConfirmTwoFactorEnrollmentAsync(string challengeToken, string code, bool rememberDevice = false);
+    Task<AuthResponseDto> VerifyTwoFactorCodeAsync(string challengeToken, string code, bool rememberDevice = false);
 
     // Self-service variants - for a role where 2FA isn't mandatory, a user
     // opts in from within an already-authenticated session (Settings), so

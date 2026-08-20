@@ -44,6 +44,25 @@ public class EmailService : IEmailService
         return SendEmailAsync(email, "Verify your Ube account", body);
     }
 
+    public Task SendEmailChangeVerificationEmailAsync(string newEmail, string token)
+    {
+        var verificationLink = $"{_frontendBaseUrl}/verify-email?token={token}";
+
+        var body = $"""
+            <h3>Confirm your new email address</h3>
+            <p>You asked to change the email on your Ube account to this address. Click the link below to confirm it:</p>
+            <a href='{verificationLink}' style='display:inline-block;padding:10px 20px;
+               background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;'>
+               Confirm new email
+            </a>
+            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
+               This link expires in 24 hours. If you didn't request this change, you can ignore this email - your account's email won't change.
+            </p>
+            """;
+
+        return SendEmailAsync(newEmail, "Confirm your new Ube email address", body);
+    }
+
     public Task SendPasswordResetEmailAsync(string email, string token)
     {
         var resetLink = $"{_frontendBaseUrl}/reset-password?token={token}";

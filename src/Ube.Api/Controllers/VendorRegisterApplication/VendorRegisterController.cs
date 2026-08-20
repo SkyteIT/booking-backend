@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Bookings;
+using Ube.Application.Features.Bookings.Validators;
 using Ube.Application.Features.VendorRegistration;
 
 namespace Ube.Api.Controllers.VendorRegistration;
@@ -29,6 +30,10 @@ public class VendorRegisterController : ControllerBase
         IFormFile? insuranceCertificate,
         IFormFile? taxDocument)
     {
+        VendorApplicationDocumentValidator.Validate(businessLicense, "Business license");
+        VendorApplicationDocumentValidator.Validate(insuranceCertificate, "Insurance certificate");
+        VendorApplicationDocumentValidator.Validate(taxDocument, "Tax document");
+
         var id = await _vendorRegistrationService.SubmitApplicationAsync(
             _currentUser.UserId,
             dto,
@@ -37,5 +42,15 @@ public class VendorRegisterController : ControllerBase
             taxDocument?.OpenReadStream(), Path.GetExtension(taxDocument?.FileName));
 
         return Ok(new { id });
+    }
+
+    // Self-service - lets the applicant check their own application's
+    // status without needing an Admin to tell them directly. Null means
+    // they've never applied.
+    [HttpGet("status")]
+    public async Task<IActionResult> GetMyStatus()
+    {
+        var status = await _vendorRegistrationService.GetMyStatusAsync(_currentUser.UserId);
+        return Ok(status);
     }
 }

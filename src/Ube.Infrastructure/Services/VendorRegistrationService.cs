@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Notifications;
 using Ube.Application.Features.VendorRegistration;
@@ -14,15 +16,18 @@ public class VendorRegistrationService : IVendorRegistrationService
 {
     private readonly IVendorApplicationRepository _repo;
     private readonly IAdminAlertService _adminAlertService;
+    private readonly IEncryptionService _encryptionService;
     private readonly ILogger<VendorRegistrationService> _logger;
 
     public VendorRegistrationService(
         IVendorApplicationRepository repo,
         IAdminAlertService adminAlertService,
+        IEncryptionService encryptionService,
         ILogger<VendorRegistrationService> logger)
     {
         _repo = repo;
         _adminAlertService = adminAlertService;
+        _encryptionService = encryptionService;
         _logger = logger;
     }
 
@@ -33,6 +38,16 @@ public class VendorRegistrationService : IVendorRegistrationService
         Stream? insuranceCertificate, string? insuranceCertificateExt,
         Stream? taxDocument, string? taxDocumentExt)
     {
+        // A rejected applicant is allowed to re-apply; anyone with a Pending
+        // or already-Approved application is not - prevents duplicate/spam
+        // submissions that GetMyStatusAsync would otherwise silently overwrite
+        // the view of (it only ever surfaces the latest one).
+        var existing = await _repo.GetLatestByUserIdAsync(userId);
+        if (existing != null && existing.Status != VendorApplicationStatus.Rejected)
+        {
+            throw new BusinessRuleException("You already have a vendor application in progress.");
+        }
+
         var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
         Directory.CreateDirectory(uploadPath);
 
@@ -43,7 +58,7 @@ public class VendorRegistrationService : IVendorRegistrationService
             BusinessType = dto.BusinessType,
             Address = dto.Address,
             Website = dto.Website,
-            TaxId = dto.TaxId,
+            TaxId = string.IsNullOrEmpty(dto.TaxId) ? dto.TaxId : _encryptionService.Encrypt(dto.TaxId),
             FirstName = dto.FirstName,
             LastName = dto.LastName,
             Email = dto.Email,
@@ -68,6 +83,22 @@ public class VendorRegistrationService : IVendorRegistrationService
             NotificationType.VendorApplicationSubmitted);
 
         return application.Id;
+    }
+
+    public async Task<MyVendorApplicationStatusDto?> GetMyStatusAsync(Guid userId)
+    {
+        var application = await _repo.GetLatestByUserIdAsync(userId);
+        if (application == null) return null;
+
+        return new MyVendorApplicationStatusDto
+        {
+            Id = application.Id,
+            BusinessName = application.BusinessName,
+            Status = application.Status,
+            SubmittedAt = application.SubmittedAt,
+            ReviewedAt = application.ReviewedAt,
+            RejectionReason = application.RejectionReason
+        };
     }
 
     private static async Task<string?> SaveFileAsync(string uploadPath, Stream? stream, string? extension)

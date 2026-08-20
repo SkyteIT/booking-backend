@@ -598,6 +598,19 @@ public class ListingsController : ControllerBase
             return Forbid("You do not have permission to delete this listing.");
         }
 
+        // Delete related reviews and bookings to avoid foreign key violations
+        var reviews = await _context.Reviews.Where(r => r.ListingId == id).ToListAsync();
+        if (reviews.Any())
+        {
+            _context.Reviews.RemoveRange(reviews);
+        }
+
+        var bookings = await _context.Bookings.Where(b => b.ListingId == id).ToListAsync();
+        if (bookings.Any())
+        {
+            _context.Bookings.RemoveRange(bookings);
+        }
+
         _context.Listings.Remove(listing);
         await _context.SaveChangesAsync();
 

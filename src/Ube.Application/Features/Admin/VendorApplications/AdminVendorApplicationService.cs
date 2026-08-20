@@ -257,9 +257,13 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                     Type = (int)notification.Type
                 }, CancellationToken.None);
             }
-            catch
+            catch (Exception ex)
             {
-                // best-effort only
+                // best-effort only - a notification failure shouldn't roll
+                // back the already-committed application review, but it
+                // must not disappear silently either.
+                _logger.LogError(ex, "Failed to create {NotificationType} notification for user {UserId}",
+                    notification.Type, notification.UserId);
             }
         }
     }

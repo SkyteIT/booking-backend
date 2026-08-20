@@ -9,6 +9,7 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
     public void Configure(EntityTypeBuilder<PasswordResetToken> builder)
     {
         builder.HasKey(x => x.Id);
+
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(x => x.UserId)
@@ -22,6 +23,9 @@ public class PasswordResetTokenConfiguration : IEntityTypeConfiguration<Password
             .IsRequired();
 
         builder.Property(x => x.IsUsed)
+            .IsRequired();
+
+        builder.Property(x => x.CreatedAt)
             .IsRequired();
 
         builder.HasIndex(x => x.Token)

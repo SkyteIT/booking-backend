@@ -123,7 +123,6 @@ public class AuthService : IAuthService
 
         return await CompleteLoginOrChallengeAsync(user, request.DeviceToken);
     }
-
     public async Task<AuthResponseDto> GoogleLoginAsync(string idToken, string? deviceToken = null)
     {
         GoogleJsonWebSignature.Payload payload;

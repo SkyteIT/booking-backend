@@ -151,11 +151,16 @@ public class BookingRepository : IBookingRepository
             .ToListAsync(ct);
     }
 
+    public async Task AddAsync(Booking booking) => await AddAsync(booking, default);
+
     public async Task AddAsync(Booking booking, CancellationToken ct = default)
     {
         await _db.Bookings.AddAsync(booking, ct);
         await _db.SaveChangesAsync(ct);
     }
+
+    public async Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(Guid customerId, BookingsRequest request)
+        => await GetBookingsByCustomerIdAsync(customerId, request, default);
 
     public async Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(Guid customerId, BookingsRequest request, CancellationToken ct = default)
     {
@@ -201,6 +206,25 @@ public class BookingRepository : IBookingRepository
             TotalCount = totalCount,
             TotalPages = (int)Math.Ceiling((double)totalCount / request.PageSize)
         };
+    }
+
+    public async Task<Booking?> GetCustomerBookingAsync(
+        Guid bookingId,
+        Guid customerId)
+    {
+        return await _db.Bookings
+            .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile)
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b =>
+                b.Id == bookingId &&
+                b.CustomerId == customerId);
+    }
+
+    public async Task<Domain.Entities.Listings.Listing?> GetByListingIdAsync(Guid listingId)
+    {
+        return await _db.Listings
+            .FirstOrDefaultAsync(l => l.Id == listingId);
     }
 
     // Confirmed bookings whose service period has already ended - the

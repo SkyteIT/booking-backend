@@ -18,8 +18,3 @@ public interface IBookingService
     // Returns how many bookings were actually completed.
     Task<int> CompleteExpiredBookingsAsync(CancellationToken ct = default);
 }
-
-
-/// var nextValue = await _bookingRepository.GetNextBookingSequenceAsync();
-/// var bookingNumber = $"BKG-{nextValue:D6}";
-

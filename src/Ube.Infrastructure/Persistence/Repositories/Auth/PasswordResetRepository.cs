@@ -3,6 +3,8 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Domain.Entities.Auth;
 using Ube.Infrastructure.Persistence;
 
+namespace Ube.Infrastructure.Persistence.Repositories.Auth;
+
 public class PasswordResetRepository : IPasswordResetRepository
 {
     private readonly ApplicationDbContext _db;

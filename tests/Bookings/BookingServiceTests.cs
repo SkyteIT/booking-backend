@@ -10,6 +10,8 @@ using Ube.Domain.Entities.Reviews;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
+using Ube.Application.Features.Notifications;
+using Ube.Application.Common.Interfaces.Services;
 
 namespace Ube.Tests.Bookings;
 
@@ -19,6 +21,7 @@ public class BookingServiceTests
         Mock<IBookingRepository> BookingRepo,
         Mock<IUnitOfWork> UnitOfWork,
         Mock<IReviewRepository> ReviewRepo,
+        Mock<INotificationService> NotificationService,
         BookingService Service);
 
     private static Ctx Build()
@@ -26,7 +29,11 @@ public class BookingServiceTests
         var repo = new Mock<IBookingRepository>();
         var uow  = new Mock<IUnitOfWork>();
         var reviewRepo = new Mock<IReviewRepository>();
-        return new Ctx(repo, uow, reviewRepo, new BookingService(repo.Object, uow.Object, reviewRepo.Object));
+        var notifications = new Mock<INotificationService>();
+        var realtime = new Mock<IRealtimeUpdateService>();
+        realtime.Setup(x => x.PublishToRoleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+        return new Ctx(repo, uow, reviewRepo, notifications, new BookingService(repo.Object, uow.Object, reviewRepo.Object, notifications.Object, realtime.Object));
     }
 
     private static Booking MakeBooking(Guid bookingId, Guid vendorUserId, Guid customerId, BookingStatus status)
@@ -297,7 +304,7 @@ public class BookingServiceTests
         };
 
         ctx.BookingRepo
-            .Setup(r => r.GetBookingsByCustomerIdAsync(customerId, request, It.IsAny<CancellationToken>()))
+            .Setup(r => r.GetBookingsByCustomerIdAsync(customerId, request))
             .ReturnsAsync(new PagedResult<Booking>
             {
                 Items = bookings,

@@ -17,9 +17,9 @@ public class CreateNotificationDto
     public string Message { get; set; } = string.Empty;
 
     /// <summary>
-    /// Notification type: 0 = General, 1 = Booking, 2 = Promotion, etc.
+    /// NotificationType enum value.
     /// </summary>
-    [DefaultValue(0)]
+    [DefaultValue(101)]
     public int Type { get; set; }
 
     public string? Email { get; set; }

@@ -25,6 +25,10 @@ public class NotificationRepository : INotificationRepository
             .Where(x => x.UserId == userId && !x.IsRead)
             .ToListAsync(ct);
 
+    public async Task<int> GetUnreadCountByUserIdAsync(Guid userId, CancellationToken ct = default)
+        => await _db.Notifications
+            .CountAsync(x => x.UserId == userId && !x.IsRead, ct);
+
     public async Task AddAsync(Notification notification, CancellationToken ct = default)
         => await _db.Notifications.AddAsync(notification, ct);
 

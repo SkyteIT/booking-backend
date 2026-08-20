@@ -4,6 +4,8 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Reviews;
+using Ube.Application.Features.Notifications;
+using Ube.Domain.Enums.Notifications;
 
 namespace Ube.Application.Features.Bookings;
 
@@ -12,12 +14,21 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _bookingRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IReviewRepository _reviewRepository;
+    private readonly INotificationService _notificationService;
+    private readonly IRealtimeUpdateService _realtimeUpdateService;
 
-    public BookingService(IBookingRepository bookingRepository, IUnitOfWork unitOfWork, IReviewRepository reviewRepository)
+    public BookingService(
+        IBookingRepository bookingRepository,
+        IUnitOfWork unitOfWork,
+        IReviewRepository reviewRepository,
+        INotificationService notificationService,
+        IRealtimeUpdateService realtimeUpdateService)
     {
         _bookingRepository = bookingRepository;
         _unitOfWork = unitOfWork;
         _reviewRepository = reviewRepository;
+        _notificationService = notificationService;
+        _realtimeUpdateService = realtimeUpdateService;
     }
 
     public async Task<BookingDetailDto> UpdateVendorBookingStatusAsync(Guid bookingId, Guid vendorId, BookingStatus newStatus)
@@ -48,6 +59,10 @@ public class BookingService : IBookingService
             await _unitOfWork.RollbackAsync();
             throw;
         }
+
+        await TryNotifyBookingStatusChangedAsync(booking, newStatus);
+
+        await PublishDashboardRefreshAsync(vendorId, booking.Id, "booking.status.changed");
 
         return MapToDetail(booking, vendorId);
     }
@@ -248,4 +263,62 @@ public class BookingService : IBookingService
             // already blocks this server-side too) - never show the button on their own view.
             CanReview = false
         };
+
+    private async Task TryNotifyBookingStatusChangedAsync(Domain.Entities.Bookings.Booking booking, BookingStatus newStatus)
+    {
+        NotificationType type;
+        string title;
+        string message;
+
+        switch (newStatus)
+        {
+            case BookingStatus.Confirmed:
+                type = NotificationType.CustomerBookingConfirmed;
+                title = "Booking confirmed";
+                message = $"Your booking {booking.BookingNumber} has been confirmed.";
+                break;
+            case BookingStatus.Rejected:
+                type = NotificationType.CustomerBookingRejected;
+                title = "Booking rejected";
+                message = $"Your booking {booking.BookingNumber} has been rejected.";
+                break;
+            default:
+                return;
+        }
+
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationDto
+            {
+                UserId = booking.CustomerId,
+                Title = title,
+                Message = message,
+                Type = (int)type
+            }, CancellationToken.None);
+        }
+        catch
+        {
+            // Notification delivery is best-effort; booking state already succeeded.
+        }
+    }
+
+    private async Task PublishDashboardRefreshAsync(Guid vendorId, Guid bookingId, string reason)
+    {
+        try
+        {
+            var payload = new
+            {
+                reason,
+                bookingId,
+                vendorId
+            };
+
+            await _realtimeUpdateService.PublishToRoleAsync("vendor", "dashboard.refresh", payload);
+            await _realtimeUpdateService.PublishToRoleAsync("admin", "dashboard.refresh", payload);
+        }
+        catch
+        {
+            // Dashboard refresh is best-effort; the booking update already succeeded.
+        }
+    }
 }

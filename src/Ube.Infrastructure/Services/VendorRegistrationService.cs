@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Bookings;
 using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Notifications.Email;
 using Ube.Application.Features.VendorRegistration;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Vendors;
@@ -17,17 +19,23 @@ public class VendorRegistrationService : IVendorRegistrationService
     private readonly IVendorApplicationRepository _repo;
     private readonly IAdminAlertService _adminAlertService;
     private readonly IEncryptionService _encryptionService;
+    private readonly IEmailService _emailService;
+    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<VendorRegistrationService> _logger;
 
     public VendorRegistrationService(
         IVendorApplicationRepository repo,
         IAdminAlertService adminAlertService,
         IEncryptionService encryptionService,
+        IEmailService emailService,
+        IWebHostEnvironment environment,
         ILogger<VendorRegistrationService> logger)
     {
         _repo = repo;
         _adminAlertService = adminAlertService;
         _encryptionService = encryptionService;
+        _emailService = emailService;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -48,7 +56,10 @@ public class VendorRegistrationService : IVendorRegistrationService
             throw new BusinessRuleException("You already have a vendor application in progress.");
         }
 
-        var uploadPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+        // wwwroot so UseStaticFiles() actually serves these - the old
+        // Uploads/ path sat outside wwwroot and every document link 404'd.
+        var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+        var uploadPath = Path.Combine(webRoot, "uploads", "vendor-applications");
         Directory.CreateDirectory(uploadPath);
 
         var application = new VendorApplication
@@ -82,6 +93,16 @@ public class VendorRegistrationService : IVendorRegistrationService
             $"{application.BusinessName} has applied to become a vendor and is awaiting review.",
             NotificationType.VendorApplicationSubmitted);
 
+        try
+        {
+            await _emailService.SendVendorApplicationSubmittedEmailAsync(
+                application.Email, application.FirstName, application.BusinessName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send vendor application confirmation email to {Email} for application {ApplicationId}", application.Email, application.Id);
+        }
+
         return application.Id;
     }
 
@@ -111,6 +132,6 @@ public class VendorRegistrationService : IVendorRegistrationService
         await using var fileStream = new FileStream(filePath, FileMode.Create);
         await stream.CopyToAsync(fileStream);
 
-        return fileName;
+        return $"/uploads/vendor-applications/{fileName}";
     }
 }

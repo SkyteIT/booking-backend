@@ -1,5 +1,4 @@
 using FluentValidation;
-using Ube.Domain.Enums.Vendors;
 
 namespace Ube.Application.Features.Vendors.Validators;
 
@@ -8,12 +7,13 @@ public class ReviewVendorApplicationDtoValidator : AbstractValidator<ReviewVendo
     public ReviewVendorApplicationDtoValidator()
     {
         RuleFor(x => x.Status)
-            .Must(s => s == VendorApplicationStatus.Approved || s == VendorApplicationStatus.Rejected)
+            .Must(s => string.Equals(s, "Approved", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(s, "Rejected", StringComparison.OrdinalIgnoreCase))
             .WithMessage("Status must be Approved or Rejected");
 
         RuleFor(x => x.RejectionReason)
             .NotEmpty().WithMessage("Rejection reason is required when rejecting an application")
             .MaximumLength(500)
-            .When(x => x.Status == VendorApplicationStatus.Rejected);
+            .When(x => string.Equals(x.Status, "Rejected", StringComparison.OrdinalIgnoreCase));
     }
 }

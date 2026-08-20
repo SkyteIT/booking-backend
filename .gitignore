@@ -66,6 +66,8 @@ node_modules/
 # User-uploaded files (runtime, not source)
 Uploads/
 **/Uploads/
+wwwroot/uploads/
+**/wwwroot/uploads/
 
 # Claude Code
 .claude/

@@ -2,6 +2,7 @@ using Moq;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Helpers;
 using Ube.Application.Common.Interfaces.Persistence;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Reviews;
 using Ube.Domain.Entities.Reviews;
@@ -24,6 +25,7 @@ public class ReviewServiceTests
         var reviewRepo = new Mock<IReviewRepository>();
         var listingRepo = new Mock<IListingRepository>();
         var notificationService = new Mock<INotificationService>();
+        var realtimeUpdateService = new Mock<IRealtimeUpdateService>();
         var uow = new Mock<IUnitOfWork>();
         var ratingHelper = new RatingHelper(listingRepo.Object);
         return new Ctx(
@@ -32,7 +34,7 @@ public class ReviewServiceTests
             listingRepo,
             notificationService,
             uow,
-            new ReviewService(bookingRepo.Object, reviewRepo.Object, ratingHelper, notificationService.Object, uow.Object));
+            new ReviewService(bookingRepo.Object, reviewRepo.Object, ratingHelper, notificationService.Object, uow.Object, realtimeUpdateService.Object));
     }
 
     private static Review MakeReview(Guid id) => new Review

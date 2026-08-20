@@ -7,6 +7,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Auth;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Notifications.Email;
 using Ube.Domain.Entities.Auth;
 using Ube.Domain.Entities.Users;
@@ -27,6 +28,8 @@ public class TwoFactorAuthTests
     private readonly Mock<IRefreshTokenRepository> _refreshTokenRepo = new();
     private readonly Mock<IEmailService> _emailService = new();
     private readonly Mock<IEncryptionService> _encryptionService = new();
+    private readonly Mock<INotificationService> _notificationService = new();
+    private readonly Mock<IRealtimeUpdateService> _realtimeUpdateService = new();
     private readonly Mock<IUnitOfWork> _unitOfWork = new();
 
     private AuthService BuildService()
@@ -50,6 +53,8 @@ public class TwoFactorAuthTests
             _refreshTokenRepo.Object,
             _emailService.Object,
             _encryptionService.Object,
+            _notificationService.Object,
+            _realtimeUpdateService.Object,
             Mock.Of<ILogger<AuthService>>(),
             _unitOfWork.Object,
             new ConfigurationBuilder()

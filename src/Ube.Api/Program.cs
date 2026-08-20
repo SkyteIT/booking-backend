@@ -60,6 +60,8 @@ using Ube.Application.Features.Fraud;
 using Ube.Infrastructure.Persistence.Repositories.Fraud;
 using Azure.Identity;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
+using Ube.Api.Hubs;
+using Ube.Api.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -213,6 +215,10 @@ builder.Services.AddScoped<IFraudFlagRepository, FraudFlagRepository>();
 builder.Services.AddScoped<IFraudDetectionService, FraudDetectionService>();
 builder.Services.Configure<FraudDetectionOptions>(builder.Configuration.GetSection("FraudDetection"));
 
+// Realtime dashboard/notification push (SignalR)
+builder.Services.AddScoped<IRealtimeUpdateService, SignalRRealtimeUpdateService>();
+builder.Services.AddSignalR();
+
 builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("auth", o =>
@@ -289,6 +295,7 @@ app.UseAuthorization();
 app.UseStaticFiles();
 
 
+app.MapHub<RealtimeUpdatesHub>("/hubs/updates");
 app.MapControllers();
 
 app.Run();

@@ -14,6 +14,7 @@ public interface IVendorApplicationRepository
     // check - null means they've never applied.
     Task<VendorApplication?> GetLatestByUserIdAsync(Guid userId);
 
+    Task<VendorApplication?> GetByUserIdAsync(Guid userId);
     Task AddAsync(VendorApplication application);
     Task UpdateAsync(VendorApplication application);
     Task<(List<ApplicationTableDto> Items, int TotalItems)> GetPagedTableAsync(VendorApplicationStatus? status, VendorApplicationsRequest options);

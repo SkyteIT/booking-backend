@@ -7,6 +7,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Helpers;
 using Ube.Application.Features.Notifications;
 using Ube.Domain.Enums.Notifications;
+using Ube.Application.Common.Interfaces.Services;
 
 
 namespace Ube.Application.Features.Reviews;
@@ -18,20 +19,22 @@ public class ReviewService : IReviewService
     private readonly RatingHelper _ratingHelper;
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IRealtimeUpdateService _realtimeUpdateService;
 
     public ReviewService(
         IBookingRepository bookingRepo,
         IReviewRepository reviewRepo,
         RatingHelper ratingHelper,
         INotificationService notificationService,
-        IUnitOfWork unitOfWork
-        )
+        IUnitOfWork unitOfWork,
+        IRealtimeUpdateService realtimeUpdateService)
     {
         _bookingRepo = bookingRepo;
         _reviewRepo = reviewRepo;
         _ratingHelper = ratingHelper;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
+        _realtimeUpdateService = realtimeUpdateService;
     }
 
     public async Task CreateReviewAsync(CreateReviewDto dto, Guid currentUserId)
@@ -80,22 +83,8 @@ public class ReviewService : IReviewService
             await _reviewRepo.SaveChangesAsync();
             await _unitOfWork.CommitAsync();
 
-            // Best-effort - a notification failure should never fail a review
-            // that has already been committed.
-            try
-            {
-                await _notificationService.CreateAsync(new CreateNotificationDto
-                {
-                    UserId = booking.Listing.VendorProfile.UserId,
-                    Title = "New review",
-                    Message = $"{booking.Customer.FirstName} {booking.Customer.LastName} left a {dto.Rating}-star review on {booking.Listing.Title}.",
-                    Type = (int)NotificationType.NewReview
-                }, CancellationToken.None);
-            }
-            catch
-            {
-                // Swallow - notification delivery is not part of the review contract.
-            }
+            await TryNotifyReviewCreatedAsync(review);
+            await PublishDashboardRefreshAsync(review.VendorId, review.Id);
         }
         catch{
                 await _unitOfWork.RollbackAsync();
@@ -365,6 +354,53 @@ public class ReviewService : IReviewService
         {
             await _unitOfWork.RollbackAsync();
             throw;
+        }
+    }
+
+    private async Task TryNotifyReviewCreatedAsync(Review review)
+    {
+        var notifications = new[]
+        {
+            new { UserId = review.VendorId, Type = NotificationType.VendorNewCustomerReview, Title = "New customer review", Message = $"You received a new {review.Rating}-star review." },
+            new { UserId = review.CustomerId, Type = NotificationType.CustomerReviewSubmitted, Title = "Review submitted", Message = "Your review was submitted successfully." }
+        };
+
+        foreach (var item in notifications)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = item.UserId,
+                    Title = item.Title,
+                    Message = item.Message,
+                    Type = (int)item.Type
+                }, CancellationToken.None);
+            }
+            catch
+            {
+                // best-effort only
+            }
+        }
+    }
+
+    private async Task PublishDashboardRefreshAsync(Guid vendorId, Guid reviewId)
+    {
+        try
+        {
+            var payload = new
+            {
+                reason = "review.created",
+                reviewId,
+                vendorId
+            };
+
+            await _realtimeUpdateService.PublishToRoleAsync("vendor", "dashboard.refresh", payload);
+            await _realtimeUpdateService.PublishToRoleAsync("admin", "dashboard.refresh", payload);
+        }
+        catch
+        {
+            // Realtime refresh is best-effort.
         }
     }
 }

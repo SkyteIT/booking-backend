@@ -8,10 +8,12 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Auth;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Auth;
+using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Notifications.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using OtpNet;
+using Ube.Domain.Enums.Notifications;
 
 namespace Ube.Infrastructure.Services.Auth;
 
@@ -27,6 +29,8 @@ public class AuthService : IAuthService
     private readonly IRefreshTokenRepository _refreshTokenRepo;
     private readonly IEmailService _emailService;
     private readonly IEncryptionService _encryptionService;
+    private readonly INotificationService _notificationService;
+    private readonly IRealtimeUpdateService _realtimeUpdateService;
     private readonly ILogger<AuthService> _logger;
     private readonly IUnitOfWork _unitOfWork;
     private readonly string _googleClientId;
@@ -46,6 +50,8 @@ public class AuthService : IAuthService
         IRefreshTokenRepository refreshTokenRepo,
         IEmailService emailService,
         IEncryptionService encryptionService,
+        INotificationService notificationService,
+        IRealtimeUpdateService realtimeUpdateService,
         ILogger<AuthService> logger,
         IUnitOfWork unitOfWork,
         IConfiguration configuration)
@@ -60,6 +66,8 @@ public class AuthService : IAuthService
         _refreshTokenRepo = refreshTokenRepo;
         _emailService = emailService;
         _encryptionService = encryptionService;
+        _notificationService = notificationService;
+        _realtimeUpdateService = realtimeUpdateService;
         _logger = logger;
         _unitOfWork = unitOfWork;
         _googleClientId = configuration["Google:ClientId"]
@@ -106,6 +114,17 @@ public class AuthService : IAuthService
         {
             _logger.LogWarning(ex, "Failed to send verification email for user {UserId} ({Email}).", user.Id, user.Email);
         }
+
+        try
+        {
+            await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send welcome email for user {UserId} ({Email}).", user.Id, user.Email);
+        }
+
+        await NotifyAdminsNewCustomerAsync(user);
 
         return await BuildAuthResponseAsync(user);
     }
@@ -158,6 +177,7 @@ public class AuthService : IAuthService
                 CreatedAt = DateTime.UtcNow
             };
             await _userRepo.AddAsync(user);
+            await NotifyAdminsNewCustomerAsync(user);
         }
 
         return await CompleteLoginOrChallengeAsync(user, deviceToken);
@@ -210,6 +230,12 @@ public class AuthService : IAuthService
             await _unitOfWork.RollbackAsync();
             throw;
         }
+
+        await TryNotifyUserAsync(
+            user.Id,
+            NotificationType.CustomerAccountVerification,
+            "Account verified",
+            "Your account email has been verified.");
     }
 
     public async Task RequestEmailChangeAsync(Guid userId, string newEmail)
@@ -753,5 +779,62 @@ public class AuthService : IAuthService
             Email = user.Email,
             Role = user.Role.ToString()
         };
+    }
+
+    private async Task NotifyAdminsNewCustomerAsync(User user)
+    {
+        var admins = await _userRepo.GetByRoleAsync(UserRole.Admin);
+        foreach (var admin in admins)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = admin.Id,
+                    Title = "New customer registration",
+                    Message = $"New customer registered: {user.Email}",
+                    Type = (int)NotificationType.AdminNewCustomerRegistration
+                }, CancellationToken.None);
+            }
+            catch
+            {
+                // best-effort only
+            }
+        }
+
+        try
+        {
+            await _realtimeUpdateService.PublishToRoleAsync(
+                "admin",
+                "dashboard.refresh",
+                new
+                {
+                    reason = "customer.registered",
+                    userId = user.Id,
+                    email = user.Email
+                });
+        }
+        catch
+        {
+            // Realtime refresh is best-effort.
+        }
+    }
+
+    private async Task TryNotifyUserAsync(Guid userId, NotificationType type, string title, string message)
+    {
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Title = title,
+                Message = message,
+                Type = (int)type
+            }, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create notification {NotificationType} for user {UserId}", type, userId);
+        }
     }
 }

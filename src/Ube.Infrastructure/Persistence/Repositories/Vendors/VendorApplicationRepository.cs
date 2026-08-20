@@ -31,6 +31,13 @@ public class VendorApplicationRepository : IVendorApplicationRepository
         await _db.SaveChangesAsync();
     }
 
+    public async Task<VendorApplication?> GetByUserIdAsync(Guid userId)
+    {
+        return await _db.VendorApplications
+            .OrderByDescending(x => x.SubmittedAt)
+            .FirstOrDefaultAsync(x => x.UserId == userId);
+    }
+
     public async Task UpdateAsync(VendorApplication application)
     {
         _db.VendorApplications.Update(application);

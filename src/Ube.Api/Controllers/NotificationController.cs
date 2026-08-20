@@ -33,6 +33,16 @@ public class NotificationController : ControllerBase
         return Ok(result); // 200 OK with data
     }
 
+    [HttpGet("user/{userId:guid}/unread-count")]
+    public async Task<IActionResult> GetUnreadCount(Guid userId, CancellationToken cancellationToken)
+    {
+        if (!CanAccessUser(userId))
+            return Forbid();
+
+        var count = await _service.GetUnreadCountAsync(userId, cancellationToken);
+        return Ok(new { unreadCount = count });
+    }
+
     // POST: api/notifications
     // Create a new notification
     [HttpPost]
@@ -47,6 +57,7 @@ public class NotificationController : ControllerBase
     [HttpPut("{id:guid}/read")]
     public async Task<IActionResult> MarkAsRead(Guid id, CancellationToken cancellationToken)
     {
+        // The service verifies the notification owner before changing state.
         var updated = await _service.MarkAsReadAsync(id, cancellationToken);
 
         // If found and updated → 204 No Content
@@ -102,4 +113,7 @@ public class NotificationController : ControllerBase
         await _service.UnsubscribeFromPushAsync(_currentUser.UserId, dto.Endpoint, cancellationToken);
         return NoContent();
     }
+
+    private bool CanAccessUser(Guid userId)
+        => userId == _currentUser.UserId || User.IsInRole("Admin");
 }

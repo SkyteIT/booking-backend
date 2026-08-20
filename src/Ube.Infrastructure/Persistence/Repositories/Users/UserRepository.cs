@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Domain.Entities.Users;
+using Ube.Domain.Enums.Users;
 
 
 namespace Ube.Infrastructure.Persistence.Repositories.Users;
@@ -33,6 +34,13 @@ public class UserRepository : IUserRepository
     {
         return await _db.Users
             .AnyAsync(u => u.Email == email.ToLower());
+    }
+
+    public async Task<IReadOnlyList<User>> GetByRoleAsync(UserRole role)
+    {
+        return await _db.Users
+            .Where(u => u.Role == role)
+            .ToListAsync();
     }
 
     public async Task AddAsync(User user)

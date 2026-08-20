@@ -6,12 +6,12 @@ public class CreatePromotionDtoValidator : AbstractValidator<CreatePromotionDto>
 {
     public CreatePromotionDtoValidator()
     {
-        RuleFor(x => x.PromoCode)
+        RuleFor(x => x.Code)
             .NotEmpty().WithMessage("Promo code is required")
             .MaximumLength(50)
             .Matches(@"^[A-Z0-9_\-]+$").WithMessage("Promo code must be uppercase letters, numbers, hyphens or underscores only");
 
-        RuleFor(x => x.Value)
+        RuleFor(x => x.DiscountValue)
             .GreaterThan(0).WithMessage("Discount value must be greater than 0");
 
         RuleFor(x => x.UsageLimit)

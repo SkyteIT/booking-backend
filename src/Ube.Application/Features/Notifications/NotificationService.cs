@@ -1,26 +1,39 @@
+using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Interfaces.Services;
+using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Notifications.Email;
 using Ube.Domain.Entities.Notifications;
 using Ube.Domain.Enums.Notifications;
+using Microsoft.Extensions.Logging;
 
 namespace Ube.Application.Features.Notifications;
 
 public class NotificationService : INotificationService
 {
     private readonly INotificationRepository _repo;
+    private readonly IUserRepository _userRepo;
     private readonly IEmailService _emailService;
     private readonly ISmsService _smsService;
     private readonly IPushService _pushService;
+    private readonly IRealtimeUpdateService _realtimeUpdateService;
+    private readonly ILogger<NotificationService> _logger;
 
     public NotificationService(
         INotificationRepository repo,
+        IUserRepository userRepo,
         IEmailService emailService,
         ISmsService smsService,
-        IPushService pushService)
+        IPushService pushService,
+        IRealtimeUpdateService realtimeUpdateService,
+        ILogger<NotificationService> logger)
     {
         _repo = repo;
+        _userRepo = userRepo;
         _emailService = emailService;
         _smsService = smsService;
         _pushService = pushService;
+        _realtimeUpdateService = realtimeUpdateService;
+        _logger = logger;
     }
 
     public async Task<IReadOnlyList<NotificationDto>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken)
@@ -29,27 +42,68 @@ public class NotificationService : INotificationService
         return notifications.Select(ToDto).ToList();
     }
 
+    public Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken)
+        => _repo.GetUnreadCountByUserIdAsync(userId, cancellationToken);
+
     public async Task<NotificationDto> CreateAsync(CreateNotificationDto dto, CancellationToken cancellationToken)
     {
+        var type = ParseNotificationType(dto.Type);
+
         var notification = new Notification
         {
             UserId = dto.UserId,
             Title = dto.Title,
             Message = dto.Message,
-            Type = (NotificationType)dto.Type,
+            Type = type,
             IsRead = false
         };
 
         await _repo.AddAsync(notification, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
-        var preference = await _repo.GetPreferenceAsync(dto.UserId, notification.Type, cancellationToken);
+        var notificationDto = ToDto(notification);
+        var unreadCount = await _repo.GetUnreadCountByUserIdAsync(dto.UserId, cancellationToken);
 
-        if (preference?.EmailEnabled == true && !string.IsNullOrEmpty(dto.Email))
-            await _emailService.SendEmailAsync(dto.Email, notification.Title, notification.Message);
+        await _realtimeUpdateService.PublishToUserAsync(
+            dto.UserId,
+            "notification.created",
+            notificationDto,
+            cancellationToken);
+
+        await _realtimeUpdateService.PublishToUserAsync(
+            dto.UserId,
+            "notification.summary",
+            new { userId = dto.UserId, unreadCount },
+            cancellationToken);
+
+        var preference = await _repo.GetPreferenceAsync(dto.UserId, notification.Type, cancellationToken);
+        var recipientEmail = string.IsNullOrWhiteSpace(dto.Email)
+            ? (await _userRepo.GetByIdAsync(dto.UserId))?.Email
+            : dto.Email;
+
+        if (preference?.EmailEnabled == true && !string.IsNullOrWhiteSpace(recipientEmail))
+        {
+            try
+            {
+                await _emailService.SendEmailAsync(recipientEmail!, notification.Title, notification.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send notification email to {Email}", recipientEmail);
+            }
+        }
 
         if (preference?.SmsEnabled == true && !string.IsNullOrEmpty(dto.PhoneNumber))
-            await _smsService.SendSmsAsync(dto.PhoneNumber, notification.Message);
+        {
+            try
+            {
+                await _smsService.SendSmsAsync(dto.PhoneNumber, notification.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send notification SMS to {PhoneNumber}", dto.PhoneNumber);
+            }
+        }
 
         if (preference?.PushEnabled == true)
         {
@@ -58,7 +112,7 @@ public class NotificationService : INotificationService
                 await _pushService.SendPushAsync(sub.Endpoint, sub.P256dh, sub.Auth, notification.Title, notification.Message, cancellationToken);
         }
 
-        return ToDto(notification);
+        return notificationDto;
     }
 
     public async Task<bool> MarkAsReadAsync(Guid id, CancellationToken cancellationToken)
@@ -71,6 +125,14 @@ public class NotificationService : INotificationService
         notification.UpdatedAt = DateTime.UtcNow;
 
         await _repo.SaveChangesAsync(cancellationToken);
+
+        var unreadCount = await _repo.GetUnreadCountByUserIdAsync(notification.UserId, cancellationToken);
+        await _realtimeUpdateService.PublishToUserAsync(
+            notification.UserId,
+            "notification.read",
+            new { notificationId = notification.Id, unreadCount },
+            cancellationToken);
+
         return true;
     }
 
@@ -86,6 +148,13 @@ public class NotificationService : INotificationService
         }
 
         await _repo.SaveChangesAsync(cancellationToken);
+
+        await _realtimeUpdateService.PublishToUserAsync(
+            userId,
+            "notification.read-all",
+            new { userId, unreadCount = 0, updatedCount = notifications.Count },
+            cancellationToken);
+
         return notifications.Count;
     }
 
@@ -105,7 +174,7 @@ public class NotificationService : INotificationService
 
     public async Task<NotificationPreferenceDto> SavePreferenceAsync(Guid userId, UpdateNotificationPreferenceDto dto, CancellationToken cancellationToken)
     {
-        var type = (NotificationType)dto.NotificationType;
+        var type = ParseNotificationType(dto.NotificationType);
 
         var preference = await _repo.GetPreferenceAsync(userId, type, cancellationToken);
 
@@ -189,4 +258,12 @@ public class NotificationService : INotificationService
         CreatedAt = x.CreatedAt,
         ReadAt = x.ReadAt
     };
+
+    private static NotificationType ParseNotificationType(int type)
+    {
+        if (!Enum.IsDefined(typeof(NotificationType), type))
+            throw new BusinessRuleException($"Invalid notification type: {type}");
+
+        return (NotificationType)type;
+    }
 }

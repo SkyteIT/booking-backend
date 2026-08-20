@@ -8,6 +8,10 @@ using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Models.Pagination;
+using Ube.Application.Features.Notifications;
+using Ube.Domain.Enums.Notifications;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 
 
@@ -20,14 +24,28 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryptionService;
+    private readonly INotificationService _notificationService;
+    private readonly IRealtimeUpdateService _realtimeUpdateService;
+    private readonly ILogger<AdminVendorApplicationService> _logger;
 
-    public AdminVendorApplicationService(IVendorApplicationRepository applicationRepo, IUserRepository userRepo, IVendorProfileRepository vendorRepo, IUnitOfWork unitOfWork, IEncryptionService encryptionService)
+    public AdminVendorApplicationService(
+        IVendorApplicationRepository applicationRepo,
+        IUserRepository userRepo,
+        IVendorProfileRepository vendorRepo,
+        IUnitOfWork unitOfWork,
+        IEncryptionService encryptionService,
+        INotificationService notificationService,
+        IRealtimeUpdateService realtimeUpdateService,
+        ILogger<AdminVendorApplicationService> logger)
     {
         _applicationRepo = applicationRepo;
         _userRepo = userRepo;
         _vendorRepo = vendorRepo;
         _unitOfWork = unitOfWork;
         _encryptionService = encryptionService;
+        _notificationService = notificationService;
+        _realtimeUpdateService = realtimeUpdateService;
+        _logger = logger;
     }
 
     // TaxId is encrypted at rest; a decrypt failure (a pre-encryption
@@ -41,11 +59,15 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
 
     public async Task ReviewApplicationAsync(Guid applicationId,Guid adminId, ReviewVendorApplicationDto dto)
     {
+        Domain.Entities.Vendors.VendorApplication? application = null;
+        Domain.Entities.Users.User? user = null;
+        var reviewStatus = VendorApplicationStatus.Pending;
+
         // traaction
         await _unitOfWork.BeginTransactionAsync();
         try{
         // Get application
-            var application = await _applicationRepo.GetByIdAsync(applicationId);
+            application = await _applicationRepo.GetByIdAsync(applicationId);
             if (application == null)
                 throw new NotFoundException("Application not found");
 
@@ -58,12 +80,14 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                 throw new BusinessRuleException(reviewRule.ErrorMessage);
 
             // Get user
-            var user = await _userRepo.GetByIdAsync(application.UserId);
+            user = await _userRepo.GetByIdAsync(application.UserId);
             if (user == null)
                 throw new NotFoundException("User not found");
 
             // Approval Flow
-            if (dto.Status == VendorApplicationStatus.Approved)
+            reviewStatus = ResolveReviewStatus(dto.Status, dto.Action);
+
+            if (reviewStatus == VendorApplicationStatus.Approved)
             {
                 var existingVendor = await _vendorRepo.GetVendorIdAsync(user.Id);
 
@@ -107,7 +131,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             }
 
             // Rejection Flow
-            else if (dto.Status == VendorApplicationStatus.Rejected)
+            else if (reviewStatus == VendorApplicationStatus.Rejected)
             {
                 //Rule: Validate rejection
                 var rejectRule = VendorApplicationRules.ValidateRejection(dto.RejectionReason);
@@ -132,12 +156,23 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             // Commit transaction
             await _unitOfWork.CommitAsync();
         }
-        catch
+        catch (Exception ex)
         {
             // Rollback transaction on error
             await _unitOfWork.RollbackAsync();
-            throw new BusinessRuleException("An error occurred while reviewing the application");
+            _logger.LogError(ex, "Failed to review vendor application {ApplicationId} by admin {AdminId}", applicationId, adminId);
+
+            if (ex is BusinessRuleException or NotFoundException or ForbiddenException)
+                throw;
+
+            throw new BusinessRuleException(ex.Message);
         }
+
+        if (application is null || user is null)
+            return;
+
+        await NotifyApplicationReviewedAsync(application, user, reviewStatus);
+        await PublishDashboardRefreshAsync(application.Id, user.Id, reviewStatus.ToString());
     }
     // Method to get application details
     public async Task<ApplicationDetailDto> GetDetailsAsync(Guid applicationId)
@@ -187,5 +222,95 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             TotalCount = totalItems,
             TotalPages = (int)Math.Ceiling(totalItems / (double)request.PageSize)
         };
+    }
+
+    private async Task NotifyApplicationReviewedAsync(
+        Domain.Entities.Vendors.VendorApplication application,
+        Domain.Entities.Users.User user,
+        VendorApplicationStatus status)
+    {
+        var notifications = new List<(Guid UserId, NotificationType Type, string Title, string Message)>();
+
+        if (status == VendorApplicationStatus.Approved)
+        {
+            notifications.Add((user.Id, NotificationType.VendorAccountApproved, "Vendor account approved",
+                "Your vendor application has been approved."));
+            notifications.AddRange((await _userRepo.GetByRoleAsync(UserRole.Admin))
+                .Select(admin => (admin.Id, NotificationType.AdminNewVendorRegistered, "New vendor registered",
+                    $"Vendor account approved: {application.BusinessName}")));
+        }
+        else if (status == VendorApplicationStatus.Rejected)
+        {
+            notifications.Add((user.Id, NotificationType.VendorAccountRejected, "Vendor account rejected",
+                "Your vendor application has been rejected."));
+        }
+
+        foreach (var notification in notifications)
+        {
+            try
+            {
+                await _notificationService.CreateAsync(new CreateNotificationDto
+                {
+                    UserId = notification.UserId,
+                    Title = notification.Title,
+                    Message = notification.Message,
+                    Type = (int)notification.Type
+                }, CancellationToken.None);
+            }
+            catch
+            {
+                // best-effort only
+            }
+        }
+    }
+
+    private async Task PublishDashboardRefreshAsync(Guid applicationId, Guid userId, string status)
+    {
+        try
+        {
+            var payload = new
+            {
+                reason = "vendor.application.reviewed",
+                applicationId,
+                userId,
+                status
+            };
+
+            await _realtimeUpdateService.PublishToRoleAsync("admin", "dashboard.refresh", payload);
+            await _realtimeUpdateService.PublishToRoleAsync("vendor", "dashboard.refresh", payload);
+        }
+        catch
+        {
+            // Realtime refresh is best-effort.
+        }
+    }
+
+    private static VendorApplicationStatus ResolveReviewStatus(string status, string? action)
+    {
+        var candidates = new List<string?>();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            candidates.Add(status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(action))
+        {
+            candidates.Add(action);
+        }
+
+        foreach (var candidate in candidates.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x!.Trim()))
+        {
+            if (Enum.TryParse<VendorApplicationStatus>(candidate, ignoreCase: true, out var parsedStatus))
+                return parsedStatus;
+
+            if (candidate.Equals("approve", StringComparison.OrdinalIgnoreCase))
+                return VendorApplicationStatus.Approved;
+
+            if (candidate.Equals("reject", StringComparison.OrdinalIgnoreCase))
+                return VendorApplicationStatus.Rejected;
+        }
+
+        throw new BusinessRuleException("Invalid application status");
     }
 }

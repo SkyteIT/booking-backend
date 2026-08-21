@@ -40,5 +40,10 @@ public class VendorApplicationConfiguration : IEntityTypeConfiguration<VendorApp
             .WithMany()
             .HasForeignKey(x => x.UserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Backs the admin review queue: filter by Status, sorted by
+        // SubmittedAt (VendorApplicationRepository's default list query).
+        // UserId already gets an implicit index from the FK above.
+        builder.HasIndex(x => new { x.Status, x.SubmittedAt });
     }
 }

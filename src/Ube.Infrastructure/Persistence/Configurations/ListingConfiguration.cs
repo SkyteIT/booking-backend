@@ -71,6 +71,15 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
         builder.HasIndex(x => x.CategoryId);
         builder.HasIndex(x => x.IsActive);
 
+        // GetOrphanedByCategoryNameAsync (admin/maintenance path only).
+        // Note: that query compares via .ToLower(), which SQL Server
+        // translates to LOWER(column) = LOWER(@value) - wrapping the column
+        // in a function can stop the optimizer from seeking this index
+        // depending on the database's collation. Not changed here since
+        // verifying that needs a live connection to the actual DB; flagging
+        // it rather than guessing.
+        builder.HasIndex(x => x.OriginalCategoryName);
+
         builder.HasOne(x => x.Category)
                 .WithMany(x => x.Listings)
                 .HasForeignKey(x => x.CategoryId)

@@ -19,6 +19,14 @@ public class ListingRepository : IListingRepository
             .Include(l => l.VendorProfile)
             .FirstOrDefaultAsync(l => l.Id == listingId);
 
+    // Batched lookup for callers resolving several listings by id at once
+    // (e.g. multi-item checkout) instead of one round trip per id.
+    public async Task<List<Listing>> GetByIdsAsync(IEnumerable<Guid> listingIds, CancellationToken ct = default)
+        => await _db.Listings
+            .Include(l => l.VendorProfile)
+            .Where(l => listingIds.Contains(l.Id))
+            .ToListAsync(ct);
+
     public async Task<List<Listing>> GetByVendorIdAsync(Guid vendorId)
         => await _db.Listings
             .Include(l => l.VendorProfile)

@@ -122,5 +122,86 @@ public class BookingRepository : IBookingRepository
                     )
             .ToListAsync();
     }
-    
+    public async Task AddAsync(Booking booking)
+    {
+        _db.Bookings.Add(booking);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<PagedResult<Booking>> GetBookingsByCustomerIdAsync(
+        Guid customerId,
+        BookingsRequest request)
+    {
+        var query = _db.Bookings
+            .Include(b => b.Listing)
+            .Where(b => b.CustomerId == customerId)
+            .AsQueryable();
+
+        if (request.Status.HasValue)
+        {
+            query = query.Where(b => b.Status == request.Status.Value);
+        }
+
+        if (request.StartDate.HasValue)
+        {
+            query = query.Where(b =>
+                b.StartDateTime.Date >= request.StartDate.Value.Date);
+        }
+
+        if (request.EndDate.HasValue)
+        {
+            query = query.Where(b =>
+                b.EndDateTime.Date <= request.EndDate.Value.Date);
+        }
+
+        query = request.SortOptions switch
+        {
+            BookingSortBy.Oldest =>
+                query.OrderBy(b => b.CreatedAt),
+
+            BookingSortBy.StartDateAsc =>
+                query.OrderBy(b => b.StartDateTime),
+
+            BookingSortBy.StartDateDesc =>
+                query.OrderByDescending(b => b.StartDateTime),
+
+            _ => query.OrderByDescending(b => b.CreatedAt)
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync();
+
+        return new PagedResult<Booking>
+        {
+            Items = items,
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            TotalCount = totalCount,
+            TotalPages = (int)Math.Ceiling(
+                (double)totalCount / request.PageSize)
+        };
+    }
+
+    public async Task<Booking?> GetCustomerBookingAsync(
+        Guid bookingId,
+        Guid customerId)
+    {
+        return await _db.Bookings
+            .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile)
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b =>
+                b.Id == bookingId &&
+                b.CustomerId == customerId);
+    }
+    public async Task<Domain.Entities.Listings.Listing?> GetByListingIdAsync(
+    Guid listingId)
+    {
+        return await _db.Listings
+            .FirstOrDefaultAsync(l => l.Id == listingId);
+    }
 }

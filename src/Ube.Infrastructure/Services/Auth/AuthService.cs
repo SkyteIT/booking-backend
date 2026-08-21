@@ -17,6 +17,7 @@ public class AuthService : IAuthService
     private readonly ITokenService _tokenService;
     private readonly IUserRepository _userRepo;
     private readonly IEmailVerificationRepository _emailVerificationRepo;
+    private readonly IPasswordResetRepository _passwordResetRepo;
     private readonly IRefreshTokenRepository _refreshTokenRepo;
     private readonly IEmailService _emailService;
     private readonly ILogger<AuthService> _logger;
@@ -26,6 +27,7 @@ public class AuthService : IAuthService
         IUserRepository userRepo,
         ITokenService tokenService,
         IEmailVerificationRepository emailVerificationRepo,
+        IPasswordResetRepository passwordResetRepo,
         IRefreshTokenRepository refreshTokenRepo,
         IEmailService emailService,
         ILogger<AuthService> logger,
@@ -34,6 +36,7 @@ public class AuthService : IAuthService
         _userRepo = userRepo;
         _tokenService = tokenService;
         _emailVerificationRepo = emailVerificationRepo;
+        _passwordResetRepo = passwordResetRepo;
         _refreshTokenRepo = refreshTokenRepo;
         _emailService = emailService;
         _logger = logger;
@@ -97,7 +100,98 @@ public class AuthService : IAuthService
 
         return await BuildAuthResponseAsync(user);
     }
+    public async Task ForgotPasswordAsync(string email)
+    {
+        var normalizedEmail = email.Trim().ToLower();
+        var user = await _userRepo.GetByEmailAsync(normalizedEmail);
 
+        // Do not reveal whether the email exists.
+        if (user == null)
+        {
+            _logger.LogInformation("Forgot password requested for unknown email.");
+            return;
+        }
+
+        _logger.LogInformation(
+            "Forgot password: user found {UserId} ({Email})",
+            user.Id,
+            user.Email);
+
+        var resetToken = new PasswordResetToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = GenerateSecureToken(),
+            ExpiryDate = DateTime.UtcNow.AddHours(1),
+            IsUsed = false,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _logger.LogInformation("Saving password reset token for {Email}", user.Email);
+
+        await _passwordResetRepo.AddAsync(resetToken);
+
+        _logger.LogInformation(
+            "Password reset token saved for {Email}",
+            user.Email);
+
+        try
+        {
+            _logger.LogInformation(
+                "Sending password reset email to {Email}",
+                user.Email);
+
+            await _emailService.SendPasswordResetEmailAsync(
+                user.Email,
+                resetToken.Token);
+
+            _logger.LogInformation(
+                "Password reset email sent successfully to {Email}",
+                user.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "FAILED TO SEND PASSWORD RESET EMAIL for {Email}",
+                user.Email);
+
+            throw;
+        }
+    }
+    public async Task ResetPasswordAsync(
+    string email,
+    string token,
+    string newPassword)
+    {
+        var normalizedEmail = email.Trim().ToLower();
+
+        var user = await _userRepo.GetByEmailAsync(normalizedEmail);
+
+        if (user == null)
+            throw new BusinessRuleException("Invalid password reset request");
+
+        var resetToken = await _passwordResetRepo.GetByTokenAsync(token);
+
+        if (resetToken == null)
+            throw new BusinessRuleException("Invalid or expired reset token");
+
+        if (resetToken.IsUsed)
+            throw new BusinessRuleException("This reset token has already been used");
+
+        if (resetToken.ExpiryDate < DateTime.UtcNow)
+            throw new BusinessRuleException("This reset token has expired");
+
+        if (resetToken.UserId != user.Id)
+            throw new BusinessRuleException("Invalid password reset request");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+        resetToken.IsUsed = true;
+
+        await _userRepo.UpdateAsync(user);
+        await _passwordResetRepo.UpdateAsync(resetToken);
+    }
     public async Task<AuthResponseDto> GoogleLoginAsync(string idToken)
     {
         var payload = await GoogleJsonWebSignature.ValidateAsync(idToken);

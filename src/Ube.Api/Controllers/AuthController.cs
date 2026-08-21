@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+//using Microsoft.AspNetCore.Identity.Data;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Auth;
@@ -34,7 +35,32 @@ public class AuthController : ControllerBase
         var result = await _authService.LoginAsync(request);
         return Ok(result);
     }
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        await _authService.ForgotPasswordAsync(request.Email);
 
+        return Ok(new
+        {
+            message = "If an account exists with this email, password reset instructions have been sent."
+        });
+    }
+    [HttpPost("reset-password")]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword(
+    [FromBody] ResetPasswordRequest request)
+    {
+        await _authService.ResetPasswordAsync(
+            request.Email,
+            request.Token,
+            request.NewPassword);
+
+        return Ok(new
+        {
+            message = "Password has been reset successfully."
+        });
+    }
     [HttpPost("google-login")]
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginRequest request)
     {

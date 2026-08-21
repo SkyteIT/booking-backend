@@ -15,5 +15,11 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(x => x.Message).HasMaxLength(1000).IsRequired();
 
         builder.HasIndex(x => new { x.UserId, x.IsRead });
+
+        // GetByUserIdAsync filters by UserId only (no IsRead) and sorts by
+        // CreatedAt - the (UserId, IsRead) index above doesn't cover that
+        // sort, so it's a separate composite rather than folding CreatedAt
+        // into the existing one.
+        builder.HasIndex(x => new { x.UserId, x.CreatedAt });
     }
 }

@@ -13,6 +13,11 @@ public class ListingUnitRepository : IListingUnitRepository
     public async Task<ListingUnit?> GetByIdAsync(Guid unitId, CancellationToken ct = default)
         => await _db.ListingUnits.FirstOrDefaultAsync(u => u.Id == unitId, ct);
 
+    // Batched lookup for callers resolving several units by id at once
+    // (e.g. multi-item checkout) instead of one round trip per id.
+    public async Task<List<ListingUnit>> GetByIdsAsync(IEnumerable<Guid> unitIds, CancellationToken ct = default)
+        => await _db.ListingUnits.Where(u => unitIds.Contains(u.Id)).ToListAsync(ct);
+
     public async Task<List<ListingUnit>> GetByListingIdAsync(Guid listingId, CancellationToken ct = default)
         => await _db.ListingUnits
             .Where(u => u.ListingId == listingId && u.IsActive)

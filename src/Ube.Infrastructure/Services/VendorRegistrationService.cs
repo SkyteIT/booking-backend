@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Services;
@@ -21,7 +20,7 @@ public class VendorRegistrationService : IVendorRegistrationService
     private readonly IEncryptionService _encryptionService;
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorageService _fileStorage;
     private readonly ILogger<VendorRegistrationService> _logger;
 
     public VendorRegistrationService(
@@ -30,7 +29,7 @@ public class VendorRegistrationService : IVendorRegistrationService
         IEncryptionService encryptionService,
         IEmailService emailService,
         INotificationService notificationService,
-        IWebHostEnvironment environment,
+        IFileStorageService fileStorage,
         ILogger<VendorRegistrationService> logger)
     {
         _repo = repo;
@@ -38,7 +37,7 @@ public class VendorRegistrationService : IVendorRegistrationService
         _encryptionService = encryptionService;
         _emailService = emailService;
         _notificationService = notificationService;
-        _environment = environment;
+        _fileStorage = fileStorage;
         _logger = logger;
     }
 
@@ -59,12 +58,6 @@ public class VendorRegistrationService : IVendorRegistrationService
             throw new BusinessRuleException("You already have a vendor application in progress.");
         }
 
-        // wwwroot so UseStaticFiles() actually serves these - the old
-        // Uploads/ path sat outside wwwroot and every document link 404'd.
-        var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-        var uploadPath = Path.Combine(webRoot, "uploads", "vendor-applications");
-        Directory.CreateDirectory(uploadPath);
-
         var application = new VendorApplication
         {
             UserId = userId,
@@ -78,9 +71,9 @@ public class VendorRegistrationService : IVendorRegistrationService
             Email = dto.Email,
             Phone = dto.Phone,
             Categories = dto.Categories.Count > 0 ? string.Join(",", dto.Categories) : null,
-            BusinessLicensePath = await SaveFileAsync(uploadPath, businessLicense, businessLicenseExt),
-            InsuranceCertificatePath = await SaveFileAsync(uploadPath, insuranceCertificate, insuranceCertificateExt),
-            TaxDocumentPath = await SaveFileAsync(uploadPath, taxDocument, taxDocumentExt),
+            BusinessLicensePath = await SaveFileAsync(businessLicense, businessLicenseExt),
+            InsuranceCertificatePath = await SaveFileAsync(insuranceCertificate, insuranceCertificateExt),
+            TaxDocumentPath = await SaveFileAsync(taxDocument, taxDocumentExt),
             CurrentStep = dto.CurrentStep,
             Status = VendorApplicationStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -140,16 +133,10 @@ public class VendorRegistrationService : IVendorRegistrationService
         };
     }
 
-    private static async Task<string?> SaveFileAsync(string uploadPath, Stream? stream, string? extension)
+    private async Task<string?> SaveFileAsync(Stream? stream, string? extension)
     {
         if (stream == null) return null;
 
-        var fileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadPath, fileName);
-
-        await using var fileStream = new FileStream(filePath, FileMode.Create);
-        await stream.CopyToAsync(fileStream);
-
-        return $"/uploads/vendor-applications/{fileName}";
+        return await _fileStorage.UploadAsync(stream, extension ?? string.Empty, "application/octet-stream", IFileStorageService.DocumentsContainer);
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Features.Auth;
 using Ube.Application.Features.Vendors;
@@ -15,11 +16,13 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IFileStorageService _fileStorage;
 
-    public AuthController(IAuthService authService, ICurrentUserService currentUserService)
+    public AuthController(IAuthService authService, ICurrentUserService currentUserService, IFileStorageService fileStorage)
     {
         _authService = authService;
         _currentUserService = currentUserService;
+        _fileStorage = fileStorage;
     }
 
     [HttpPost("register")]
@@ -191,20 +194,9 @@ public class AuthController : ControllerBase
         if (file.Length > maxFileSize)
             throw new BusinessRuleException("File size must not exceed 2MB");
 
-        var fileName = $"{Guid.NewGuid()}{extension}";
-        var folderPath = Path.Combine("wwwroot", "images", "profiles");
+        await using var stream = file.OpenReadStream();
+        var imageUrl = await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);
 
-        if (!Directory.Exists(folderPath))
-            Directory.CreateDirectory(folderPath);
-
-        var filePath = Path.Combine(folderPath, fileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        var imageUrl = $"/images/profiles/{fileName}";
         var user = await _authService.UpdateProfileImageAsync(_currentUserService.UserId, imageUrl);
         return Ok(user);
     }

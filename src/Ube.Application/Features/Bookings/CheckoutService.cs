@@ -67,25 +67,39 @@ public class CheckoutService : ICheckoutService
         var bookings = new List<Booking>();
         var payments = new List<PaymentDto>();
 
+        // Batch-fetch once instead of N sequential round trips for an
+        // N-item cart. Categories depend on which listings were actually
+        // found, so that lookup happens after the listing one; everything
+        // below still validates/throws exactly as before, just via a
+        // dictionary lookup instead of a fresh query per item.
+        var requestedListingIds = request.Items.Select(i => i.ListingId).Distinct().ToList();
+        var listingsById = (await _listingRepo.GetByIdsAsync(requestedListingIds, ct)).ToDictionary(l => l.Id);
+
+        var requestedCategoryIds = listingsById.Values.Select(l => l.CategoryId).Distinct().ToList();
+        var categoriesById = (await _categoryRepo.GetByIdsAsync(requestedCategoryIds, ct)).ToDictionary(c => c.Id);
+
+        var requestedUnitIds = request.Items.Where(i => i.ListingUnitId.HasValue).Select(i => i.ListingUnitId!.Value).Distinct().ToList();
+        var unitsById = (await _unitRepo.GetByIdsAsync(requestedUnitIds, ct)).ToDictionary(u => u.Id);
+
         await _unitOfWork.BeginTransactionAsync();
         try
         {
             foreach (var item in request.Items)
             {
-                var listing = await _listingRepo.GetByIdAsync(item.ListingId)
-                    ?? throw new NotFoundException($"Listing {item.ListingId} not found");
+                if (!listingsById.TryGetValue(item.ListingId, out var listing))
+                    throw new NotFoundException($"Listing {item.ListingId} not found");
 
                 if (!listing.IsActive)
                     throw new BusinessRuleException($"{listing.Title} is no longer available");
 
-                var category = await _categoryRepo.GetByIdAsync(listing.CategoryId, ct: ct)
-                    ?? throw new NotFoundException("Category not found");
+                if (!categoriesById.TryGetValue(listing.CategoryId, out var category))
+                    throw new NotFoundException("Category not found");
 
                 ListingUnit? unit = null;
                 if (item.ListingUnitId.HasValue)
                 {
-                    unit = await _unitRepo.GetByIdAsync(item.ListingUnitId.Value, ct)
-                        ?? throw new NotFoundException("Selected unit not found");
+                    if (!unitsById.TryGetValue(item.ListingUnitId.Value, out unit))
+                        throw new NotFoundException("Selected unit not found");
                     if (unit.ListingId != listing.Id)
                         throw new BusinessRuleException("Selected unit does not belong to this listing");
                 }
@@ -201,12 +215,16 @@ public class CheckoutService : ICheckoutService
 
         // Re-fetch with navigation properties populated (Listing/Customer)
         // for the response DTO - the Booking objects built above only have
-        // FK ids set, not the loaded entities.
+        // FK ids set, not the loaded entities. Batched into one round trip
+        // instead of one GetByIdAsync per booking.
+        var hydratedBookingsById = (await _bookingRepo.GetByIdsAsync(bookings.Select(b => b.Id), ct))
+            .ToDictionary(b => b.Id);
+
         var hydratedBookings = new List<BookingDetailDto>();
         foreach (var booking in bookings)
         {
-            var hydrated = await _bookingRepo.GetByIdAsync(booking.Id)
-                ?? throw new NotFoundException("Booking not found after creation");
+            if (!hydratedBookingsById.TryGetValue(booking.Id, out var hydrated))
+                throw new NotFoundException("Booking not found after creation");
             hydratedBookings.Add(MapToDetail(hydrated));
 
             // Best-effort - a notification failure should never fail a

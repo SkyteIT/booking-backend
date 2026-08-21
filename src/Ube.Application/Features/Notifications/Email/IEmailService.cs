@@ -7,5 +7,6 @@ public interface IEmailService
     Task SendPasswordResetEmailAsync(string email, string token);
     Task SendWelcomeEmailAsync(string email, string firstName);
     Task SendVendorApplicationSubmittedEmailAsync(string email, string firstName, string businessName);
+    Task SendVendorApplicationApprovedEmailAsync(string email, string firstName, string businessName);
     Task SendEmailAsync(string to, string subject, string htmlBody);
 }

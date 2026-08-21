@@ -9,6 +9,7 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Notifications.Email;
 using Ube.Domain.Enums.Notifications;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -24,6 +25,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryptionService;
+    private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
     private readonly IRealtimeUpdateService _realtimeUpdateService;
     private readonly ILogger<AdminVendorApplicationService> _logger;
@@ -34,6 +36,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         IVendorProfileRepository vendorRepo,
         IUnitOfWork unitOfWork,
         IEncryptionService encryptionService,
+        IEmailService emailService,
         INotificationService notificationService,
         IRealtimeUpdateService realtimeUpdateService,
         ILogger<AdminVendorApplicationService> logger)
@@ -43,6 +46,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         _vendorRepo = vendorRepo;
         _unitOfWork = unitOfWork;
         _encryptionService = encryptionService;
+        _emailService = emailService;
         _notificationService = notificationService;
         _realtimeUpdateService = realtimeUpdateService;
         _logger = logger;
@@ -172,6 +176,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             return;
 
         await NotifyApplicationReviewedAsync(application, user, reviewStatus);
+        await TrySendApprovalEmailAsync(application, user, reviewStatus);
         await PublishDashboardRefreshAsync(application.Id, user.Id, reviewStatus.ToString());
     }
     // Method to get application details
@@ -286,6 +291,27 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         catch
         {
             // Realtime refresh is best-effort.
+        }
+    }
+
+    private async Task TrySendApprovalEmailAsync(
+        Domain.Entities.Vendors.VendorApplication application,
+        Domain.Entities.Users.User user,
+        VendorApplicationStatus status)
+    {
+        if (status != VendorApplicationStatus.Approved)
+            return;
+
+        try
+        {
+            await _emailService.SendVendorApplicationApprovedEmailAsync(
+                user.Email,
+                user.FirstName,
+                application.BusinessName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send vendor approval email to {Email} for application {ApplicationId}", user.Email, application.Id);
         }
     }
 

@@ -11,6 +11,6 @@ public class SearchService : ISearchService
         _listingRepo = listingRepo;
     }
 
-    public Task<IReadOnlyList<SearchListingDto>> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken)
+    public Task<SearchListingsResult> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken)
         => _listingRepo.SearchAsync(request, cancellationToken);
 }

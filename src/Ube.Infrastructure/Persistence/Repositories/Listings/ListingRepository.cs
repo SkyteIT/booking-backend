@@ -43,7 +43,7 @@ public class ListingRepository : IListingRepository
                      && l.OriginalCategoryName.ToLower() == originalName.ToLower())
             .ToListAsync(ct);
 
-    public async Task<IReadOnlyList<SearchListingDto>> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken = default)
+    public async Task<SearchListingsResult> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken = default)
     {
         var query = _db.Listings
             .Include(x => x.Category)
@@ -93,6 +93,8 @@ public class ListingRepository : IListingRepository
                 o.StartDate <= today && o.EndDate >= today));
         }
 
+        var totalCount = await query.CountAsync(cancellationToken);
+
         var page = await query
             .OrderByDescending(x => x.IsFeatured)
             .ThenBy(x => x.Price)
@@ -109,7 +111,7 @@ public class ListingRepository : IListingRepository
             })
             .ToListAsync(cancellationToken);
 
-        return page.Select(r => new SearchListingDto
+        var items = page.Select(r => new SearchListingDto
         {
             Id = r.Listing.Id,
             Title = r.Listing.Title,
@@ -123,6 +125,12 @@ public class ListingRepository : IListingRepository
             HasActiveOffer = r.ActiveOffer != null,
             OfferBadgeText = r.ActiveOffer == null ? null : FormatOfferBadge(r.ActiveOffer.DiscountType, r.ActiveOffer.DiscountValue)
         }).ToList();
+
+        return new SearchListingsResult
+        {
+            Items = items,
+            TotalCount = totalCount
+        };
     }
 
     // Called only when an active offer row was actually found (the

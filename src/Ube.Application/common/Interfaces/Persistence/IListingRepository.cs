@@ -12,7 +12,7 @@ namespace Ube.Application.Common.Interfaces.Persistence
         Task<List<Listing>> GetByCategoryIdAsync(Guid categoryId, CancellationToken ct = default);
         Task<List<Listing>> GetOrphanedByCategoryNameAsync(Guid uncategorizedId, string originalName, CancellationToken ct = default);
 
-        Task<IReadOnlyList<SearchListingDto>> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken = default);
+        Task<SearchListingsResult> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken = default);
 
         Task<Listing?> GetByIdWithDetailsAsync(Guid listingId, CancellationToken ct = default);
         Task<List<Listing>> GetAllWithDetailsAsync(CancellationToken ct = default);

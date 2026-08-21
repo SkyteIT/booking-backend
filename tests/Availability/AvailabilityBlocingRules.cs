@@ -137,7 +137,7 @@ public class AvailabilityBlockingRulesTests
         blockedRepo.Verify(x => x.AddRangeAsync(It.IsAny<List<BlockedDate>>()), Times.Once);
     }
     [Fact]
-    public async Task Should_Throw_When_Date_Is_Already_Blocked()
+    public async Task Should_Not_Fail_When_Date_Is_Already_Blocked()
     {
         // Arrange
         var bookingRepo = new Mock<IBookingRepository>();
@@ -182,16 +182,13 @@ public class AvailabilityBlockingRulesTests
         );
 
         // Act
-        var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            service.BlockdatesAsync(
-                listingId,
-                vendorId,
-                new List<DateTime> { new DateTime(2027,8,20) }
-            )
+        await service.BlockdatesAsync(
+            listingId,
+            vendorId,
+            new List<DateTime> { new DateTime(2027,8,20) }
         );
 
-        // Assert
-        Assert.Contains("already blocked", exception.Message, StringComparison.OrdinalIgnoreCase);
+        // Assert: blocking is idempotent.
 
         blockedRepo.Verify(x => x.AddRangeAsync(It.IsAny<List<BlockedDate>>()), Times.Never);
     }
@@ -248,9 +245,9 @@ public class AvailabilityBlockingRulesTests
         // Assert
         blockedRepo.Verify(x => x.RemoveRangeAsync(It.IsAny<List<BlockedDate>>()), Times.Once);
     }
-    // Unblock date that  not blocked (should not throw, just do nothing)
+    // Unblock date that is not blocked (should not throw, just do nothing)
     [Fact]
-public async Task Should_Throw_When_Unblocking_NonBlocked_Dates()
+public async Task Should_Not_Fail_When_Unblocking_NonBlocked_Dates()
 {
     // Arrange
     var bookingRepo = new Mock<IBookingRepository>();
@@ -286,12 +283,9 @@ public async Task Should_Throw_When_Unblocking_NonBlocked_Dates()
     };
 
     // Act
-    var exception = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-        service.UnBlockdatesAsync(listingId, vendorId, dates)
-    );
+    await service.UnBlockdatesAsync(listingId, vendorId, dates);
 
-    // Assert
-    Assert.Contains("not blocked", exception.Message, StringComparison.OrdinalIgnoreCase);
+    // Assert: unblocking is idempotent.
 
     blockedRepo.Verify(x => x.RemoveRangeAsync(It.IsAny<List<BlockedDate>>()), Times.Never);
 }

@@ -78,3 +78,4 @@ appsettings.*.Local.json
 **/appsettings.Development.json
 secrets.json
 docs
+/src/Ube.Api/wwwroot/images/profiles/*

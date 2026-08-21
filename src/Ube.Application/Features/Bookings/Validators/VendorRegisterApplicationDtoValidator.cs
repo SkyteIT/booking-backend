@@ -44,7 +44,7 @@ public class VendorRegisterApplicationDtoValidator : AbstractValidator<VendorReg
 
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required")
-            .Matches(@"^\+?[0-9\s\-()]{7,20}$").WithMessage("Phone number is not valid")
+            .Matches(@"^(0\d{9}|\+94\d{9})$").WithMessage("Phone must be 10 digits starting with 0, or start with +94")
             .MaximumLength(20);
 
         RuleFor(x => x.Categories)

@@ -9,6 +9,7 @@ using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Models;
 using Ube.Application.Common.Models.Pagination;
 using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Notifications.Email;
 using Ube.Domain.Enums.Notifications;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -24,8 +25,10 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IVendorProfileRepository _vendorRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEncryptionService _encryptionService;
+    private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
     private readonly IRealtimeUpdateService _realtimeUpdateService;
+    private readonly IFileStorageService _fileStorage;
     private readonly ILogger<AdminVendorApplicationService> _logger;
 
     public AdminVendorApplicationService(
@@ -34,8 +37,10 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         IVendorProfileRepository vendorRepo,
         IUnitOfWork unitOfWork,
         IEncryptionService encryptionService,
+        IEmailService emailService,
         INotificationService notificationService,
         IRealtimeUpdateService realtimeUpdateService,
+        IFileStorageService fileStorage,
         ILogger<AdminVendorApplicationService> logger)
     {
         _applicationRepo = applicationRepo;
@@ -43,10 +48,17 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         _vendorRepo = vendorRepo;
         _unitOfWork = unitOfWork;
         _encryptionService = encryptionService;
+        _emailService = emailService;
         _notificationService = notificationService;
         _realtimeUpdateService = realtimeUpdateService;
+        _fileStorage = fileStorage;
         _logger = logger;
     }
+
+    // KYC documents live in a private container - the stored path alone isn't
+    // fetchable, so admin review screens get a short-lived signed URL instead.
+    private string? SignDocumentUrl(string? path) =>
+        string.IsNullOrEmpty(path) ? path : _fileStorage.GetReadUrl(path, TimeSpan.FromMinutes(15));
 
     // TaxId is encrypted at rest; a decrypt failure (a pre-encryption
     // legacy row) falls back to the raw stored value instead of throwing.
@@ -172,6 +184,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             return;
 
         await NotifyApplicationReviewedAsync(application, user, reviewStatus);
+        await TrySendApprovalEmailAsync(application, user, reviewStatus);
         await PublishDashboardRefreshAsync(application.Id, user.Id, reviewStatus.ToString());
     }
     // Method to get application details
@@ -196,9 +209,9 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             Email = app.Email,
             Phone = app.Phone,
             Categories = app.Categories,
-            BusinessLicensePath = app.BusinessLicensePath,
-            InsuranceCertificatePath = app.InsuranceCertificatePath,
-            TaxDocumentPath = app.TaxDocumentPath,
+            BusinessLicensePath = SignDocumentUrl(app.BusinessLicensePath),
+            InsuranceCertificatePath = SignDocumentUrl(app.InsuranceCertificatePath),
+            TaxDocumentPath = SignDocumentUrl(app.TaxDocumentPath),
             Status = app.Status,
             SubmittedAt = app.SubmittedAt,
             ReviewedAt = app.ReviewedAt,
@@ -286,6 +299,27 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         catch
         {
             // Realtime refresh is best-effort.
+        }
+    }
+
+    private async Task TrySendApprovalEmailAsync(
+        Domain.Entities.Vendors.VendorApplication application,
+        Domain.Entities.Users.User user,
+        VendorApplicationStatus status)
+    {
+        if (status != VendorApplicationStatus.Approved)
+            return;
+
+        try
+        {
+            await _emailService.SendVendorApplicationApprovedEmailAsync(
+                user.Email,
+                user.FirstName,
+                application.BusinessName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send vendor approval email to {Email} for application {ApplicationId}", user.Email, application.Id);
         }
     }
 

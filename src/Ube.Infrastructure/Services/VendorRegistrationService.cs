@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Services;
@@ -20,7 +19,8 @@ public class VendorRegistrationService : IVendorRegistrationService
     private readonly IAdminAlertService _adminAlertService;
     private readonly IEncryptionService _encryptionService;
     private readonly IEmailService _emailService;
-    private readonly IWebHostEnvironment _environment;
+    private readonly INotificationService _notificationService;
+    private readonly IFileStorageService _fileStorage;
     private readonly ILogger<VendorRegistrationService> _logger;
 
     public VendorRegistrationService(
@@ -28,14 +28,16 @@ public class VendorRegistrationService : IVendorRegistrationService
         IAdminAlertService adminAlertService,
         IEncryptionService encryptionService,
         IEmailService emailService,
-        IWebHostEnvironment environment,
+        INotificationService notificationService,
+        IFileStorageService fileStorage,
         ILogger<VendorRegistrationService> logger)
     {
         _repo = repo;
         _adminAlertService = adminAlertService;
         _encryptionService = encryptionService;
         _emailService = emailService;
-        _environment = environment;
+        _notificationService = notificationService;
+        _fileStorage = fileStorage;
         _logger = logger;
     }
 
@@ -56,12 +58,6 @@ public class VendorRegistrationService : IVendorRegistrationService
             throw new BusinessRuleException("You already have a vendor application in progress.");
         }
 
-        // wwwroot so UseStaticFiles() actually serves these - the old
-        // Uploads/ path sat outside wwwroot and every document link 404'd.
-        var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-        var uploadPath = Path.Combine(webRoot, "uploads", "vendor-applications");
-        Directory.CreateDirectory(uploadPath);
-
         var application = new VendorApplication
         {
             UserId = userId,
@@ -75,9 +71,9 @@ public class VendorRegistrationService : IVendorRegistrationService
             Email = dto.Email,
             Phone = dto.Phone,
             Categories = dto.Categories.Count > 0 ? string.Join(",", dto.Categories) : null,
-            BusinessLicensePath = await SaveFileAsync(uploadPath, businessLicense, businessLicenseExt),
-            InsuranceCertificatePath = await SaveFileAsync(uploadPath, insuranceCertificate, insuranceCertificateExt),
-            TaxDocumentPath = await SaveFileAsync(uploadPath, taxDocument, taxDocumentExt),
+            BusinessLicensePath = await SaveFileAsync(businessLicense, businessLicenseExt),
+            InsuranceCertificatePath = await SaveFileAsync(insuranceCertificate, insuranceCertificateExt),
+            TaxDocumentPath = await SaveFileAsync(taxDocument, taxDocumentExt),
             CurrentStep = dto.CurrentStep,
             Status = VendorApplicationStatus.Pending,
             CreatedAt = DateTime.UtcNow
@@ -86,6 +82,21 @@ public class VendorRegistrationService : IVendorRegistrationService
         await _repo.AddAsync(application);
 
         _logger.LogInformation("Vendor application {ApplicationId} submitted by user {UserId}", application.Id, userId);
+
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Title = "Vendor application submitted",
+                Message = $"Your vendor application for {application.BusinessName} has been submitted successfully.",
+                Type = (int)NotificationType.VendorApplicationSubmitted
+            }, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create vendor application submitted notification for user {UserId} and application {ApplicationId}", userId, application.Id);
+        }
 
         await _adminAlertService.NotifyRolesAsync(
             new[] { UserRole.Admin, UserRole.SuperAdmin },
@@ -122,16 +133,10 @@ public class VendorRegistrationService : IVendorRegistrationService
         };
     }
 
-    private static async Task<string?> SaveFileAsync(string uploadPath, Stream? stream, string? extension)
+    private async Task<string?> SaveFileAsync(Stream? stream, string? extension)
     {
         if (stream == null) return null;
 
-        var fileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadPath, fileName);
-
-        await using var fileStream = new FileStream(filePath, FileMode.Create);
-        await stream.CopyToAsync(fileStream);
-
-        return $"/uploads/vendor-applications/{fileName}";
+        return await _fileStorage.UploadAsync(stream, extension ?? string.Empty, "application/octet-stream", IFileStorageService.DocumentsContainer);
     }
 }

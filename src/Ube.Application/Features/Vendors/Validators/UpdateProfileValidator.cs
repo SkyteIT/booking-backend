@@ -1,4 +1,5 @@
 using FluentValidation;
+using PhoneNumbers;
 
 namespace Ube.Application.Features.Vendors.Validators;
 
@@ -20,11 +21,25 @@ public class UpdateProfileValidator : AbstractValidator<UpdateVendorProfileDto>
             .MaximumLength(50)
             .WithMessage("Last name must not exceed 50 characters");
 
-        // Phone Number
+        // Phone Number - validate international phone numbers using libphonenumber
         RuleFor(x => x.PhoneNumber)
-            .Matches(@"^\+?\d{10,15}$")
-            .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber))
-            .WithMessage("Phone number must be valid (10–15 digits, optional +)");
+            .Must(phone =>
+            {
+                if (string.IsNullOrWhiteSpace(phone)) return true;
+                // Require international format starting with + to avoid needing a default region
+                if (!phone.StartsWith("+")) return false;
+                try
+                {
+                    var util = PhoneNumberUtil.GetInstance();
+                    var parsed = util.Parse(phone, null);
+                    return util.IsValidNumber(parsed);
+                }
+                catch
+                {
+                    return false;
+                }
+            })
+            .WithMessage("Phone number must be a valid international phone number (E.164), starting with + and country code");
 
         // Business Name
         RuleFor(x => x.BusinessName)

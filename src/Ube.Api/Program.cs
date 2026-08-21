@@ -287,6 +287,10 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    // Keep the local database in sync before the seeder or any API query runs.
+    // The explore query reads newer listing fields and ListingOffers, so an
+    // older local schema otherwise surfaces as a generic "Failed to load".
+    await dbContext.Database.MigrateAsync();
     await TestDataSeeder.SeedAsync(dbContext, app.Logger);
 }
 app.UseMiddleware<Ube.Api.Middleware.ExceptionMiddleware>();

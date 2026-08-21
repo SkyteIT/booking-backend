@@ -254,9 +254,33 @@ public class NotificationService : INotificationService
         Title = x.Title,
         Message = x.Message,
         Type = x.Type.ToString(),
+        DisplayLabel = GetDisplayLabel(x.Type, x.Title),
+        IconKey = GetIconKey(x.Type),
         IsRead = x.IsRead,
         CreatedAt = x.CreatedAt,
         ReadAt = x.ReadAt
+    };
+
+    private static string GetDisplayLabel(NotificationType type, string fallbackTitle) => type switch
+    {
+        NotificationType.VendorApplicationSubmitted => "Vendor application submitted",
+        NotificationType.CustomerBookingConfirmed => "Booking confirmed",
+        NotificationType.CustomerBookingRejected => "Booking rejected",
+        NotificationType.CustomerPaymentSuccessful => "Payment successful",
+        NotificationType.CustomerPaymentFailed => "Payment failed",
+        NotificationType.CustomerRefundProcessed => "Refund processed",
+        _ => fallbackTitle
+    };
+
+    private static string GetIconKey(NotificationType type) => type switch
+    {
+        NotificationType.VendorApplicationSubmitted => "clipboard-check",
+        NotificationType.CustomerBookingConfirmed => "calendar-check",
+        NotificationType.CustomerBookingRejected => "calendar-xmark",
+        NotificationType.CustomerPaymentSuccessful => "credit-card",
+        NotificationType.CustomerPaymentFailed => "triangle-exclamation",
+        NotificationType.CustomerRefundProcessed => "rotate-left",
+        _ => "bell"
     };
 
     private static NotificationType ParseNotificationType(int type)

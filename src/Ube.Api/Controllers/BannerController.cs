@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Content.Banner;
+using Ube.Application.Features.Vendors;
 
 namespace Ube.Api.Controllers;
 
@@ -40,6 +42,43 @@ public class BannerController : ControllerBase
 
         // Returns 201 with location header
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+    }
+
+    // POST: api/banners/upload-image
+    [Authorize(Roles = "Admin")]
+    [HttpPost("upload-image")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadImage([FromForm] UploadImageRequest request)
+    {
+        var file = request.File;
+
+        if (file == null || file.Length == 0)
+            throw new BusinessRuleException("Invalid file");
+
+        var allowedTypes = new[] { ".jpg", ".jpeg", ".png" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedTypes.Contains(extension))
+            throw new BusinessRuleException("Only JPG/PNG files are allowed");
+
+        const long maxFileSize = 2 * 1024 * 1024;
+        if (file.Length > maxFileSize)
+            throw new BusinessRuleException("File size must not exceed 2MB");
+
+        var fileName = $"{Guid.NewGuid()}{extension}";
+        var folderPath = Path.Combine("wwwroot", "images", "banners");
+
+        if (!Directory.Exists(folderPath))
+            Directory.CreateDirectory(folderPath);
+
+        var filePath = Path.Combine(folderPath, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var imageUrl = $"/images/banners/{fileName}";
+        return Ok(new { imageUrl });
     }
 
     // PUT: api/banners/{id}

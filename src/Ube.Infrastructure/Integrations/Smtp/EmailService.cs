@@ -5,6 +5,7 @@ using MimeKit.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using Ube.Application.Common.Models;
@@ -113,6 +114,60 @@ public class EmailService : IEmailService
             """;
 
         return SendEmailAsync(email, "Vendor application submitted", body);
+    }
+
+    public Task SendVendorApplicationApprovedEmailAsync(string email, string firstName, string businessName)
+    {
+        var displayName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(firstName) ? "there" : firstName.Trim());
+        var safeBusinessName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(businessName) ? "your business" : businessName.Trim());
+        var dashboardLink = $"{_frontendBaseUrl}/vendor/dashboard";
+        var body = $"""
+            <div style="margin:0;padding:0;background:#f4f8fb;">
+              <div style="max-width:640px;margin:0 auto;padding:32px 20px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+                <div style="background:linear-gradient(135deg,#005a8d,#0077b6);border-radius:20px 20px 0 0;padding:30px 28px;color:#fff;">
+                  <div style="font-size:13px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.85;">UBE</div>
+                  <h1 style="margin:10px 0 0;font-size:28px;line-height:1.15;">Your vendor application is approved</h1>
+                  <p style="margin:12px 0 0;font-size:15px;line-height:1.6;opacity:0.96;">
+                    {safeBusinessName} now has vendor access on Ube.
+                  </p>
+                </div>
+
+                <div style="background:#ffffff;border:1px solid #dbe6ef;border-top:none;border-radius:0 0 20px 20px;padding:28px;">
+                  <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Hi {displayName},</p>
+                  <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#334155;">
+                    An admin has reviewed and approved your vendor application for <strong style="color:#0f172a;">{safeBusinessName}</strong>.
+                    Your account can now access vendor tools, listings, bookings, payouts, and notifications.
+                  </p>
+
+                  <div style="margin:24px 0;padding:18px 18px 14px;background:#f8fbfe;border:1px solid #dbe6ef;border-radius:16px;">
+                    <div style="font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#0b5b85;margin-bottom:10px;">What happens next</div>
+                    <ul style="margin:0;padding-left:18px;color:#334155;line-height:1.8;font-size:14px;">
+                      <li>Sign in and open your vendor dashboard.</li>
+                      <li>Set up listings, pricing, and availability.</li>
+                      <li>Enable notifications so you do not miss bookings or updates.</li>
+                    </ul>
+                  </div>
+
+                  <div style="text-align:center;margin:28px 0 22px;">
+                    <a href="{dashboardLink}" style="display:inline-block;background:linear-gradient(135deg,#005a8d,#0077b6);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:999px;">
+                      Open vendor dashboard
+                    </a>
+                  </div>
+
+                  <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;">
+                    If you are not ready to use vendor features yet, you can ignore this email for now.
+                    If you did not submit this application, please contact support immediately.
+                  </p>
+                </div>
+
+                <div style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">
+                  Ube vendor onboarding updates are sent automatically when your application status changes.
+                </div>
+              </div>
+            </div>
+            """;
+
+        return SendEmailAsync(email, "Vendor application approved", body);
     }
 
     public async Task SendEmailAsync(string to, string subject, string htmlBody)

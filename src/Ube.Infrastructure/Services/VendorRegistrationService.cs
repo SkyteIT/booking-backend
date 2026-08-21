@@ -20,6 +20,7 @@ public class VendorRegistrationService : IVendorRegistrationService
     private readonly IAdminAlertService _adminAlertService;
     private readonly IEncryptionService _encryptionService;
     private readonly IEmailService _emailService;
+    private readonly INotificationService _notificationService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<VendorRegistrationService> _logger;
 
@@ -28,6 +29,7 @@ public class VendorRegistrationService : IVendorRegistrationService
         IAdminAlertService adminAlertService,
         IEncryptionService encryptionService,
         IEmailService emailService,
+        INotificationService notificationService,
         IWebHostEnvironment environment,
         ILogger<VendorRegistrationService> logger)
     {
@@ -35,6 +37,7 @@ public class VendorRegistrationService : IVendorRegistrationService
         _adminAlertService = adminAlertService;
         _encryptionService = encryptionService;
         _emailService = emailService;
+        _notificationService = notificationService;
         _environment = environment;
         _logger = logger;
     }
@@ -86,6 +89,21 @@ public class VendorRegistrationService : IVendorRegistrationService
         await _repo.AddAsync(application);
 
         _logger.LogInformation("Vendor application {ApplicationId} submitted by user {UserId}", application.Id, userId);
+
+        try
+        {
+            await _notificationService.CreateAsync(new CreateNotificationDto
+            {
+                UserId = userId,
+                Title = "Vendor application submitted",
+                Message = $"Your vendor application for {application.BusinessName} has been submitted successfully.",
+                Type = (int)NotificationType.VendorApplicationSubmitted
+            }, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create vendor application submitted notification for user {UserId} and application {ApplicationId}", userId, application.Id);
+        }
 
         await _adminAlertService.NotifyRolesAsync(
             new[] { UserRole.Admin, UserRole.SuperAdmin },

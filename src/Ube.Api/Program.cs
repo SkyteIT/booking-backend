@@ -90,6 +90,9 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
+// BlobServiceClient is thread-safe and cheap to reuse - singleton avoids
+// reconnecting/re-parsing the connection string on every request.
+builder.Services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
 // Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 // Register validators from the auth DTO assembly

@@ -64,7 +64,8 @@ public static class NotificationTypeCatalog
         NotificationType.CustomerBookingStatusChanged,
         NotificationType.CustomerAccountVerification,
         NotificationType.CustomerSystemAnnouncement,
-        NotificationType.CustomerPromotionAndOfferAvailable
+        NotificationType.CustomerPromotionAndOfferAvailable,
+        NotificationType.VendorApplicationSubmitted
     ];
 
     public static readonly NotificationType[] Legacy =

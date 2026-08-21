@@ -16,6 +16,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasIndex(x => x.Email)
                .IsUnique();
 
+        // Backs AdminRepository's role-based counts/lists and
+        // UserRepository.GetByRoleAsync (admin dashboard, every load).
+        builder.HasIndex(x => x.Role);
+
         builder.Property(x => x.FirstName)
                .IsRequired()
                .HasMaxLength(100);

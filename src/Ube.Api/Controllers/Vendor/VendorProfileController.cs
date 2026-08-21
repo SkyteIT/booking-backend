@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Ube.Application.Features.Vendors;
+using Ube.Application.Features.Auth;
 using Ube.Application.Common.Interfaces.Services.Auth;
 using Ube.Application.Common.Exceptions;
 
@@ -14,10 +15,13 @@ public class VendorProfileController : ControllerBase
 {
     private readonly IVendorProfileService _service;
     private readonly ICurrentUserService _currentUser;
-    public VendorProfileController(IVendorProfileService service, ICurrentUserService currentUser)
+    private readonly IAuthService _authService;
+
+    public VendorProfileController(IVendorProfileService service, ICurrentUserService currentUser, IAuthService authService)
     {
         _service = service;
         _currentUser = currentUser;
+        _authService = authService;
     }
 
     // get vendor profile
@@ -69,8 +73,9 @@ public class VendorProfileController : ControllerBase
         await file.CopyToAsync(stream);
 
         var imageUrl = $"/images/profiles/{fileName}";
-        await _service.UpdateProfileImageAsync(userId, imageUrl);
+        // Use AuthService to update and return the CurrentUserDto so frontend gets the full user
+        var user = await _authService.UpdateProfileImageAsync(userId, imageUrl);
 
-        return Ok(new { imageUrl });
+        return Ok(user);
     }
 }

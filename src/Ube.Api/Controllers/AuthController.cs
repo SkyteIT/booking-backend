@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("register")]
     [EnableRateLimiting("auth")]
-    public async Task<ActionResult<AuthResponseDto>> Register(RegisterRequestDto request)
+    public async Task<ActionResult<RegistrationResponseDto>> Register(RegisterRequestDto request)
     {
         var result = await _authService.RegisterAsync(request);
         return Ok(result);

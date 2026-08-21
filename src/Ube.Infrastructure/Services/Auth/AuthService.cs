@@ -74,7 +74,7 @@ public class AuthService : IAuthService
             ?? throw new InvalidOperationException("Google:ClientId is not configured.");
     }
 
-    public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto request)
+    public async Task<RegistrationResponseDto> RegisterAsync(RegisterRequestDto request)
     {
         var email = request.Email.Trim().ToLower();
         var exists = await _userRepo.ExistsByEmailAsync(email);
@@ -106,27 +106,29 @@ public class AuthService : IAuthService
         };
         await _emailVerificationRepo.AddAsync(emailToken);
 
+        var verificationEmailSent = false;
         try
         {
             await _emailService.SendVerificationEmailAsync(user.Email, emailToken.Token);
+            verificationEmailSent = true;
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to send verification email for user {UserId} ({Email}).", user.Id, user.Email);
         }
 
-        try
-        {
-            await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to send welcome email for user {UserId} ({Email}).", user.Id, user.Email);
-        }
-
         await NotifyAdminsNewCustomerAsync(user);
 
-        return await BuildAuthResponseAsync(user);
+        return new RegistrationResponseDto
+        {
+            UserId = user.Id,
+            Email = user.Email,
+            RequiresEmailVerification = true,
+            VerificationEmailSent = verificationEmailSent,
+            Message = verificationEmailSent
+                ? "Registration successful. Check your email to verify your account."
+                : "Registration successful, but the verification email could not be sent. Please try again later."
+        };
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginRequestDto request)
@@ -139,6 +141,9 @@ public class AuthService : IAuthService
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             throw new BusinessRuleException("Invalid credentials");
+
+        if (!user.IsEmailVerified)
+            throw new BusinessRuleException("Please verify your email before logging in.");
 
         return await CompleteLoginOrChallengeAsync(user, request.DeviceToken);
     }
@@ -191,7 +196,13 @@ public class AuthService : IAuthService
             throw new NotFoundException("Invalid or expired token");
 
         if (record.IsUsed)
+        {
+            var alreadyVerifiedUser = await _userRepo.GetByIdAsync(record.UserId);
+            if (record.PendingEmail == null && alreadyVerifiedUser?.IsEmailVerified == true)
+                return;
+
             throw new BusinessRuleException("Token has already been used");
+        }
 
         if (record.ExpiryDate < DateTime.UtcNow)
             throw new BusinessRuleException("Token has expired");
@@ -236,6 +247,18 @@ public class AuthService : IAuthService
             NotificationType.CustomerAccountVerification,
             "Account verified",
             "Your account email has been verified.");
+
+        if (record.PendingEmail == null)
+        {
+            try
+            {
+                await _emailService.SendWelcomeEmailAsync(user.Email, user.FirstName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send welcome email for verified user {UserId} ({Email}).", user.Id, user.Email);
+            }
+        }
     }
 
     public async Task RequestEmailChangeAsync(Guid userId, string newEmail)

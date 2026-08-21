@@ -28,6 +28,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
     private readonly IEmailService _emailService;
     private readonly INotificationService _notificationService;
     private readonly IRealtimeUpdateService _realtimeUpdateService;
+    private readonly IFileStorageService _fileStorage;
     private readonly ILogger<AdminVendorApplicationService> _logger;
 
     public AdminVendorApplicationService(
@@ -39,6 +40,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         IEmailService emailService,
         INotificationService notificationService,
         IRealtimeUpdateService realtimeUpdateService,
+        IFileStorageService fileStorage,
         ILogger<AdminVendorApplicationService> logger)
     {
         _applicationRepo = applicationRepo;
@@ -49,8 +51,14 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         _emailService = emailService;
         _notificationService = notificationService;
         _realtimeUpdateService = realtimeUpdateService;
+        _fileStorage = fileStorage;
         _logger = logger;
     }
+
+    // KYC documents live in a private container - the stored path alone isn't
+    // fetchable, so admin review screens get a short-lived signed URL instead.
+    private string? SignDocumentUrl(string? path) =>
+        string.IsNullOrEmpty(path) ? path : _fileStorage.GetReadUrl(path, TimeSpan.FromMinutes(15));
 
     // TaxId is encrypted at rest; a decrypt failure (a pre-encryption
     // legacy row) falls back to the raw stored value instead of throwing.
@@ -201,9 +209,9 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             Email = app.Email,
             Phone = app.Phone,
             Categories = app.Categories,
-            BusinessLicensePath = app.BusinessLicensePath,
-            InsuranceCertificatePath = app.InsuranceCertificatePath,
-            TaxDocumentPath = app.TaxDocumentPath,
+            BusinessLicensePath = SignDocumentUrl(app.BusinessLicensePath),
+            InsuranceCertificatePath = SignDocumentUrl(app.InsuranceCertificatePath),
+            TaxDocumentPath = SignDocumentUrl(app.TaxDocumentPath),
             Status = app.Status,
             SubmittedAt = app.SubmittedAt,
             ReviewedAt = app.ReviewedAt,

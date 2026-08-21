@@ -6,6 +6,7 @@ public interface ICategoryRepository
 {
     Task<IReadOnlyList<Ube.Domain.Entities.Listings.Category>> GetAllAsync(CancellationToken ct = default);
     Task<Ube.Domain.Entities.Listings.Category?> GetByIdAsync(Guid id, bool includeListings = false, CancellationToken ct = default);
+    Task<List<Ube.Domain.Entities.Listings.Category>> GetByIdsAsync(IEnumerable<Guid> categoryIds, CancellationToken ct = default);
     Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default);
     Task<Ube.Domain.Entities.Listings.Category?> GetDeletedByNameAsync(string name, CancellationToken ct = default);
     Task<Ube.Domain.Entities.Listings.Category?> GetUncategorizedAsync(CancellationToken ct = default);

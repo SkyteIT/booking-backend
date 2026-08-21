@@ -27,13 +27,19 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
                 .IsRequired();
         builder.HasIndex(x => x.ListingId);
 
-        builder.HasIndex(x => x.CustomerId);
+        // Composite subsumes a plain CustomerId index (leftmost-prefix) and
+        // additionally backs GetBookingsByCustomerIdAsync's default sort and
+        // the fraud-check range queries (CustomerId == x && CreatedAt >= since).
+        builder.HasIndex(x => new { x.CustomerId, x.CreatedAt });
 
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.BookingNumber)
                 .IsUnique();
 
         builder.HasIndex(x => x.StartDateTime);
+
+        // Vendor booking list's default sort (GetBookingsByVendorIdAsync).
+        builder.HasIndex(x => x.CreatedAt);
         builder.Property(x => x.RowVersion)
                .IsRowVersion();
         builder.HasOne(x => x.Listing)

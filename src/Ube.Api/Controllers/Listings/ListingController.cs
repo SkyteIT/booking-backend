@@ -159,6 +159,24 @@ public class ListingController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{id:guid}/publish")]
+    [HttpPost("{id:guid}/publish")]
+    [Authorize(Roles = "Vendor")]
+    public async Task<IActionResult> PublishListing(Guid id, CancellationToken ct)
+    {
+        await _listingService.SetPublishedAsync(id, _currentUser.UserId, true, ct);
+        return Ok(new { id, isActive = true });
+    }
+
+    [HttpPatch("{id:guid}/unpublish")]
+    [HttpPost("{id:guid}/unpublish")]
+    [Authorize(Roles = "Vendor")]
+    public async Task<IActionResult> UnpublishListing(Guid id, CancellationToken ct)
+    {
+        await _listingService.SetPublishedAsync(id, _currentUser.UserId, false, ct);
+        return Ok(new { id, isActive = false });
+    }
+
     [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Vendor")]
     public async Task<IActionResult> DeleteListing(Guid id, CancellationToken ct)

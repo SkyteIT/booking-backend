@@ -8,6 +8,7 @@ using Ube.Domain.Entities.Bookings;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Tests.Availability;
 
@@ -136,5 +137,46 @@ public class AvailabilityServiceTests
 
         // Assert
         Assert.Contains("not allowed", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Calendar_Should_Show_Unbooked_Dates_As_Available_When_Legacy_Capacity_Is_Zero()
+    {
+        var ctx = CreateTestContext();
+        var monthStart = DateTime.UtcNow.Date.AddMonths(1);
+        var vendorProfileId = Guid.NewGuid();
+
+        ctx.ListingRepo.Setup(x => x.GetByIdAsync(ctx.ListingId))
+            .ReturnsAsync(new Listing
+            {
+                VendorProfileId = vendorProfileId,
+                VendorProfile = new VendorProfile { Id = vendorProfileId, UserId = ctx.OwnerVendorId },
+                AvailabilityType = AvailabilityType.Capacity,
+                Capacity = 0
+            });
+        ctx.BlockedRepo.Setup(x => x.GetByListingAndDateRangeAsync(
+                ctx.ListingId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<BlockedDate>());
+        ctx.BookingRepo.Setup(x => x.GetBookingsByListingAndDateRangeAsync(
+                ctx.ListingId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(new List<Booking>());
+
+        var selector = new StrategySelector(new IAvailabilityStrategy[] { new CapacityStrategy() });
+        var service = new AvailabilityService(
+            ctx.BlockedRepo.Object,
+            selector,
+            ctx.ListingRepo.Object,
+            ctx.BookingRepo.Object,
+            new Mock<IUnitOfWork>().Object);
+
+        var calendar = await service.GetCalanderAsync(
+            ctx.ListingId, ctx.OwnerVendorId, monthStart.Month, monthStart.Year);
+
+        Assert.All(calendar, day =>
+        {
+            Assert.Equal(Ube.Domain.Enums.AvailabilityStatus.Available, day.Status);
+            Assert.Equal(1, day.AvailableCount);
+            Assert.Equal(0, day.BookingCount);
+        });
     }
 }

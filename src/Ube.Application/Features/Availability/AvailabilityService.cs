@@ -66,6 +66,11 @@ public class AvailabilityService : IAvailabilityService
                 .ToHashSet();
             var bookings = await _bookingRepository.GetBookingsByListingAndDateRangeAsync(listingId, startDate, endDate);
 
+            // Listings created through the current listing flow use bookable units and
+            // leave the legacy listing-level Capacity at its default value (0). A zero
+            // here must not make every unbooked day appear full in the vendor calendar.
+            var effectiveCapacity = Math.Max(1, listing.Capacity);
+
             var result = new List<CalanderDayDto>();
 
             var bookingMap = new Dictionary<DateTime, int>();
@@ -92,7 +97,7 @@ public class AvailabilityService : IAvailabilityService
                 // Calculate availability for the day using strategy
                 var day = strategy.CalculateAvailability(
                     date.Date,
-                    listing.Capacity,
+                    effectiveCapacity,
                     bookingCount,
                     isBlocked
                 );
@@ -121,7 +126,12 @@ public class AvailabilityService : IAvailabilityService
             
             var today = DateTime.UtcNow.Date;
 
-            if (normalizeDates.Any(d => d <= today))
+            if (normalizeDates.Count == 0)
+            {
+                throw new BusinessRuleException("Dates are required");
+            }
+
+            if (normalizeDates.Any(d => d < today))
             {
                 throw new BusinessRuleException("Cannot block past dates");
             }
@@ -155,16 +165,6 @@ public class AvailabilityService : IAvailabilityService
             var exsistingDates = existing
                 .Select( x => x.Date)
                 .ToHashSet();
-            var alreadyBlocked = normalizeDates
-                .Where(d => exsistingDates.Contains(d))
-                .ToList();
-
-            if (alreadyBlocked.Any())
-            {
-                throw new BusinessRuleException(
-                    $"These dates are already blocked: {string.Join(", ", alreadyBlocked.Select(d => d.ToString("yyyy-MM-dd")))}"
-                );
-            }
             var newDates = normalizeDates
                 .Where(d => !exsistingDates.Contains(d))
                 .ToList();
@@ -198,7 +198,7 @@ public class AvailabilityService : IAvailabilityService
             }
             var today = DateTime.UtcNow.Date;
 
-            if (dates.Any(d => d.Date <= today))
+            if (dates.Any(d => d.Date < today))
             {
                 throw new BusinessRuleException("Cannot unblock past dates");
             }
@@ -219,18 +219,6 @@ public class AvailabilityService : IAvailabilityService
             // Get existing blocked dates for the listing and specified dates
             var existing = await _blockedDateRepository
                 .GetByListingAndDatesAsync(listingId, normalizeDates);
-            var existingDates = existing.Select(x => x.Date).ToHashSet();
-
-            var missingDates = normalizeDates
-                .Where(d => !existingDates.Contains(d))
-                .ToList();
-
-            if (missingDates.Any())
-            {
-                throw new BusinessRuleException(
-                    $"These dates are not blocked: {string.Join(", ", missingDates.Select(d => d.ToString("yyyy-MM-dd")))}"
-                );
-            }
             if(existing.Any())
             {
                 await _blockedDateRepository.RemoveRangeAsync(existing);

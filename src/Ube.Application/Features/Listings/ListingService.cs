@@ -114,6 +114,29 @@ public class ListingService : IListingService
 
     // ── Delete ────────────────────────────────────────────────────────────────
 
+    public async Task SetPublishedAsync(
+        Guid listingId,
+        Guid userId,
+        bool isPublished,
+        CancellationToken ct = default)
+    {
+        var vendor = await _vendorProfileRepository.GetVendorIdAsync(userId)
+            ?? throw new BusinessRuleException("Vendor profile not found for this user.");
+
+        var listing = await _listingRepository.GetByIdAsync(listingId)
+            ?? throw new NotFoundException("Listing not found.");
+
+        if (listing.VendorProfileId != vendor.Id)
+            throw new ForbiddenException("You do not own this listing.");
+
+        if (listing.IsActive == isPublished)
+            return;
+
+        listing.IsActive = isPublished;
+        listing.UpdatedAt = DateTime.UtcNow;
+        await _listingRepository.UpdateAsync(listing);
+    }
+
     public async Task DeleteListingAsync(
         Guid listingId,
         Guid userId,

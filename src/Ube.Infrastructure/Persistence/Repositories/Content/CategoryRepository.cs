@@ -28,6 +28,13 @@ public class CategoryRepository : ICategoryRepository
         return await query.FirstOrDefaultAsync(ct);
     }
 
+    // Batched lookup for callers resolving several categories by id at once
+    // (e.g. multi-item checkout) instead of one round trip per id.
+    public async Task<List<Category>> GetByIdsAsync(IEnumerable<Guid> categoryIds, CancellationToken ct = default)
+        => await _db.Categories
+            .Where(x => categoryIds.Contains(x.Id) && x.Status != RecordStatus.Deleted)
+            .ToListAsync(ct);
+
     public async Task<bool> ExistsByNameAsync(string name, CancellationToken ct = default)
         => await _db.Categories.AnyAsync(
             x => x.Name.ToLower() == name.ToLower() && x.Status != RecordStatus.Deleted, ct);

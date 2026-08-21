@@ -25,6 +25,19 @@ public class BookingRepository : IBookingRepository
             .Include(b => b.Customer)
             .FirstOrDefaultAsync(b => b.Id == bookingId);
     }
+
+    // Batched lookup for callers resolving several bookings by id at once
+    // (e.g. re-hydrating a multi-item checkout's just-created bookings)
+    // instead of one round trip per id.
+    public async Task<List<Booking>> GetByIdsAsync(IEnumerable<Guid> bookingIds, CancellationToken ct = default)
+    {
+        return await _db.Bookings
+            .Include(b => b.Listing)
+                .ThenInclude(l => l.VendorProfile)
+            .Include(b => b.Customer)
+            .Where(b => bookingIds.Contains(b.Id))
+            .ToListAsync(ct);
+    }
     // Get next booking sequence number for generating booking reference number.
     // Must materialize with ToListAsync, not FirstAsync/SingleAsync - EF
     // composes those as a wrapping subquery, and SQL Server rejects

@@ -7,6 +7,7 @@ namespace Ube.Application.Common.Interfaces.Persistence;
 public interface IBookingRepository
 {
     Task<Booking ?> GetByIdAsync(Guid BookingId);
+    Task<List<Booking>> GetByIdsAsync(IEnumerable<Guid> bookingIds, CancellationToken ct = default);
     Task UpdateAsync(Booking booking);
     Task<PagedResult<Booking>> GetBookingsByVendorIdAsync(Guid vendorId, BookingsRequest request);
     Task<List<Booking>> GetAllBookingsByVendorIdAsync(Guid vendorId);

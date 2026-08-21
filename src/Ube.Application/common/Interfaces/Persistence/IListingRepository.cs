@@ -6,6 +6,7 @@ namespace Ube.Application.Common.Interfaces.Persistence
     public interface IListingRepository
     {
         Task<Listing?> GetByIdAsync(Guid listingId);
+        Task<List<Listing>> GetByIdsAsync(IEnumerable<Guid> listingIds, CancellationToken ct = default);
         Task<List<Listing>> GetByVendorIdAsync(Guid vendorId);
         Task UpdateAsync(Listing listing);
 

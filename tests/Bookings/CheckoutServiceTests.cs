@@ -80,6 +80,57 @@ public class CheckoutServiceTests
                 Customer = new Domain.Entities.Users.User { FirstName = "A", LastName = "B", Email = "a@b.com" }
             });
 
+        // Batched lookups route through each test's singular GetByIdAsync
+        // setup, so per-test setups don't need to be duplicated.
+        listingRepo
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns<IEnumerable<Guid>, CancellationToken>(async (ids, _) =>
+            {
+                var results = new List<Listing>();
+                foreach (var id in ids)
+                {
+                    var l = await listingRepo.Object.GetByIdAsync(id);
+                    if (l != null) results.Add(l);
+                }
+                return results;
+            });
+        categoryRepo
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns<IEnumerable<Guid>, CancellationToken>(async (ids, ct) =>
+            {
+                var results = new List<Domain.Entities.Listings.Category>();
+                foreach (var id in ids)
+                {
+                    var c = await categoryRepo.Object.GetByIdAsync(id, false, ct);
+                    if (c != null) results.Add(c);
+                }
+                return results;
+            });
+        unitRepo
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns<IEnumerable<Guid>, CancellationToken>(async (ids, ct) =>
+            {
+                var results = new List<ListingUnit>();
+                foreach (var id in ids)
+                {
+                    var u = await unitRepo.Object.GetByIdAsync(id, ct);
+                    if (u != null) results.Add(u);
+                }
+                return results;
+            });
+        bookingRepo
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .Returns<IEnumerable<Guid>, CancellationToken>(async (ids, _) =>
+            {
+                var results = new List<Domain.Entities.Bookings.Booking>();
+                foreach (var id in ids)
+                {
+                    var b = await bookingRepo.Object.GetByIdAsync(id);
+                    if (b != null) results.Add(b);
+                }
+                return results;
+            });
+
         fraudDetectionService
             .Setup(f => f.IsNewAccountHighValueAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);

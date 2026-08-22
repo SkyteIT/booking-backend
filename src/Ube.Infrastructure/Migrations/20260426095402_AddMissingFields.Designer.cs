@@ -12,8 +12,8 @@ using Ube.Infrastructure.Persistence;
 namespace Ube.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260320123833_AddBookingNumberSequence")]
-    partial class AddBookingNumberSequence
+    [Migration("20260426095402_AddMissingFields")]
+    partial class AddMissingFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -81,6 +81,80 @@ namespace Ube.Infrastructure.Migrations
                     b.ToTable("Bookings");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.ActivityListingDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActivityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DifficultyLevel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DurationHours")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.ToTable("ActivityListingDetails");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.CarRentalListingDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AvailabilityStatus")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FuelType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Model")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PricePerDay")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SeatCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Transmission")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.ToTable("CarRentalListingDetails");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Category", b =>
                 {
                     b.Property<Guid>("Id")
@@ -110,11 +184,88 @@ namespace Ube.Infrastructure.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.EventListingDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("DateAndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EventName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Organizer")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SeatCount")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TicketPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.ToTable("EventListingDetails");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.HotelListingDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Amenities")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AvailableRooms")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CheckInTime")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CheckOutTime")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("PricePerNight")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("RoomTypes")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.ToTable("HotelListingDetails");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationPolicy")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
@@ -135,6 +286,9 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Location")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -142,10 +296,17 @@ namespace Ube.Infrastructure.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("Tags")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -162,6 +323,60 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("VendorProfileId");
 
                     b.ToTable("Listings");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId");
+
+                    b.ToTable("ListingImages", (string)null);
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.RestaurantListingDetails", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("AverageCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("CuisineType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OpeningHours")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TableCapacity")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId")
+                        .IsUnique();
+
+                    b.ToTable("RestaurantListingDetails");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -245,6 +460,10 @@ namespace Ube.Infrastructure.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("ProfileImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -353,6 +572,75 @@ namespace Ube.Infrastructure.Migrations
                     b.ToTable("VendorProfiles");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Vendors.VendorRegisterApplication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BusinessLicensePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BusinessName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BusinessType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Categories")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CurrentStep")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FirstName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InsuranceCertificatePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsSubmitted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TaxDocumentPath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TaxId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VendorRegisterApplications");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Bookings.Booking", b =>
                 {
                     b.HasOne("Ube.Domain.Entities.Users.User", "Customer")
@@ -372,19 +660,89 @@ namespace Ube.Infrastructure.Migrations
                     b.Navigation("Listing");
                 });
 
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.ActivityListingDetails", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithOne()
+                        .HasForeignKey("Ube.Domain.Entities.Listings.ActivityListingDetails", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.CarRentalListingDetails", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithOne()
+                        .HasForeignKey("Ube.Domain.Entities.Listings.CarRentalListingDetails", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.EventListingDetails", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithOne()
+                        .HasForeignKey("Ube.Domain.Entities.Listings.EventListingDetails", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.HotelListingDetails", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithOne()
+                        .HasForeignKey("Ube.Domain.Entities.Listings.HotelListingDetails", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
                 {
-                    b.HasOne("Ube.Domain.Entities.Listings.Category", null)
-                        .WithMany()
+                    b.HasOne("Ube.Domain.Entities.Listings.Category", "Category")
+                        .WithMany("Listings")
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("Ube.Domain.Entities.Vendors.VendorProfile", null)
+                    b.HasOne("Ube.Domain.Entities.Vendors.VendorProfile", "Vendor")
                         .WithMany()
                         .HasForeignKey("VendorProfileId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Vendor");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithMany("Images")
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.RestaurantListingDetails", b =>
+                {
+                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
+                        .WithOne()
+                        .HasForeignKey("Ube.Domain.Entities.Listings.RestaurantListingDetails", "ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -425,11 +783,23 @@ namespace Ube.Infrastructure.Migrations
 
             modelBuilder.Entity("Ube.Domain.Entities.Vendors.VendorProfile", b =>
                 {
-                    b.HasOne("Ube.Domain.Entities.Users.User", null)
+                    b.HasOne("Ube.Domain.Entities.Users.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.Category", b =>
+                {
+                    b.Navigation("Listings");
+                });
+
+            modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
+                {
+                    b.Navigation("Images");
                 });
 #pragma warning restore 612, 618
         }

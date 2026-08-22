@@ -301,7 +301,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseStaticFiles();
 
-
 app.MapHub<RealtimeUpdatesHub>("/hubs/updates");
 app.MapControllers();
 

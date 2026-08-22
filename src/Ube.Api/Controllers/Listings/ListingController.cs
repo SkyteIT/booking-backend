@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,17 +11,19 @@ namespace Ube.Api.Controllers.Listings;
 [Route("api/listings")]
 public class ListingController : ControllerBase
 {
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
     private readonly IListingService _listingService;
     private readonly ISeasonalPricingService _seasonalPricingService;
     private readonly ICurrentUserService _currentUser;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IFileStorageService _fileStorage;
 
-    public ListingController(IListingService listingService, ISeasonalPricingService seasonalPricingService, ICurrentUserService currentUser, IWebHostEnvironment environment)
+    public ListingController(IListingService listingService, ISeasonalPricingService seasonalPricingService, ICurrentUserService currentUser, IFileStorageService fileStorage)
     {
         _listingService = listingService;
         _seasonalPricingService = seasonalPricingService;
         _currentUser = currentUser;
-        _environment = environment;
+        _fileStorage = fileStorage;
     }
 
     // Public price preview - reuses the exact same seasonal-aware
@@ -61,12 +64,18 @@ public class ListingController : ControllerBase
         return listing == null ? NotFound() : Ok(listing);
     }
 
+    // `data` carries every non-file field as a JSON string (built by the same
+    // frontend mapping that used to go straight in the request body) - real
+    // photos ride alongside it as actual files in the same multipart request,
+    // instead of vendors pasting external image URLs into a text field.
     [HttpPost]
     [Authorize(Roles = "Vendor")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> CreateListing([FromForm] CreateListingFormRequest form, CancellationToken ct)
+    public async Task<IActionResult> CreateListing([FromForm] string data, [FromForm] List<IFormFile>? images, CancellationToken ct)
     {
-        var request = form.ToApplicationRequest(new List<string>());
+        var request = JsonSerializer.Deserialize<CreateListingRequest>(data, JsonOptions)
+            ?? throw new BusinessRuleException("Invalid listing data.");
+
         var validation = await new CreateListingRequestValidator().ValidateAsync(request, ct);
         if (!validation.IsValid)
         {
@@ -75,7 +84,7 @@ public class ListingController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        var imageUrls = await SaveListingImagesAsync(form.Images, ct);
+        var imageUrls = await SaveListingImagesAsync(images ?? new List<IFormFile>(), ct);
         request.Images = imageUrls;
 
         try
@@ -89,7 +98,7 @@ public class ListingController : ControllerBase
         }
         catch
         {
-            DeleteUploadedImages(imageUrls);
+            await DeleteUploadedImagesAsync(imageUrls);
             throw;
         }
     }
@@ -115,8 +124,6 @@ public class ListingController : ControllerBase
                 throw new BusinessRuleException("Each image must not exceed 5MB.");
         }
 
-        var folderPath = Path.Combine(_environment.WebRootPath, "images", "listings");
-        Directory.CreateDirectory(folderPath);
         var urls = new List<string>();
 
         try
@@ -124,37 +131,40 @@ public class ListingController : ControllerBase
             foreach (var file in files)
             {
                 var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var fileName = $"{Guid.NewGuid():N}{extension}";
-                await using var stream = new FileStream(
-                    Path.Combine(folderPath, fileName), FileMode.CreateNew, FileAccess.Write, FileShare.None);
-                await file.CopyToAsync(stream, ct);
-                urls.Add($"/images/listings/{fileName}");
+                await using var stream = file.OpenReadStream();
+                var url = await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer, ct);
+                urls.Add(url);
             }
 
             return urls;
         }
         catch
         {
-            DeleteUploadedImages(urls);
+            await DeleteUploadedImagesAsync(urls);
             throw;
         }
     }
 
-    private void DeleteUploadedImages(IEnumerable<string> imageUrls)
+    private async Task DeleteUploadedImagesAsync(IEnumerable<string> imageUrls)
     {
         foreach (var imageUrl in imageUrls)
-        {
-            var fileName = Path.GetFileName(imageUrl);
-            var filePath = Path.Combine(_environment.WebRootPath, "images", "listings", fileName);
-            if (System.IO.File.Exists(filePath))
-                System.IO.File.Delete(filePath);
-        }
+            await _fileStorage.DeleteAsync(imageUrl);
     }
 
     [HttpPut("{id:guid}")]
     [Authorize(Roles = "Vendor")]
-    public async Task<IActionResult> UpdateListing(Guid id, [FromBody] UpdateListingRequest request, CancellationToken ct)
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UpdateListing(Guid id, [FromForm] string data, [FromForm] List<IFormFile>? images, CancellationToken ct)
     {
+        var request = JsonSerializer.Deserialize<UpdateListingRequest>(data, JsonOptions)
+            ?? throw new BusinessRuleException("Invalid listing data.");
+
+        // `request.Images` here is the set of existing photo URLs the vendor
+        // chose to keep (already-uploaded, unchanged) - newly picked files
+        // get uploaded and appended, not swapped in wholesale.
+        var newImageUrls = await SaveListingImagesAsync(images ?? new List<IFormFile>(), ct);
+        request.Images = request.Images.Concat(newImageUrls).ToList();
+
         await _listingService.UpdateListingAsync(id, _currentUser.UserId, request, ct);
         return NoContent();
     }

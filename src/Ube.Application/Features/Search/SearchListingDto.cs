@@ -1,8 +1,12 @@
+using Ube.Domain.Enums.Listings;
+
 namespace Ube.Application.Features.Search;
 
 public class SearchListingDto
 {
     public Guid Id { get; set; }
+    public Guid CategoryId { get; set; }
+    public ListingType Type { get; set; }
     public string Title { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;

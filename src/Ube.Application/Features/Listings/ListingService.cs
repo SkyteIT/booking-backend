@@ -3,8 +3,11 @@ using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
 using Ube.Application.Features.Content.Category;
+using Ube.Application.Features.Listings.Validators;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Listings;
+using Ube.Domain.Enums;
+using Ube.Domain.Enums.Listings;
 
 namespace Ube.Application.Features.Listings;
 
@@ -12,13 +15,16 @@ public class ListingService : IListingService
 {
     private readonly IListingRepository _listingRepository;
     private readonly IVendorProfileRepository _vendorProfileRepository;
+    private readonly ICategoryRepository _categoryRepository;
 
     public ListingService(
         IListingRepository listingRepository,
-        IVendorProfileRepository vendorProfileRepository)
+        IVendorProfileRepository vendorProfileRepository,
+        ICategoryRepository categoryRepository)
     {
         _listingRepository = listingRepository;
         _vendorProfileRepository = vendorProfileRepository;
+        _categoryRepository = categoryRepository;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -31,11 +37,16 @@ public class ListingService : IListingService
         var vendor = await _vendorProfileRepository.GetVendorIdAsync(userId)
             ?? throw new BusinessRuleException("Vendor profile not found for this user.");
 
+        var category = await GetValidCategoryAsync(request.CategoryId, ct);
+        ValidateDetails(category.Type!.Value, request.HotelDetails, request.RestaurantDetails,
+            request.EventDetails, request.CarRentalDetails, request.ActivityDetails);
+
         var listing = new Listing
         {
             Id                 = Guid.NewGuid(),
             VendorProfileId    = vendor.Id,
             CategoryId         = request.CategoryId,
+            Type               = category.Type.Value,
             Title              = request.Title,
             Description        = request.Description ?? string.Empty,
             Price              = request.Price,
@@ -87,7 +98,12 @@ public class ListingService : IListingService
         if (listing.VendorProfileId != vendor.Id)
             throw new BusinessRuleException("You do not own this listing.");
 
+        var category = await GetValidCategoryAsync(request.CategoryId, ct);
+        ValidateDetails(category.Type!.Value, request.HotelDetails, request.RestaurantDetails,
+            request.EventDetails, request.CarRentalDetails, request.ActivityDetails);
+
         listing.CategoryId         = request.CategoryId;
+        listing.Type               = category.Type.Value;
         listing.Title              = request.Title;
         listing.Description        = request.Description ?? string.Empty;
         listing.Price              = request.Price;
@@ -111,7 +127,51 @@ public class ListingService : IListingService
         });
         await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, cfvs, ct);
 
+        // A category change must not leave the previous category's detail row
+        // attached to the listing and exposed in later API responses.
+        await _listingRepository.ClearDetailsAsync(listing.Id, ct);
         await UpsertDetailsFromUpdateAsync(listing.Id, request, ct);
+    }
+
+    private async Task<Ube.Domain.Entities.Listings.Category> GetValidCategoryAsync(
+        Guid categoryId, CancellationToken ct)
+    {
+        var category = await _categoryRepository.GetByIdAsync(categoryId, ct: ct)
+            ?? throw new BusinessRuleException("The selected category does not exist.");
+
+        if (category.Status != RecordStatus.Active)
+            throw new BusinessRuleException("The selected category is not active.");
+
+        if (!category.Type.HasValue)
+            throw new BusinessRuleException("The selected category is not configured with a listing type.");
+
+        return category;
+    }
+
+    private static void ValidateDetails(
+        ListingType type,
+        HotelDetailsDto? hotel,
+        RestaurantDetailsDto? restaurant,
+        EventDetailsDto? eventDetails,
+        CarRentalDetailsDto? carRental,
+        ActivityDetailsDto? activity)
+    {
+        var suppliedCount = new object?[] { hotel, restaurant, eventDetails, carRental, activity }
+            .Count(x => x != null);
+
+        var relevantDetailsSupplied = type switch
+        {
+            ListingType.Hotel => hotel != null,
+            ListingType.Restaurant => restaurant != null,
+            ListingType.Event => eventDetails != null,
+            ListingType.CarRental => carRental != null,
+            ListingType.Activity => activity != null,
+            _ => false
+        };
+
+        if (!relevantDetailsSupplied || suppliedCount != 1)
+            throw new BusinessRuleException(
+                $"Category type '{type}' requires exactly one '{type}' details section and does not allow details for another category.");
     }
 
     // ── Delete ────────────────────────────────────────────────────────────────
@@ -166,6 +226,23 @@ public class ListingService : IListingService
         return listing == null ? null : MapToResponse(listing);
     }
 
+    public async Task<ListingResponse> GetListingForEditAsync(
+        Guid listingId,
+        Guid userId,
+        CancellationToken ct = default)
+    {
+        var vendor = await _vendorProfileRepository.GetVendorIdAsync(userId)
+            ?? throw new BusinessRuleException("Vendor profile not found for this user.");
+
+        var listing = await _listingRepository.GetByIdWithDetailsAsync(listingId, ct)
+            ?? throw new NotFoundException("Listing not found.");
+
+        if (listing.VendorProfileId != vendor.Id)
+            throw new ForbiddenException("You do not own this listing.");
+
+        return MapToResponse(listing);
+    }
+
     // ── Read (all) ────────────────────────────────────────────────────────────
 
     public async Task<List<ListingResponse>> GetAllListingsAsync(
@@ -192,11 +269,25 @@ public class ListingService : IListingService
 
     // ── Mapper ────────────────────────────────────────────────────────────────
 
-    private static ListingResponse MapToResponse(Listing l) => new()
+    private static ListingResponse MapToResponse(Listing l)
     {
+        var effectiveType = l.Category?.Type ?? l.Type;
+        var restaurantHours = ListingTimeFormat.ParseRange(l.RestaurantDetails?.OpeningHours);
+
+        return new ListingResponse
+        {
         Id = l.Id,
         VendorProfileId = l.VendorProfileId,
         CategoryId = l.CategoryId,
+        SelectedCategoryId = l.CategoryId,
+        SelectedCategory = l.Category == null ? null : new ListingSelectedCategoryDto
+        {
+            Id = l.Category.Id,
+            Value = l.Category.Id,
+            Name = l.Category.Name,
+            Label = l.Category.Name,
+            Type = effectiveType
+        },
         Title = l.Title,
         Description = l.Description,
         Price = l.Price,
@@ -204,15 +295,22 @@ public class ListingService : IListingService
         Location = l.Location,
         IsActive = l.IsActive,
         CategoryName = l.Category?.Name ?? string.Empty,
+        CategoryDisplayName = l.Category?.Name ?? string.Empty,
+        IsCategoryEditable = false,
         VendorName = l.VendorProfile?.BusinessName ?? string.Empty,
-        Type = l.Type,
+        // Category.Type is the source of truth for the edit form. Listings
+        // created before category-derived types were enforced may still have
+        // the enum's old default (Hotel) stored in Listing.Type.
+        Type = effectiveType,
+        CategoryType = effectiveType,
+        PricingUnit = l.Category?.ServiceModel,
         AverageRating = l.AverageRating,
         TotalReviews = l.TotalReviews,
         PrimaryImage = l.Images?.OrderByDescending(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault(),
         Images = l.Images?.Select(i => i.ImageUrl).ToList() ?? new List<string>(),
-        Tags = l.Tags != null ? l.Tags.Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList() : new List<string>(),
+        Tags = SplitCsv(l.Tags),
         CancellationPolicy = l.CancellationPolicy,
-        HotelDetails = l.HotelDetails == null ? null : new HotelDetailsDto
+        HotelDetails = effectiveType != ListingType.Hotel || l.HotelDetails == null ? null : new HotelDetailsDto
         {
             PricePerNight   = l.HotelDetails.PricePerNight,
             AvailableRooms  = l.HotelDetails.AvailableRooms,
@@ -224,17 +322,21 @@ public class ListingService : IListingService
             PrimaryRoomType = l.HotelDetails.PrimaryRoomType,
         },
 
-        RestaurantDetails = l.RestaurantDetails == null ? null : new RestaurantDetailsDto
+        RestaurantDetails = effectiveType != ListingType.Restaurant || l.RestaurantDetails == null ? null : new RestaurantDetailsDto
         {
             CuisineType      = l.RestaurantDetails.CuisineType,
             AverageCost      = l.RestaurantDetails.AverageCost,
             OpeningHours     = l.RestaurantDetails.OpeningHours,
+            OpeningTime      = restaurantHours.OpeningTime,
+            OpeningPeriod    = restaurantHours.OpeningPeriod,
+            ClosingTime      = restaurantHours.ClosingTime,
+            ClosingPeriod    = restaurantHours.ClosingPeriod,
             TableCapacity    = l.RestaurantDetails.TableCapacity,
             TableTypes       = SplitCsv(l.RestaurantDetails.TableTypes),
             ReservationRules = l.RestaurantDetails.ReservationRules,
         },
 
-        EventDetails = l.EventDetails == null ? null : new EventDetailsDto
+        EventDetails = effectiveType != ListingType.Event || l.EventDetails == null ? null : new EventDetailsDto
         {
             EventName    = l.EventDetails.EventName,
             Organizer    = l.EventDetails.Organizer,
@@ -247,7 +349,7 @@ public class ListingService : IListingService
             TicketTypes  = DeserializeJson<List<TicketTypeDto>>(l.EventDetails.TicketTypesJson),
         },
 
-        CarRentalDetails = l.CarRentalDetails == null ? null : new CarRentalDetailsDto
+        CarRentalDetails = effectiveType != ListingType.CarRental || l.CarRentalDetails == null ? null : new CarRentalDetailsDto
         {
             Brand              = l.CarRentalDetails.Brand,
             Model              = l.CarRentalDetails.Model,
@@ -263,7 +365,7 @@ public class ListingService : IListingService
             InsuranceOptions   = l.CarRentalDetails.InsuranceOptions,
         },
 
-        ActivityDetails = l.ActivityDetails == null ? null : new ActivityDetailsDto
+        ActivityDetails = effectiveType != ListingType.Activity || l.ActivityDetails == null ? null : new ActivityDetailsDto
         {
             ActivityType = l.ActivityDetails.ActivityType,
             DurationHours = l.ActivityDetails.DurationHours,
@@ -273,7 +375,7 @@ public class ListingService : IListingService
             MaxGroupSize = l.ActivityDetails.MaxGroupSize,
             MinAge = l.ActivityDetails.MinAge,
             MaxAge = l.ActivityDetails.MaxAge,
-            IncludedServices = l.ActivityDetails.IncludedServices?.Split(", ", StringSplitOptions.RemoveEmptyEntries).ToList(),
+            IncludedServices = SplitCsv(l.ActivityDetails.IncludedServices),
             SafetyRequirements = l.ActivityDetails.SafetyRequirements,
             AvailabilitySchedule = l.ActivityDetails.AvailabilitySchedule
         },
@@ -282,8 +384,25 @@ public class ListingService : IListingService
             CategoryCustomFieldId = v.CategoryCustomFieldId,
             Label = v.CategoryCustomField.Label,
             Value = v.Value
-        }).ToList() ?? new List<ListingCustomFieldValueDto>()
-    };
+        }).ToList() ?? new List<ListingCustomFieldValueDto>(),
+        BookableUnits = l.Units?.OrderBy(u => u.DisplayOrder).Select(u => new ListingUnitDto
+        {
+            Id = u.Id,
+            ListingId = u.ListingId,
+            Kind = u.Kind,
+            Name = u.Name,
+            Code = u.Code,
+            PriceOverride = u.PriceOverride,
+            Capacity = u.Capacity,
+            RowIndex = u.RowIndex,
+            ColumnIndex = u.ColumnIndex,
+            SlotStartTime = u.SlotStartTime,
+            SlotDuration = u.SlotDuration,
+            IsActive = u.IsActive,
+            DisplayOrder = u.DisplayOrder
+        }).ToList() ?? new List<ListingUnitDto>()
+        };
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -298,6 +417,20 @@ public class ListingService : IListingService
         if (string.IsNullOrWhiteSpace(json)) return null;
         try { return JsonSerializer.Deserialize<T>(json); }
         catch { return null; }
+    }
+
+    private static string GetRestaurantOpeningHours(RestaurantDetailsDto details)
+    {
+        if (!string.IsNullOrWhiteSpace(details.OpeningTime)
+            && !string.IsNullOrWhiteSpace(details.OpeningPeriod)
+            && !string.IsNullOrWhiteSpace(details.ClosingTime)
+            && !string.IsNullOrWhiteSpace(details.ClosingPeriod))
+        {
+            return $"{details.OpeningTime.Trim()} {details.OpeningPeriod.Trim().ToUpperInvariant()} - "
+                 + $"{details.ClosingTime.Trim()} {details.ClosingPeriod.Trim().ToUpperInvariant()}";
+        }
+
+        return details.OpeningHours;
     }
 
     // ── Detail upserts (Create) ───────────────────────────────────────────────
@@ -325,7 +458,7 @@ public class ListingService : IListingService
                 ListingId        = listingId,
                 CuisineType      = r.RestaurantDetails.CuisineType,
                 AverageCost      = r.RestaurantDetails.AverageCost,
-                OpeningHours     = r.RestaurantDetails.OpeningHours,
+                OpeningHours     = GetRestaurantOpeningHours(r.RestaurantDetails),
                 TableCapacity    = r.RestaurantDetails.TableCapacity,
                 TableTypes       = r.RestaurantDetails.TableTypes != null
                                    ? string.Join(",", r.RestaurantDetails.TableTypes)
@@ -413,7 +546,7 @@ public class ListingService : IListingService
                 ListingId        = listingId,
                 CuisineType      = r.RestaurantDetails.CuisineType,
                 AverageCost      = r.RestaurantDetails.AverageCost,
-                OpeningHours     = r.RestaurantDetails.OpeningHours,
+                OpeningHours     = GetRestaurantOpeningHours(r.RestaurantDetails),
                 TableCapacity    = r.RestaurantDetails.TableCapacity,
                 TableTypes       = r.RestaurantDetails.TableTypes != null
                                    ? string.Join(",", r.RestaurantDetails.TableTypes)

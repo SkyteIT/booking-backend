@@ -7,6 +7,8 @@ public class ListingResponse
     public Guid Id { get; set; }
     public Guid VendorProfileId { get; set; }
     public Guid CategoryId { get; set; }
+    public Guid SelectedCategoryId { get; set; }
+    public ListingSelectedCategoryDto? SelectedCategory { get; set; }
 
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
@@ -16,6 +18,8 @@ public class ListingResponse
     public bool IsActive { get; set; }
 
     public string CategoryName { get; set; } = string.Empty;
+    public string CategoryDisplayName { get; set; } = string.Empty;
+    public bool IsCategoryEditable { get; set; }
     public string VendorName { get; set; } = string.Empty;
     // What Listing.Price is denominated in (nightly/hourly/per-person/
     // daily/flat), from the listing's Category - lets the frontend cart
@@ -23,6 +27,7 @@ public class ListingResponse
     public PricingUnit? PricingUnit { get; set; }
 
     public ListingType Type { get; set; }
+    public ListingType CategoryType { get; set; }
     public double AverageRating { get; set; }
     public int TotalReviews { get; set; }
     public string? PrimaryImage { get; set; }
@@ -40,5 +45,16 @@ public class ListingResponse
     public CarRentalDetailsDto? CarRentalDetails { get; set; }
     public ActivityDetailsDto? ActivityDetails { get; set; }
 
+    public List<ListingUnitDto> BookableUnits { get; set; } = new();
+
     public List<ListingCustomFieldValueDto> CustomFieldValues { get; set; } = new();
+}
+
+public class ListingSelectedCategoryDto
+{
+    public Guid Id { get; set; }
+    public Guid Value { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Label { get; set; } = string.Empty;
+    public ListingType Type { get; set; }
 }

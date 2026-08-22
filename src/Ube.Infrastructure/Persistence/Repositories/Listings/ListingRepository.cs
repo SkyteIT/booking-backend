@@ -158,6 +158,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.Units)
             .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
@@ -173,6 +174,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.Units)
             .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
@@ -188,6 +190,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.EventDetails)
             .Include(l => l.CarRentalDetails)
             .Include(l => l.ActivityDetails)
+            .Include(l => l.Units)
             .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
@@ -265,6 +268,23 @@ public class ListingRepository : IListingRepository
                 entry.Property(property.Name).CurrentValue = property.PropertyInfo!.GetValue(details);
             }
         }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task ClearDetailsAsync(Guid listingId, CancellationToken ct = default)
+    {
+        var hotel = await _db.HotelListingDetails.FirstOrDefaultAsync(x => x.ListingId == listingId, ct);
+        var restaurant = await _db.RestaurantListingDetails.FirstOrDefaultAsync(x => x.ListingId == listingId, ct);
+        var eventDetails = await _db.EventListingDetails.FirstOrDefaultAsync(x => x.ListingId == listingId, ct);
+        var carRental = await _db.CarRentalListingDetails.FirstOrDefaultAsync(x => x.ListingId == listingId, ct);
+        var activity = await _db.ActivityListingDetails.FirstOrDefaultAsync(x => x.ListingId == listingId, ct);
+
+        if (hotel != null) _db.HotelListingDetails.Remove(hotel);
+        if (restaurant != null) _db.RestaurantListingDetails.Remove(restaurant);
+        if (eventDetails != null) _db.EventListingDetails.Remove(eventDetails);
+        if (carRental != null) _db.CarRentalListingDetails.Remove(carRental);
+        if (activity != null) _db.ActivityListingDetails.Remove(activity);
 
         await _db.SaveChangesAsync(ct);
     }

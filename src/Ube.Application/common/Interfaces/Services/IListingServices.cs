@@ -8,6 +8,7 @@ public interface IListingService
     Task SetPublishedAsync(Guid listingId, Guid userId, bool isPublished, CancellationToken ct = default);
     Task DeleteListingAsync(Guid listingId, Guid userId, CancellationToken ct = default);
     Task<ListingResponse?> GetListingByIdAsync(Guid listingId, CancellationToken ct = default);
+    Task<ListingResponse> GetListingForEditAsync(Guid listingId, Guid userId, CancellationToken ct = default);
     Task<List<ListingResponse>> GetAllListingsAsync(CancellationToken ct = default);
     Task<List<ListingResponse>> GetMyListingsAsync(Guid userId, CancellationToken ct = default);
 }

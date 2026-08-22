@@ -26,6 +26,7 @@ namespace Ube.Application.Common.Interfaces.Persistence
             where TDetail : class, IListingDetail;
         Task UpsertDetailsAsync<TDetail>(Guid listingId, TDetail details, CancellationToken ct = default)
             where TDetail : class, IListingDetail;
+        Task ClearDetailsAsync(Guid listingId, CancellationToken ct = default);
 
         Task ReplaceCustomFieldValuesAsync(Guid listingId, IEnumerable<ListingCustomFieldValue> values, CancellationToken ct = default);
     }

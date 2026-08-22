@@ -44,6 +44,7 @@ public class ListingService : IListingService
             IsActive           = request.IsActive,
             Tags               = request.Tags.Count > 0 ? string.Join(",", request.Tags) : null,
             CancellationPolicy = request.CancellationPolicy,
+            ThumbnailUrl       = request.Images.Count > 0 ? request.Images[0] : null,
             CreatedAt          = DateTime.UtcNow,
         };
 
@@ -95,6 +96,7 @@ public class ListingService : IListingService
         listing.IsActive           = request.IsActive;
         listing.Tags               = request.Tags.Count > 0 ? string.Join(",", request.Tags) : null;
         listing.CancellationPolicy = request.CancellationPolicy;
+        listing.ThumbnailUrl       = request.Images.Count > 0 ? request.Images[0] : null;
         listing.UpdatedAt          = DateTime.UtcNow;
 
         await _listingRepository.UpdateAsync(listing);

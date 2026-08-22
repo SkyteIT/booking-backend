@@ -46,8 +46,24 @@ public class ListingResponse
     public ActivityDetailsDto? ActivityDetails { get; set; }
 
     public List<ListingUnitDto> BookableUnits { get; set; } = new();
+    public BookingSelectionConfigDto BookingSelection { get; set; } = new();
 
     public List<ListingCustomFieldValueDto> CustomFieldValues { get; set; } = new();
+}
+
+public class BookingSelectionConfigDto
+{
+    public string StartLabel { get; set; } = string.Empty;
+    public string? EndLabel { get; set; }
+    public bool ShowStartDate { get; set; }
+    public bool ShowStartTime { get; set; }
+    public bool ShowEndDate { get; set; }
+    public bool ShowEndTime { get; set; }
+    public bool EndMustBeAfterStart { get; set; }
+    public string QuantityLabel { get; set; } = string.Empty;
+    public string? UnitLabel { get; set; }
+    public bool ShowUnitSelection { get; set; }
+    public DateTime? FixedStartDateTime { get; set; }
 }
 
 public class ListingSelectedCategoryDto

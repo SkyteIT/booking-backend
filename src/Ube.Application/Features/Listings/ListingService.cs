@@ -400,7 +400,8 @@ public class ListingService : IListingService
             SlotDuration = u.SlotDuration,
             IsActive = u.IsActive,
             DisplayOrder = u.DisplayOrder
-        }).ToList() ?? new List<ListingUnitDto>()
+        }).ToList() ?? new List<ListingUnitDto>(),
+        BookingSelection = BuildBookingSelection(effectiveType, l)
         };
     }
 
@@ -432,6 +433,62 @@ public class ListingService : IListingService
 
         return details.OpeningHours;
     }
+
+    private static BookingSelectionConfigDto BuildBookingSelection(ListingType type, Listing listing)
+        => type switch
+        {
+            ListingType.Hotel => new BookingSelectionConfigDto
+            {
+                StartLabel = "Check-in date",
+                EndLabel = "Check-out date",
+                ShowStartDate = true,
+                ShowEndDate = true,
+                EndMustBeAfterStart = true,
+                QuantityLabel = "Guests",
+                UnitLabel = "Room or room type",
+                ShowUnitSelection = listing.Units.Count > 0
+            },
+            ListingType.Restaurant => new BookingSelectionConfigDto
+            {
+                StartLabel = "Reservation date",
+                ShowStartDate = true,
+                ShowStartTime = true,
+                QuantityLabel = "Guests",
+                UnitLabel = "Table or time slot",
+                ShowUnitSelection = listing.Units.Count > 0
+            },
+            ListingType.Event => new BookingSelectionConfigDto
+            {
+                StartLabel = "Event date and time",
+                QuantityLabel = "Tickets",
+                UnitLabel = "Ticket type or seat",
+                ShowUnitSelection = listing.Units.Count > 0,
+                FixedStartDateTime = listing.EventDetails?.DateAndTime
+            },
+            ListingType.CarRental => new BookingSelectionConfigDto
+            {
+                StartLabel = "Pickup date and time",
+                EndLabel = "Return date and time",
+                ShowStartDate = true,
+                ShowStartTime = true,
+                ShowEndDate = true,
+                ShowEndTime = true,
+                EndMustBeAfterStart = true,
+                QuantityLabel = "Vehicles",
+                UnitLabel = "Vehicle",
+                ShowUnitSelection = listing.Units.Count > 0
+            },
+            ListingType.Activity => new BookingSelectionConfigDto
+            {
+                StartLabel = "Activity date and time",
+                ShowStartDate = true,
+                ShowStartTime = true,
+                QuantityLabel = "Participants",
+                UnitLabel = "Tour, session, or package",
+                ShowUnitSelection = listing.Units.Count > 0
+            },
+            _ => new BookingSelectionConfigDto()
+        };
 
     // ── Detail upserts (Create) ───────────────────────────────────────────────
 

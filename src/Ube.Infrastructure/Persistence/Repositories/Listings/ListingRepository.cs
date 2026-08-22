@@ -122,6 +122,8 @@ public class ListingRepository : IListingRepository
         var items = page.Select(r => new SearchListingDto
         {
             Id = r.Listing.Id,
+            CategoryId = r.Listing.CategoryId,
+            Type = r.Listing.Category.Type ?? r.Listing.Type,
             Title = r.Listing.Title,
             CategoryName = r.Listing.Category.Name,
             Location = r.Listing.Location ?? string.Empty,

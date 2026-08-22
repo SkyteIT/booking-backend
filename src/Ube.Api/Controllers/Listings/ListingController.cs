@@ -64,6 +64,17 @@ public class ListingController : ControllerBase
         return listing == null ? NotFound() : Ok(listing);
     }
 
+    // Complete, owner-checked payload for pre-filling the vendor edit form.
+    // It includes base fields, existing image URLs, the selected category,
+    // exactly one category-specific details object, and custom-field values.
+    [HttpGet("{id:guid}/edit")]
+    [Authorize(Roles = "Vendor")]
+    public async Task<IActionResult> GetListingForEdit(Guid id, CancellationToken ct)
+    {
+        var listing = await _listingService.GetListingForEditAsync(id, _currentUser.UserId, ct);
+        return Ok(listing);
+    }
+
     // `data` carries every non-file field as a JSON string (built by the same
     // frontend mapping that used to go straight in the request body) - real
     // photos ride alongside it as actual files in the same multipart request,
@@ -159,6 +170,14 @@ public class ListingController : ControllerBase
         var request = JsonSerializer.Deserialize<UpdateListingRequest>(data, JsonOptions)
             ?? throw new BusinessRuleException("Invalid listing data.");
 
+        var validation = await new UpdateListingRequestValidator().ValidateAsync(request, ct);
+        if (!validation.IsValid)
+        {
+            foreach (var error in validation.Errors)
+                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+            return ValidationProblem(ModelState);
+        }
+
         // `request.Images` here is the set of existing photo URLs the vendor
         // chose to keep (already-uploaded, unchanged) - newly picked files
         // get uploaded and appended, not swapped in wholesale.
@@ -166,7 +185,8 @@ public class ListingController : ControllerBase
         request.Images = request.Images.Concat(newImageUrls).ToList();
 
         await _listingService.UpdateListingAsync(id, _currentUser.UserId, request, ct);
-        return NoContent();
+        var updated = await _listingService.GetListingForEditAsync(id, _currentUser.UserId, ct);
+        return Ok(updated);
     }
 
     [HttpPatch("{id:guid}/publish")]

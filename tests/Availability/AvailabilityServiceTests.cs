@@ -174,7 +174,7 @@ public class AvailabilityServiceTests
 
         Assert.All(calendar, day =>
         {
-            Assert.Equal(Ube.Domain.Enums.AvailabilityStatus.Available, day.Status);
+            Assert.Equal(AvailabilityStatus.Available, day.Status);
             Assert.Equal(1, day.AvailableCount);
             Assert.Equal(0, day.BookingCount);
         });

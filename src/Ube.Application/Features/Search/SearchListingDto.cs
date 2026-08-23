@@ -11,6 +11,7 @@ public class SearchListingDto
     public string CategoryName { get; set; } = string.Empty;
     public string Location { get; set; } = string.Empty;
     public decimal Price { get; set; }
+    public string Currency { get; set; } = "LKR";
     public double AverageRating { get; set; }
     public bool IsFeatured { get; set; }
     public bool IsActive { get; set; }

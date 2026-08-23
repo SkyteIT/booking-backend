@@ -142,13 +142,19 @@ public class BookingRepository : IBookingRepository
             .Where( b => b.ListingId == listingId &&
                     b.StartDateTime.Date <= endDate.Date &&
                     b.EndDateTime.Date >= startDate.Date &&
-                    (b.Status == BookingStatus.Confirmed || 
-                        (b.Status == BookingStatus.Pending && b.CreatedAt >= DateTime.UtcNow.AddHours(-1))) // consider pending bookings created within last 1 hour as they might still be confirmed
+                    // A Pending booking holds the slot for as long as it stays
+                    // Pending - a "Request"-type category can leave it Pending
+                    // for days awaiting vendor review, so age must not be what
+                    // decides whether it still counts (previously any Pending
+                    // booking older than 1 hour silently stopped blocking the
+                    // calendar/checkout, letting a second customer double-book
+                    // a date someone's request was still awaiting review on).
+                    (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending)
                     )
             .ToListAsync();
     }
 
-    // Same soft-hold rule as GetBookingsByListingAndDateRangeAsync, scoped
+    // Same hold rule as GetBookingsByListingAndDateRangeAsync, scoped
     // to a specific bookable unit (room type/seat/time slot) instead of
     // the whole listing.
     public async Task<List<Booking>> GetBookingsByListingUnitAndDateRangeAsync(
@@ -158,8 +164,7 @@ public class BookingRepository : IBookingRepository
             .Where(b => b.ListingUnitId == listingUnitId &&
                     b.StartDateTime.Date <= endDate.Date &&
                     b.EndDateTime.Date >= startDate.Date &&
-                    (b.Status == BookingStatus.Confirmed ||
-                        (b.Status == BookingStatus.Pending && b.CreatedAt >= DateTime.UtcNow.AddHours(-1)))
+                    (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending)
                     )
             .ToListAsync(ct);
     }

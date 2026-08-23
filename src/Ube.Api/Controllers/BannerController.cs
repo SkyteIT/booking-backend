@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Content.Banner;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Enums.Content;
@@ -22,10 +23,12 @@ public class BannerController : ControllerBase
     private const long MaxFileSize = 2 * 1024 * 1024;
 
     private readonly IBannerService _service;
+    private readonly IFileStorageService _fileStorage;
 
-    public BannerController(IBannerService service)
+    public BannerController(IBannerService service, IFileStorageService fileStorage)
     {
         _service = service;
+        _fileStorage = fileStorage;
     }
 
     // GET: api/admin/banners
@@ -155,20 +158,10 @@ public class BannerController : ControllerBase
         if (file.Length > MaxFileSize)
             throw new BusinessRuleException("File size must not exceed 2MB");
 
-        var fileName = $"{Guid.NewGuid()}{extension}";
-        var folderPath = Path.Combine("wwwroot", "images", "banners");
+        await using var stream = file.OpenReadStream();
+        var imageUrl = await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);
 
-        if (!Directory.Exists(folderPath))
-            Directory.CreateDirectory(folderPath);
-
-        var filePath = Path.Combine(folderPath, fileName);
-
-        await using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        return $"/images/banners/{fileName}";
+        return Ok(new { imageUrl });
     }
 
     private static Task DeleteBannerImageAsync(string? imageUrl)

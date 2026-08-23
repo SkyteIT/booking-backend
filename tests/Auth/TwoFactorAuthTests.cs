@@ -71,6 +71,7 @@ public class TwoFactorAuthTests
         Role = role,
         AuthProvider = AuthProvider.Local,
         PasswordHash = BCrypt.Net.BCrypt.HashPassword("Password1!"),
+        IsEmailVerified = true,
         TwoFactorEnabled = twoFactorEnabled,
         TwoFactorSecret = secret
     };

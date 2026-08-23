@@ -8,5 +8,6 @@ public interface IEmailService
     Task SendWelcomeEmailAsync(string email, string firstName);
     Task SendVendorApplicationSubmittedEmailAsync(string email, string firstName, string businessName);
     Task SendVendorApplicationApprovedEmailAsync(string email, string firstName, string businessName);
+    Task SendVendorApplicationRejectedEmailAsync(string email, string firstName, string businessName, string? rejectionReason);
     Task SendEmailAsync(string to, string subject, string htmlBody);
 }

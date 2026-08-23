@@ -1,4 +1,3 @@
-
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Users;
@@ -12,9 +11,6 @@ using Ube.Application.Features.Notifications;
 using Ube.Application.Features.Notifications.Email;
 using Ube.Domain.Enums.Notifications;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
-
-
 
 namespace Ube.Application.Features.Admin.VendorApplications;
 
@@ -148,7 +144,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
                 //Rule: Validate rejection
                 var rejectRule = VendorApplicationRules.ValidateRejection(dto.RejectionReason);
                 if (!rejectRule.IsSuccess)
-                    throw new BusinessRuleException(rejectRule.ErrorMessage);
+                    throw new ValidationException(new[] { rejectRule.ErrorMessage });
 
                 //Update application
                 application.Status = VendorApplicationStatus.Rejected;
@@ -174,7 +170,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             await _unitOfWork.RollbackAsync();
             _logger.LogError(ex, "Failed to review vendor application {ApplicationId} by admin {AdminId}", applicationId, adminId);
 
-            if (ex is BusinessRuleException or NotFoundException or ForbiddenException)
+            if (ex is BusinessRuleException or NotFoundException or ForbiddenException or ValidationException)
                 throw;
 
             throw new BusinessRuleException(ex.Message);
@@ -184,7 +180,7 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
             return;
 
         await NotifyApplicationReviewedAsync(application, user, reviewStatus);
-        await TrySendApprovalEmailAsync(application, user, reviewStatus);
+        await TrySendReviewEmailAsync(application, user, reviewStatus);
         await PublishDashboardRefreshAsync(application.Id, user.Id, reviewStatus.ToString());
     }
     // Method to get application details
@@ -302,24 +298,59 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
         }
     }
 
-    private async Task TrySendApprovalEmailAsync(
+    private async Task TrySendReviewEmailAsync(
         Domain.Entities.Vendors.VendorApplication application,
         Domain.Entities.Users.User user,
         VendorApplicationStatus status)
     {
-        if (status != VendorApplicationStatus.Approved)
-            return;
-
-        try
+        var recipientEmails = new[]
         {
-            await _emailService.SendVendorApplicationApprovedEmailAsync(
-                user.Email,
-                user.FirstName,
-                application.BusinessName);
+            application.Email,
+            user.Email
         }
-        catch (Exception ex)
+        .Where(email => !string.IsNullOrWhiteSpace(email))
+        .Select(email => email!.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+        if (recipientEmails.Length == 0)
         {
-            _logger.LogWarning(ex, "Failed to send vendor approval email to {Email} for application {ApplicationId}", user.Email, application.Id);
+            _logger.LogWarning(
+                "Skipping vendor review email for application {ApplicationId} because no recipient email was available",
+                application.Id);
+            return;
+        }
+
+        foreach (var recipientEmail in recipientEmails)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Sending vendor review email to {Email} for application {ApplicationId} with status {Status}",
+                    recipientEmail,
+                    application.Id,
+                    status);
+
+                if (status == VendorApplicationStatus.Approved)
+                {
+                    await _emailService.SendVendorApplicationApprovedEmailAsync(
+                        recipientEmail,
+                        user.FirstName,
+                        application.BusinessName);
+                }
+                else if (status == VendorApplicationStatus.Rejected)
+                {
+                    await _emailService.SendVendorApplicationRejectedEmailAsync(
+                        recipientEmail,
+                        user.FirstName,
+                        application.BusinessName,
+                        application.RejectionReason);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send vendor review email to {Email} for application {ApplicationId}", recipientEmail, application.Id);
+            }
         }
     }
 

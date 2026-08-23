@@ -2,7 +2,6 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using MimeKit.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -19,11 +18,11 @@ public class EmailService : IEmailService
     private readonly ILogger<EmailService> _logger;
     private readonly string _frontendBaseUrl;
 
-    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger, IConfiguration configuration)
+    public EmailService(IOptions<EmailSettings> settings, ILogger<EmailService> logger)
     {
         _settings = settings.Value;
         _logger = logger;
-        _frontendBaseUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+        _frontendBaseUrl = NormalizeBaseUrl(_settings.ClientBaseUrl);
     }
 
     public Task SendVerificationEmailAsync(string email, string token)
@@ -170,6 +169,56 @@ public class EmailService : IEmailService
         return SendEmailAsync(email, "Vendor application approved", body);
     }
 
+    public Task SendVendorApplicationRejectedEmailAsync(string email, string firstName, string businessName, string? rejectionReason)
+    {
+        var displayName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(firstName) ? "there" : firstName.Trim());
+        var safeBusinessName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(businessName) ? "your business" : businessName.Trim());
+        var safeReason = string.IsNullOrWhiteSpace(rejectionReason)
+            ? "No reason was provided."
+            : WebUtility.HtmlEncode(rejectionReason.Trim());
+
+        var body = $"""
+            <div style="margin:0;padding:0;background:#f8f5f3;">
+              <div style="max-width:640px;margin:0 auto;padding:32px 20px;font-family:Arial,Helvetica,sans-serif;color:#1f2937;">
+                <div style="background:linear-gradient(135deg,#7c2d12,#b45309);border-radius:20px 20px 0 0;padding:30px 28px;color:#fff;">
+                  <div style="font-size:13px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.85;">UBE</div>
+                  <h1 style="margin:10px 0 0;font-size:28px;line-height:1.15;">Your vendor application was not approved</h1>
+                  <p style="margin:12px 0 0;font-size:15px;line-height:1.6;opacity:0.96;">
+                    We reviewed the application for {safeBusinessName}.
+                  </p>
+                </div>
+
+                <div style="background:#ffffff;border:1px solid #eadfd8;border-top:none;border-radius:0 0 20px 20px;padding:28px;">
+                  <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Hi {displayName},</p>
+                  <p style="margin:0 0 18px;font-size:15px;line-height:1.7;color:#374151;">
+                    An admin has reviewed your vendor application for <strong style="color:#111827;">{safeBusinessName}</strong>
+                    and decided not to approve it at this time.
+                  </p>
+
+                  <div style="margin:24px 0;padding:18px 18px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:16px;">
+                    <div style="font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#9a3412;margin-bottom:10px;">Review notes</div>
+                    <p style="margin:0;color:#7c2d12;line-height:1.7;font-size:14px;">{safeReason}</p>
+                  </div>
+
+                  <p style="margin:0 0 14px;font-size:15px;line-height:1.7;color:#374151;">
+                    You can update the application details and submit again if you want to try another review.
+                  </p>
+
+                  <p style="margin:0;font-size:13px;line-height:1.7;color:#6b7280;">
+                    If you believe this was a mistake, please contact support.
+                  </p>
+                </div>
+
+                <div style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">
+                  Ube vendor onboarding updates are sent automatically when your application status changes.
+                </div>
+              </div>
+            </div>
+            """;
+
+        return SendEmailAsync(email, "Vendor application status update", body);
+    }
+
     public async Task SendEmailAsync(string to, string subject, string htmlBody)
     {
         ValidateSettings();
@@ -205,6 +254,12 @@ public class EmailService : IEmailService
         if (string.IsNullOrWhiteSpace(_settings.Username) ||
             _settings.Username.Contains("my_email@", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("SMTP credentials are not configured.");
+    }
+
+    private static string NormalizeBaseUrl(string? baseUrl)
+    {
+        var value = string.IsNullOrWhiteSpace(baseUrl) ? "http://localhost:3000" : baseUrl.Trim();
+        return value.TrimEnd('/');
     }
 
     // Allows connections on restricted networks where revocation servers are unreachable.

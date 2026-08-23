@@ -13,6 +13,9 @@ public class PromotionRepository : IPromotionRepository
     public async Task<IReadOnlyList<Promotion>> GetAllAsync(CancellationToken ct = default)
         => await _db.Promotions.OrderByDescending(x => x.CreatedAt).ToListAsync(ct);
 
+    public Task<bool> ExistsByCodeAsync(string promoCode, CancellationToken ct = default)
+        => _db.Promotions.AnyAsync(x => x.PromoCode == promoCode, ct);
+
     public async Task<Promotion?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await _db.Promotions.FirstOrDefaultAsync(x => x.Id == id, ct);
 

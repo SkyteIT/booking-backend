@@ -2,7 +2,16 @@ namespace Ube.Domain.Enums.Content;
 
 public enum BannerPlacement
 {
-    HomepageHero = 1,
-    HomepageBanner = 2,
-    CategoryPage = 3
+    LandingPage = 1,
+    ExplorePage = 2,
+    SearchResults = 3,
+    CategoryPage = 4,
+    EventPage = 5,
+
+    // Backward-compatible aliases for older clients and existing references.
+    Homepage = LandingPage,
+    HomepageHero = LandingPage,
+    HomepageBanner = LandingPage,
+    LandingPageHero = LandingPage,
+    LandingPageBanner = LandingPage
 }

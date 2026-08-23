@@ -27,7 +27,10 @@ public class CurrentUserService : ICurrentUserService
             if (userIdClaim == null)
                 throw new ForbiddenException("User not authenticated");
 
-            return Guid.Parse(userIdClaim.Value);
+            if (Guid.TryParse(userIdClaim.Value, out var userId))
+                return userId;
+
+            throw new ForbiddenException("Invalid user identifier in token");
         }
     }
     public string Email

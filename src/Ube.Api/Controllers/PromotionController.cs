@@ -15,12 +15,30 @@ public class PromotionController : ControllerBase
         _service = service;
     }
 
+    // GET: api/admin/promotions
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [HttpGet("/api/admin/promotions")]
+    public async Task<IActionResult> GetAllAdmin(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetAllAsync(cancellationToken);
+        return Ok(result);
+    }
+
     // GET: api/promotions
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _service.GetAllAsync(cancellationToken);
         return Ok(result);
+    }
+
+    // GET: api/admin/promotions/{id}
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [HttpGet("/api/admin/promotions/{id:guid}")]
+    public async Task<IActionResult> GetByIdAdmin(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetByIdAsync(id, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
     }
 
     // GET: api/promotions/{id}

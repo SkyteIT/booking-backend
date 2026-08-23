@@ -15,12 +15,30 @@ public class CategoryController : ControllerBase
         _service = service;
     }
 
+    // GET: api/admin/categories
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [HttpGet("/api/admin/categories")]
+    public async Task<IActionResult> GetAllAdmin(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetAllAsync(cancellationToken);
+        return Ok(result);
+    }
+
     // GET: api/categories
     [HttpGet]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var result = await _service.GetAllAsync(cancellationToken);
         return Ok(result);
+    }
+
+    // GET: api/admin/categories/{id}
+    [Authorize(Roles = "Admin,SuperAdmin")]
+    [HttpGet("/api/admin/categories/{id:guid}")]
+    public async Task<IActionResult> GetByIdAdmin(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetByIdAsync(id, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
     }
 
     // GET: api/categories/{id}

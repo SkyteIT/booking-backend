@@ -303,6 +303,7 @@ app.UseStaticFiles();
 
 
 app.MapHub<RealtimeUpdatesHub>("/hubs/updates");
+app.MapHub<RealtimeUpdatesHub>("/api/hubs/updates");
 app.MapControllers();
 
 app.Run();

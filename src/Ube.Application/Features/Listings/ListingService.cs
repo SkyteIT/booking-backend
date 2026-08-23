@@ -16,15 +16,18 @@ public class ListingService : IListingService
     private readonly IListingRepository _listingRepository;
     private readonly IVendorProfileRepository _vendorProfileRepository;
     private readonly ICategoryRepository _categoryRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
     public ListingService(
         IListingRepository listingRepository,
         IVendorProfileRepository vendorProfileRepository,
-        ICategoryRepository categoryRepository)
+        ICategoryRepository categoryRepository,
+        IUnitOfWork unitOfWork)
     {
         _listingRepository = listingRepository;
         _vendorProfileRepository = vendorProfileRepository;
         _categoryRepository = categoryRepository;
+        _unitOfWork = unitOfWork;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -59,24 +62,35 @@ public class ListingService : IListingService
             CreatedAt          = DateTime.UtcNow,
         };
 
-        await _listingRepository.AddAsync(listing, ct);
-
-        if (request.Images.Count > 0)
-            await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
-
-        if (request.CustomFieldValues.Count > 0)
+        await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            var cfvs = request.CustomFieldValues.Select(v => new ListingCustomFieldValue
-            {
-                Id                    = Guid.NewGuid(),
-                ListingId             = listing.Id,
-                CategoryCustomFieldId = v.CategoryCustomFieldId,
-                Value                 = v.Value,
-            });
-            await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, cfvs, ct);
-        }
+            await _listingRepository.AddAsync(listing, ct);
 
-        await UpsertDetailsFromCreateAsync(listing.Id, request, ct);
+            if (request.Images.Count > 0)
+                await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
+
+            if (request.CustomFieldValues.Count > 0)
+            {
+                var cfvs = request.CustomFieldValues.Select(v => new ListingCustomFieldValue
+                {
+                    Id                    = Guid.NewGuid(),
+                    ListingId             = listing.Id,
+                    CategoryCustomFieldId = v.CategoryCustomFieldId,
+                    Value                 = v.Value,
+                });
+                await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, cfvs, ct);
+            }
+
+            await UpsertDetailsFromCreateAsync(listing.Id, request, ct);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
 
         return listing.Id;
     }
@@ -115,22 +129,38 @@ public class ListingService : IListingService
         listing.ThumbnailUrl       = request.Images.Count > 0 ? request.Images[0] : null;
         listing.UpdatedAt          = DateTime.UtcNow;
 
-        await _listingRepository.UpdateAsync(listing);
-        await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
-
-        var cfvs = request.CustomFieldValues.Select(v => new ListingCustomFieldValue
+        // ClearDetailsAsync below removes the previous category's detail row
+        // before UpsertDetailsFromUpdateAsync writes the new one - without a
+        // transaction, a failure in between (e.g. a DB constraint) leaves the
+        // listing with no detail row at all instead of the row it had before
+        // the update, silently corrupting a previously-valid listing.
+        await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            Id                    = Guid.NewGuid(),
-            ListingId             = listing.Id,
-            CategoryCustomFieldId = v.CategoryCustomFieldId,
-            Value                 = v.Value,
-        });
-        await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, cfvs, ct);
+            await _listingRepository.UpdateAsync(listing);
+            await _listingRepository.ReplaceImagesAsync(listing.Id, request.Images, ct);
 
-        // A category change must not leave the previous category's detail row
-        // attached to the listing and exposed in later API responses.
-        await _listingRepository.ClearDetailsAsync(listing.Id, ct);
-        await UpsertDetailsFromUpdateAsync(listing.Id, request, ct);
+            var cfvs = request.CustomFieldValues.Select(v => new ListingCustomFieldValue
+            {
+                Id                    = Guid.NewGuid(),
+                ListingId             = listing.Id,
+                CategoryCustomFieldId = v.CategoryCustomFieldId,
+                Value                 = v.Value,
+            });
+            await _listingRepository.ReplaceCustomFieldValuesAsync(listing.Id, cfvs, ct);
+
+            // A category change must not leave the previous category's detail row
+            // attached to the listing and exposed in later API responses.
+            await _listingRepository.ClearDetailsAsync(listing.Id, ct);
+            await UpsertDetailsFromUpdateAsync(listing.Id, request, ct);
+
+            await _unitOfWork.CommitAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackAsync();
+            throw;
+        }
     }
 
     private async Task<Ube.Domain.Entities.Listings.Category> GetValidCategoryAsync(

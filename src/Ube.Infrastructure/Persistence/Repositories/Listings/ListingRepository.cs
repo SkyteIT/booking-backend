@@ -89,11 +89,6 @@ public class ListingRepository : IListingRepository
 
         var today = BusinessDate.Today;
 
-        // Any active offer counts here (perk-only included) - the badge/
-        // filter is "does this listing have something running right now,"
-        // not specifically "does it have a discount." Checkout's own
-        // lookup (GetActiveDiscountForListingAsync) is the one that stays
-        // discount-only, since only a discount can affect price.
         if (request.HasActiveOffer == true)
         {
             query = query.Where(x => _db.ListingOffers.Any(o =>
@@ -140,9 +135,7 @@ public class ListingRepository : IListingRepository
         return new SearchListingsResult { Items = items, TotalCount = totalCount };
     }
 
-    // Called only when an active offer row was actually found (the
-    // caller checks HasActiveOffer) - a null DiscountType there means a
-    // pure-perk offer, not "no offer at all."
+ 
     private static string FormatOfferBadge(OfferDiscountType? type, decimal? value)
         => type switch
         {
@@ -167,8 +160,12 @@ public class ListingRepository : IListingRepository
                 .ThenInclude(v => v.CategoryCustomField)
             .FirstOrDefaultAsync(l => l.Id == listingId, ct);
 
+    // Backs the public, unauthenticated GET /api/listings - must never
+    // return a vendor's unpublished/inactive listing to an anonymous
+    // caller just because no filter was applied.
     public async Task<List<Listing>> GetAllWithDetailsAsync(CancellationToken ct = default)
         => await _db.Listings
+            .Where(l => l.IsActive)
             .Include(l => l.VendorProfile)
             .Include(l => l.Category)
             .Include(l => l.Images)

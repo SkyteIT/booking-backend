@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Interfaces.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +12,16 @@ namespace Ube.Api.Controllers.Listings;
 [Route("api/listings")]
 public class ListingController : ControllerBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+    // Multipart requests carry the payload as a plain "data" form field, so
+    // it's deserialized manually here instead of via [FromBody] - meaning it
+    // doesn't pick up the JsonStringEnumConverter registered on MVC's global
+    // JSON options (Program.cs), and needs its own copy to parse enum
+    // fields like PricingUnitOverride sent as strings ("FixedPrice").
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        Converters = { new JsonStringEnumConverter() },
+    };
 
     private readonly IListingService _listingService;
     private readonly ISeasonalPricingService _seasonalPricingService;

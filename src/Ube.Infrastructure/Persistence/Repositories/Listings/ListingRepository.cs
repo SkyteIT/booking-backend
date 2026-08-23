@@ -128,6 +128,7 @@ public class ListingRepository : IListingRepository
             CategoryName = r.Listing.Category.Name,
             Location = r.Listing.Location ?? string.Empty,
             Price = r.Listing.Price,
+            Currency = r.Listing.Currency,
             AverageRating = r.Listing.AverageRating,
             IsFeatured = r.Listing.IsFeatured,
             IsActive = r.Listing.IsActive,

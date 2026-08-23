@@ -9,7 +9,7 @@ public class NotificationTypeCatalogTests
     {
         Assert.Equal(14, NotificationTypeCatalog.Admin.Length);
         Assert.Equal(19, NotificationTypeCatalog.Vendor.Length);
-        Assert.Equal(20, NotificationTypeCatalog.Customer.Length);
+        Assert.Equal(21, NotificationTypeCatalog.Customer.Length);
 
         var all = NotificationTypeCatalog.All.ToArray();
 
@@ -99,5 +99,6 @@ public class NotificationTypeCatalogTests
         yield return new object[] { NotificationType.CustomerAccountVerification };
         yield return new object[] { NotificationType.CustomerSystemAnnouncement };
         yield return new object[] { NotificationType.CustomerPromotionAndOfferAvailable };
+        yield return new object[] { NotificationType.VendorApplicationSubmitted };
     }
 }

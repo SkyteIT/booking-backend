@@ -191,7 +191,16 @@ public class RefundService : IRefundService
 
     private async Task ProcessApprovedRefundAsync(Refund refund, Payment payment, Guid? approvedByUserId, CancellationToken ct)
     {
-        await _gateway.InitiateRefundAsync(payment.GatewayReference ?? string.Empty, refund.Amount, refund.Id.ToString(), ct);
+        // Only a PlatformCollected payment ever moved funds through the
+        // gateway - for VendorCollected the vendor took the customer's cash
+        // directly, so there's nothing captured on the platform's side to
+        // refund through it (refunding the customer there is the vendor's
+        // problem; the platform's only exposure was the commission it was
+        // owed, reversed in the ledger entries below).
+        if (payment.CollectionMethod == PaymentCollectionMethod.PlatformCollected)
+        {
+            await _gateway.InitiateRefundAsync(payment.GatewayReference ?? string.Empty, refund.Amount, refund.Id.ToString(), ct);
+        }
 
         refund.Status = RefundStatus.Processed;
         refund.ProcessedAt = DateTime.UtcNow;
@@ -202,11 +211,6 @@ public class RefundService : IRefundService
             : Domain.Enums.Payments.PaymentStatus.PartiallyRefunded;
         await _paymentRepo.UpdateAsync(payment, ct);
 
-        // Reversing entries - never mutates the original charge entries.
-        var refundShareOfCommission = payment.Amount == 0
-            ? 0
-            : MoneyMath.RoundCurrency(payment.NetVendorAmount * refund.Amount / payment.Amount);
-
         // If the vendor already received an advance against this payment,
         // this debit is money they need to give back, not just a smaller
         // future payout - tag it Clawback instead of Refund so reporting
@@ -216,9 +220,20 @@ public class RefundService : IRefundService
         var isClawback = existingEntries.Any(e => e.EntryType == LedgerEntryType.AdvancePayout);
         var vendorEntryType = isClawback ? LedgerEntryType.Clawback : LedgerEntryType.Refund;
 
-        var entries = new List<LedgerEntry>
+        // Reversing entries - never mutates the original charge entries.
+        // Mirrors WriteChargeLedgerEntriesAsync's own CollectionMethod
+        // branch exactly, so a refund only ever reverses what the charge
+        // actually moved, and every debit still has its offsetting credit
+        // the way the original charge entries did.
+        var entries = new List<LedgerEntry>();
+
+        if (payment.CollectionMethod == PaymentCollectionMethod.PlatformCollected)
         {
-            new()
+            var vendorShare = payment.Amount == 0
+                ? 0
+                : MoneyMath.RoundCurrency(payment.NetVendorAmount * refund.Amount / payment.Amount);
+
+            entries.Add(new LedgerEntry
             {
                 Id = Guid.NewGuid(),
                 AccountType = LedgerAccountType.Platform,
@@ -227,19 +242,61 @@ public class RefundService : IRefundService
                 Amount = refund.Amount,
                 PaymentId = payment.Id,
                 RefundId = refund.Id
-            },
-            new()
+            });
+            entries.Add(new LedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                AccountType = LedgerAccountType.Platform,
+                EntryType = vendorEntryType,
+                Direction = LedgerDirection.Credit,
+                Amount = vendorShare,
+                PaymentId = payment.Id,
+                RefundId = refund.Id
+            });
+            entries.Add(new LedgerEntry
             {
                 Id = Guid.NewGuid(),
                 AccountType = LedgerAccountType.Vendor,
                 VendorProfileId = payment.VendorProfileId,
                 EntryType = vendorEntryType,
                 Direction = LedgerDirection.Debit,
-                Amount = refundShareOfCommission,
+                Amount = vendorShare,
                 PaymentId = payment.Id,
                 RefundId = refund.Id
-            }
-        };
+            });
+        }
+        else
+        {
+            // The platform's only stake in a VendorCollected payment was
+            // the commission the vendor owed on top of it - refunding the
+            // booking only reverses that commission claim, not a gross
+            // amount the platform never held.
+            var commissionShare = payment.Amount == 0
+                ? 0
+                : MoneyMath.RoundCurrency(payment.CommissionAmount * refund.Amount / payment.Amount);
+
+            entries.Add(new LedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                AccountType = LedgerAccountType.Vendor,
+                VendorProfileId = payment.VendorProfileId,
+                EntryType = vendorEntryType,
+                Direction = LedgerDirection.Credit,
+                Amount = commissionShare,
+                PaymentId = payment.Id,
+                RefundId = refund.Id
+            });
+            entries.Add(new LedgerEntry
+            {
+                Id = Guid.NewGuid(),
+                AccountType = LedgerAccountType.Platform,
+                EntryType = vendorEntryType,
+                Direction = LedgerDirection.Debit,
+                Amount = commissionShare,
+                PaymentId = payment.Id,
+                RefundId = refund.Id
+            });
+        }
 
         await _ledgerRepo.AddRangeAsync(entries, ct);
 

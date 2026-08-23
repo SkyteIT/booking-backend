@@ -60,10 +60,7 @@ public class PromotionService : IPromotionService
     {
         var normalizedCode = dto.Code.Trim().ToUpperInvariant();
 
-        var all = await _repo.GetAllAsync(cancellationToken);
-        var exists = all.Any(p => p.PromoCode == normalizedCode);
-
-        if (exists)
+        if (await _repo.ExistsByCodeAsync(normalizedCode, cancellationToken))
             throw new InvalidOperationException($"Promo code \"{normalizedCode}\" already exists.");
 
         var promotion = new Ube.Domain.Entities.Content.Promotion
@@ -102,9 +99,7 @@ public class PromotionService : IPromotionService
 
         if (!string.Equals(promotion.PromoCode, normalizedCode, StringComparison.OrdinalIgnoreCase))
         {
-            var exists = all.Any(p => p.PromoCode == normalizedCode);
-
-            if (exists)
+            if (await _repo.ExistsByCodeAsync(normalizedCode, cancellationToken))
                 throw new InvalidOperationException($"Promo code \"{normalizedCode}\" already exists.");
         }
 

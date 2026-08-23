@@ -1,6 +1,6 @@
+using Ube.Application.Common.Exceptions;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Features.Notifications;
-using Ube.Domain.Entities.Content;
 using Ube.Domain.Enums;
 using Ube.Domain.Enums.Notifications;
 using Ube.Domain.Enums.Content;
@@ -30,6 +30,16 @@ public class BannerService : IBannerService
         return banners.Select(ToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<BannerDto>> GetActiveByPlacementAsync(
+        BannerPlacement placement,
+        DateOnly? asOfDate,
+        CancellationToken cancellationToken)
+    {
+        var effectiveDate = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var banners = await _repo.GetActiveByPlacementAsync(placement, effectiveDate, cancellationToken);
+        return banners.Select(ToDto).ToList();
+    }
+
     public async Task<BannerDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
         var banner = await _repo.GetByIdAsync(id, cancellationToken);
@@ -38,25 +48,44 @@ public class BannerService : IBannerService
 
     public async Task<BannerDto> CreateAsync(CreateBannerDto dto, CancellationToken cancellationToken)
     {
+        ValidateDateRange(dto.StartDate, dto.EndDate);
+
         var banner = new Ube.Domain.Entities.Content.Banner
         {
             Title = dto.Title,
             Subtitle = dto.Subtitle,
             ImageUrl = dto.ImageUrl,
             Placement = (BannerPlacement)dto.Placement,
+            DisplayOrder = dto.DisplayOrder,
             StartDate = dto.StartDate,
             EndDate = dto.EndDate,
-            Status = RecordStatus.Active
+            Status = (RecordStatus)dto.Status
         };
 
         await _repo.AddAsync(banner, cancellationToken);
         await _repo.SaveChangesAsync(cancellationToken);
 
-        await NotifyCustomersAsync(
-            NotificationType.CustomerSystemAnnouncement,
-            "System announcement",
-            banner.Title,
-            cancellationToken);
+        if (IsCurrentlyVisible(banner, DateOnly.FromDateTime(DateTime.UtcNow)))
+        {
+            await NotifyCustomersAsync(
+                NotificationType.CustomerSystemAnnouncement,
+                "System announcement",
+                banner.Title,
+                cancellationToken);
+        }
+
+        return ToDto(banner);
+    }
+
+    public async Task<BannerDto?> UpdateImageAsync(Guid id, string imageUrl, CancellationToken cancellationToken)
+    {
+        var banner = await _repo.GetByIdAsync(id, cancellationToken);
+        if (banner is null) return null;
+
+        banner.ImageUrl = imageUrl;
+        banner.UpdatedAt = DateTime.UtcNow;
+
+        await _repo.SaveChangesAsync(cancellationToken);
 
         return ToDto(banner);
     }
@@ -66,10 +95,16 @@ public class BannerService : IBannerService
         var banner = await _repo.GetByIdAsync(id, cancellationToken);
         if (banner is null) return null;
 
+        ValidateDateRange(dto.StartDate, dto.EndDate);
+
         banner.Title = dto.Title;
         banner.Subtitle = dto.Subtitle;
-        banner.ImageUrl = dto.ImageUrl;
+        if (!string.IsNullOrWhiteSpace(dto.ImageUrl))
+        {
+            banner.ImageUrl = dto.ImageUrl;
+        }
         banner.Placement = (BannerPlacement)dto.Placement;
+        banner.DisplayOrder = dto.DisplayOrder;
         banner.StartDate = dto.StartDate;
         banner.EndDate = dto.EndDate;
         banner.Status = (RecordStatus)dto.Status;
@@ -77,7 +112,7 @@ public class BannerService : IBannerService
 
         await _repo.SaveChangesAsync(cancellationToken);
 
-        if (banner.Status == RecordStatus.Active)
+        if (IsCurrentlyVisible(banner, DateOnly.FromDateTime(DateTime.UtcNow)))
         {
             await NotifyCustomersAsync(
                 NotificationType.CustomerSystemAnnouncement,
@@ -106,10 +141,33 @@ public class BannerService : IBannerService
         Subtitle = x.Subtitle,
         ImageUrl = x.ImageUrl,
         Placement = x.Placement.ToString(),
+        DisplayOrder = x.DisplayOrder,
         StartDate = x.StartDate,
         EndDate = x.EndDate,
-        Status = x.Status.ToString()
+        Status = x.Status.ToString(),
+        LifecycleStatus = GetLifecycleStatus(x, DateOnly.FromDateTime(DateTime.UtcNow)).ToString(),
+        IsVisible = IsCurrentlyVisible(x, DateOnly.FromDateTime(DateTime.UtcNow))
     };
+
+    private static void ValidateDateRange(DateOnly startDate, DateOnly endDate)
+    {
+        if (endDate <= startDate)
+            throw new BusinessRuleException("End date must be after start date");
+    }
+
+    private static bool IsCurrentlyVisible(Ube.Domain.Entities.Content.Banner banner, DateOnly asOfDate)
+        => banner.Status == RecordStatus.Active &&
+           banner.StartDate <= asOfDate &&
+           banner.EndDate >= asOfDate;
+
+    private static BannerLifecycleStatus GetLifecycleStatus(Ube.Domain.Entities.Content.Banner banner, DateOnly asOfDate)
+        => banner.Status != RecordStatus.Active
+            ? BannerLifecycleStatus.Inactive
+            : asOfDate < banner.StartDate
+                ? BannerLifecycleStatus.Scheduled
+                : asOfDate > banner.EndDate
+                    ? BannerLifecycleStatus.Expired
+                    : BannerLifecycleStatus.Active;
 
     private async Task NotifyCustomersAsync(
         NotificationType type,

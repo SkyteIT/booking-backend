@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Ube.Domain.Entities.Bookings;
+using Ube.Domain.Entities.Content;
 using Ube.Domain.Entities.Listings;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
 using Ube.Domain.Enums.Bookings;
 using Ube.Domain.Enums.Listings;
+using Ube.Domain.Enums;
+using Ube.Domain.Enums.Content;
 using Ube.Domain.Enums.Users;
 using Ube.Domain.Enums.Vendors;
 
@@ -33,6 +36,12 @@ public static class TestDataSeeder
     public static readonly Guid CategoryEventId = Guid.Parse("10000000-0000-0000-0000-000000000003");
     public static readonly Guid CategoryCarRentalId = Guid.Parse("10000000-0000-0000-0000-000000000004");
     public static readonly Guid CategoryActivityId = Guid.Parse("10000000-0000-0000-0000-000000000005");
+
+    public static readonly Guid Banner1Id = Guid.Parse("30000000-0000-0000-0000-000000000001");
+    public static readonly Guid Banner2Id = Guid.Parse("30000000-0000-0000-0000-000000000002");
+
+    public static readonly Guid Promotion1Id = Guid.Parse("40000000-0000-0000-0000-000000000001");
+    public static readonly Guid Promotion2Id = Guid.Parse("40000000-0000-0000-0000-000000000002");
 
     public static readonly Guid Listing1Id = Guid.Parse("eeeeeeee-0000-0000-0000-eeeeeeeeeeee");
     public static readonly Guid Listing2Id = Guid.Parse("eeeeeeee-1111-1111-1111-eeeeeeeeeeee");
@@ -137,6 +146,62 @@ public static class TestDataSeeder
         UpsertCategory(dbContext, CategoryEventId, "Events & Tickets", "Concerts, sports, and theater tickets.", ListingType.Event, BookingConfirmationType.Instant, now, cancellationToken);
         UpsertCategory(dbContext, CategoryCarRentalId, "Car Rentals", "Self-drive and chauffeur car rentals.", ListingType.CarRental, BookingConfirmationType.Request, now, cancellationToken);
         UpsertCategory(dbContext, CategoryActivityId, "Activities & Tours", "Tours, experiences, and bookable activities.", ListingType.Activity, BookingConfirmationType.Request, now, cancellationToken);
+
+        var today = DateOnly.FromDateTime(now);
+
+        await UpsertBanner(
+            dbContext,
+            Banner1Id,
+            "Summer getaway",
+            "Book curated stays and experiences with featured banner placements.",
+            "/images/banners/seed-summer-getaway.jpg",
+            BannerPlacement.LandingPage,
+            1,
+            today.AddDays(-7),
+            today.AddDays(21),
+            RecordStatus.Active,
+            now,
+            cancellationToken);
+
+        await UpsertBanner(
+            dbContext,
+            Banner2Id,
+            "Weekend escape",
+            "Promote top listings across explore and category pages.",
+            "/images/banners/seed-weekend-escape.jpg",
+            BannerPlacement.ExplorePage,
+            2,
+            today.AddDays(-3),
+            today.AddDays(14),
+            RecordStatus.Active,
+            now,
+            cancellationToken);
+
+        await UpsertPromotion(
+            dbContext,
+            Promotion1Id,
+            "SAVE10",
+            PromotionType.Percentage,
+            10m,
+            100,
+            today.AddDays(-14),
+            today.AddDays(30),
+            RecordStatus.Active,
+            now,
+            cancellationToken);
+
+        await UpsertPromotion(
+            dbContext,
+            Promotion2Id,
+            "FIXED500",
+            PromotionType.FixedAmount,
+            500m,
+            50,
+            today.AddDays(-10),
+            today.AddDays(20),
+            RecordStatus.Active,
+            now,
+            cancellationToken);
 
         UpsertVendorApplication(
             dbContext,
@@ -481,6 +546,71 @@ public static class TestDataSeeder
         category.BookingType = bookingType;
         category.Status = Ube.Domain.Enums.RecordStatus.Active;
         dbContext.Categories.Update(category);
+    }
+
+    private static async Task UpsertBanner(
+        ApplicationDbContext dbContext,
+        Guid bannerId,
+        string title,
+        string subtitle,
+        string imageUrl,
+        BannerPlacement placement,
+        int displayOrder,
+        DateOnly startDate,
+        DateOnly endDate,
+        RecordStatus status,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var exists = await dbContext.Banners.AnyAsync(x => x.Id == bannerId, cancellationToken);
+        if (exists)
+            return;
+
+        dbContext.Banners.Add(new Banner
+        {
+            Id = bannerId,
+            Title = title,
+            Subtitle = subtitle,
+            ImageUrl = imageUrl,
+            Placement = placement,
+            DisplayOrder = displayOrder,
+            StartDate = startDate,
+            EndDate = endDate,
+            Status = status,
+            CreatedAt = now
+        });
+    }
+
+    private static async Task UpsertPromotion(
+        ApplicationDbContext dbContext,
+        Guid promotionId,
+        string promoCode,
+        PromotionType type,
+        decimal value,
+        int usageLimit,
+        DateOnly startDate,
+        DateOnly endDate,
+        RecordStatus status,
+        DateTime now,
+        CancellationToken cancellationToken)
+    {
+        var exists = await dbContext.Promotions.AnyAsync(x => x.Id == promotionId, cancellationToken);
+        if (exists)
+            return;
+
+        dbContext.Promotions.Add(new Promotion
+        {
+            Id = promotionId,
+            PromoCode = promoCode,
+            Type = type,
+            Value = value,
+            UsageCount = 0,
+            UsageLimit = usageLimit,
+            StartDate = startDate,
+            EndDate = endDate,
+            Status = status,
+            CreatedAt = now
+        });
     }
 
     private static void UpsertListing(

@@ -31,8 +31,8 @@ public class VendorRegisterController : ControllerBase
         IFormFile? taxDocument)
     {
         VendorApplicationDocumentValidator.Validate(businessLicense, "Business license");
-        VendorApplicationDocumentValidator.Validate(insuranceCertificate, "Insurance certificate");
-        VendorApplicationDocumentValidator.Validate(taxDocument, "Tax document");
+        VendorApplicationDocumentValidator.Validate(insuranceCertificate, "Insurance certificate", required: false);
+        VendorApplicationDocumentValidator.Validate(taxDocument, "Tax document", required: false);
 
         var id = await _vendorRegistrationService.SubmitApplicationAsync(
             _currentUser.UserId,

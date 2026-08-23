@@ -62,6 +62,7 @@ using Azure.Identity;
 using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Ube.Api.Hubs;
 using Ube.Api.Services;
+using Microsoft.Data.SqlClient;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -290,8 +291,20 @@ if (app.Environment.IsDevelopment())
     // Keep the local database in sync before the seeder or any API query runs.
     // The explore query reads newer listing fields and ListingOffers, so an
     // older local schema otherwise surfaces as a generic "Failed to load".
-    await dbContext.Database.MigrateAsync();
-    await TestDataSeeder.SeedAsync(dbContext, app.Logger);
+    try
+    {
+        await dbContext.Database.MigrateAsync();
+        await TestDataSeeder.SeedAsync(dbContext, app.Logger);
+    }
+    catch (SqlException exception)
+    {
+        // Keep the local web host available when the developer's current IP is
+        // not allowed by Azure SQL. Database-backed requests will still return
+        // an error through the normal exception middleware until access is fixed.
+        app.Logger.LogWarning(
+            exception,
+            "Database migration and test-data seeding were skipped because SQL Server is unavailable.");
+    }
 }
 app.UseMiddleware<Ube.Api.Middleware.ExceptionMiddleware>();
 app.UseRateLimiter();

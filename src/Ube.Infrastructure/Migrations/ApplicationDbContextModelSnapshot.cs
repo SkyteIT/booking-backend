@@ -374,6 +374,10 @@ namespace Ube.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("Placement")
                         .HasColumnType("int");
 
@@ -394,6 +398,8 @@ namespace Ube.Infrastructure.Migrations
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
+
+                    b.HasIndex("Placement", "Status", "StartDate", "EndDate", "DisplayOrder");
 
                     b.HasKey("Id");
 

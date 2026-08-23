@@ -1,4 +1,6 @@
 using FluentValidation;
+using Ube.Domain.Enums;
+using Ube.Domain.Enums.Content;
 
 namespace Ube.Application.Features.Content.Banner.Validators;
 
@@ -19,7 +21,16 @@ public class CreateBannerDtoValidator : AbstractValidator<CreateBannerDto>
             .MaximumLength(500);
 
         RuleFor(x => x.Placement)
-            .GreaterThanOrEqualTo(0).WithMessage("Placement is required");
+            .Must(value => Enum.IsDefined(typeof(BannerPlacement), value))
+            .WithMessage("Placement is required");
+
+        RuleFor(x => x.DisplayOrder)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("Display order must be zero or a positive number");
+
+        RuleFor(x => x.Status)
+            .Must(value => Enum.IsDefined(typeof(RecordStatus), value))
+            .WithMessage("Status is required");
 
         RuleFor(x => x.StartDate)
             .NotEmpty().WithMessage("Start date is required");

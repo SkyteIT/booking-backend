@@ -7,7 +7,10 @@ public class BannerDto
     public string? Subtitle { get; set; }
     public string ImageUrl { get; set; } = string.Empty;
     public string Placement { get; set; } = string.Empty;
+    public int DisplayOrder { get; set; }
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string LifecycleStatus { get; set; } = string.Empty;
+    public bool IsVisible { get; set; }
 }

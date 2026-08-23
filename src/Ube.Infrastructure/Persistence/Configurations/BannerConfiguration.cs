@@ -10,9 +10,11 @@ public class BannerConfiguration : IEntityTypeConfiguration<Banner>
     {
         builder.ToTable("Banners");
         builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.Placement, x.Status, x.StartDate, x.EndDate, x.DisplayOrder });
 
         builder.Property(x => x.Title).HasMaxLength(150).IsRequired();
         builder.Property(x => x.Subtitle).HasMaxLength(300);
         builder.Property(x => x.ImageUrl).HasColumnType("nvarchar(max)").IsRequired();
+        builder.Property(x => x.DisplayOrder).HasDefaultValue(0);
     }
 }

@@ -126,13 +126,17 @@ public static class TestDataSeeder
         UpsertVendorPayout(dbContext, VendorPayoutId, VendorProfileId, "Seed Bank", "000123456789", "Main Vendor", "Colombo Branch", now, cancellationToken);
         // "Photography" doesn't map cleanly onto any fixed ListingType, but of the
         // 5 it's closest to a bookable Activity, so that's what its listings use.
-        UpsertCategory(dbContext, CategoryId, "Photography", "Seed category for all listings.", ListingType.Activity, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryId, "Photography", "Seed category for all listings.", ListingType.Activity, BookingConfirmationType.Request, now, cancellationToken);
 
-        UpsertCategory(dbContext, CategoryHotelId, "Hotels & Resorts", "Stays across hotels, apartments, and resorts.", ListingType.Hotel, now, cancellationToken);
-        UpsertCategory(dbContext, CategoryRestaurantId, "Restaurants & Dining", "Table reservations at restaurants and cafes.", ListingType.Restaurant, now, cancellationToken);
-        UpsertCategory(dbContext, CategoryEventId, "Events & Tickets", "Concerts, sports, and theater tickets.", ListingType.Event, now, cancellationToken);
-        UpsertCategory(dbContext, CategoryCarRentalId, "Car Rentals", "Self-drive and chauffeur car rentals.", ListingType.CarRental, now, cancellationToken);
-        UpsertCategory(dbContext, CategoryActivityId, "Activities & Tours", "Tours, experiences, and bookable activities.", ListingType.Activity, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryHotelId, "Hotels & Resorts", "Stays across hotels, apartments, and resorts.", ListingType.Hotel, BookingConfirmationType.Request, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryRestaurantId, "Restaurants & Dining", "Table reservations at restaurants and cafes.", ListingType.Restaurant, BookingConfirmationType.Request, now, cancellationToken);
+        // Tickets are a quick, fixed-inventory purchase, not a stay/table a
+        // vendor needs to individually review - Instant here means a ticket
+        // buyer gets a Confirmed booking immediately instead of sitting
+        // Pending indefinitely awaiting manual approval.
+        UpsertCategory(dbContext, CategoryEventId, "Events & Tickets", "Concerts, sports, and theater tickets.", ListingType.Event, BookingConfirmationType.Instant, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryCarRentalId, "Car Rentals", "Self-drive and chauffeur car rentals.", ListingType.CarRental, BookingConfirmationType.Request, now, cancellationToken);
+        UpsertCategory(dbContext, CategoryActivityId, "Activities & Tours", "Tours, experiences, and bookable activities.", ListingType.Activity, BookingConfirmationType.Request, now, cancellationToken);
 
         UpsertVendorApplication(
             dbContext,
@@ -451,6 +455,7 @@ public static class TestDataSeeder
         string name,
         string description,
         ListingType type,
+        BookingConfirmationType bookingType,
         DateTime now,
         CancellationToken cancellationToken)
     {
@@ -463,6 +468,7 @@ public static class TestDataSeeder
                 Name = name,
                 Description = description,
                 Type = type,
+                BookingType = bookingType,
                 Status = Ube.Domain.Enums.RecordStatus.Active,
                 CreatedAt = now
             });
@@ -472,6 +478,7 @@ public static class TestDataSeeder
         category.Name = name;
         category.Description = description;
         category.Type = type;
+        category.BookingType = bookingType;
         category.Status = Ube.Domain.Enums.RecordStatus.Active;
         dbContext.Categories.Update(category);
     }

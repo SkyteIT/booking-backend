@@ -4,6 +4,7 @@ using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Admin.VendorApplications;
 using Ube.Application.Features.Notifications;
+using Ube.Application.Features.Notifications.Email;
 using Ube.Application.Features.Vendors;
 using Ube.Domain.Entities.Users;
 using Ube.Domain.Entities.Vendors;
@@ -79,8 +80,10 @@ public class AdminVendorApplicationServiceTests
         var vendorRepo = new Mock<IVendorProfileRepository>();
         var unitOfWork = new Mock<IUnitOfWork>();
         var encryptionService = new Mock<IEncryptionService>();
+        var emailService = new Mock<IEmailService>();
         var notificationService = new Mock<INotificationService>();
         var realtimeService = new Mock<IRealtimeUpdateService>();
+        var fileStorage = new Mock<IFileStorageService>();
         var logger = new Mock<ILogger<AdminVendorApplicationService>>();
 
         applicationRepo.Setup(x => x.GetByIdAsync(application.Id)).ReturnsAsync(application);
@@ -108,14 +111,16 @@ public class AdminVendorApplicationServiceTests
 
         return new AdminVendorApplicationServiceHarness(
             new AdminVendorApplicationService(
-                applicationRepo.Object,
-                userRepo.Object,
-                vendorRepo.Object,
-                unitOfWork.Object,
-                encryptionService.Object,
-                notificationService.Object,
-                realtimeService.Object,
-                logger.Object),
+                applicationRepo: applicationRepo.Object,
+                userRepo: userRepo.Object,
+                vendorRepo: vendorRepo.Object,
+                unitOfWork: unitOfWork.Object,
+                encryptionService: encryptionService.Object,
+                emailService: emailService.Object,
+                notificationService: notificationService.Object,
+                realtimeUpdateService: realtimeService.Object,
+                fileStorage: fileStorage.Object,
+                logger: logger.Object),
             applicationRepo,
             userRepo,
             vendorRepo,

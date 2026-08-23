@@ -142,7 +142,11 @@ public class BannerController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
+        var existing = await _service.GetByIdAsync(id, cancellationToken);
         var deleted = await _service.DeleteAsync(id, cancellationToken);
+        if (deleted && existing is not null)
+            await DeleteBannerImageAsync(existing.ImageUrl);
+
         return deleted ? NoContent() : NotFound(); // 204 or 404
     }
 
@@ -162,23 +166,20 @@ public class BannerController : ControllerBase
         return await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);
     }
 
-    private static Task DeleteBannerImageAsync(string? imageUrl)
+    private async Task DeleteBannerImageAsync(string? imageUrl)
     {
         if (string.IsNullOrWhiteSpace(imageUrl))
-            return Task.CompletedTask;
+            return;
 
-        if (!imageUrl.StartsWith("/images/banners/", StringComparison.OrdinalIgnoreCase))
-            return Task.CompletedTask;
-
-        var fileName = Path.GetFileName(imageUrl);
-        if (string.IsNullOrWhiteSpace(fileName))
-            return Task.CompletedTask;
-
-        var filePath = Path.Combine("wwwroot", "images", "banners", fileName);
-        if (System.IO.File.Exists(filePath))
-            System.IO.File.Delete(filePath);
-
-        return Task.CompletedTask;
+        try
+        {
+            await _fileStorage.DeleteAsync(imageUrl);
+        }
+        catch
+        {
+            // Best-effort cleanup - a failed blob delete should never fail
+            // the banner create/update/delete operation it's attached to.
+        }
     }
 
     private async Task<IActionResult> UpdateBannerInternalAsync(

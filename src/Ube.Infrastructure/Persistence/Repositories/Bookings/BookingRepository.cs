@@ -169,6 +169,21 @@ public class BookingRepository : IBookingRepository
             .ToListAsync(ct);
     }
 
+    public async Task<List<Guid>> GetBookedListingUnitIdsAsync(
+        Guid listingId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        return await _db.Bookings
+            .Where(b => b.ListingId == listingId &&
+                    b.ListingUnitId != null &&
+                    b.StartDateTime.Date <= endDate.Date &&
+                    b.EndDateTime.Date >= startDate.Date &&
+                    (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending)
+                    )
+            .Select(b => b.ListingUnitId!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+    }
+
     public async Task AddAsync(Booking booking) => await AddAsync(booking, default);
 
     public async Task AddAsync(Booking booking, CancellationToken ct = default)

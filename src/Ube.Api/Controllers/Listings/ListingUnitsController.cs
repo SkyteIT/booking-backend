@@ -33,6 +33,13 @@ public class ListingUnitsController : ControllerBase
         return Ok(unit);
     }
 
+    [HttpGet("booked")]
+    public async Task<IActionResult> GetBookedUnits(Guid listingId, DateTime start, DateTime end, CancellationToken ct)
+    {
+        var bookedUnitIds = await _unitService.GetBookedUnitIdsAsync(listingId, start, end, ct);
+        return Ok(bookedUnitIds);
+    }
+
     [HttpPost("bulk-grid")]
     [Authorize(Roles = "Vendor")]
     public async Task<IActionResult> AddGrid(Guid listingId, AddListingUnitsGridRequest request, CancellationToken ct)

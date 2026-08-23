@@ -21,6 +21,7 @@ public class CheckoutService : ICheckoutService
     private readonly IBookingRepository _bookingRepo;
     private readonly IListingRepository _listingRepo;
     private readonly IListingUnitRepository _unitRepo;
+    private readonly IListingOptionRepository _optionRepo;
     private readonly IBlockedDateRepository _blockedDateRepo;
     private readonly ICategoryRepository _categoryRepo;
     private readonly ISeasonalPricingRepository _seasonalPricingRepo;
@@ -35,6 +36,7 @@ public class CheckoutService : ICheckoutService
         IBookingRepository bookingRepo,
         IListingRepository listingRepo,
         IListingUnitRepository unitRepo,
+        IListingOptionRepository optionRepo,
         IBlockedDateRepository blockedDateRepo,
         ICategoryRepository categoryRepo,
         ISeasonalPricingRepository seasonalPricingRepo,
@@ -48,6 +50,7 @@ public class CheckoutService : ICheckoutService
         _bookingRepo = bookingRepo;
         _listingRepo = listingRepo;
         _unitRepo = unitRepo;
+        _optionRepo = optionRepo;
         _blockedDateRepo = blockedDateRepo;
         _categoryRepo = categoryRepo;
         _seasonalPricingRepo = seasonalPricingRepo;
@@ -81,6 +84,13 @@ public class CheckoutService : ICheckoutService
         var requestedUnitIds = request.Items.Where(i => i.ListingUnitId.HasValue).Select(i => i.ListingUnitId!.Value).Distinct().ToList();
         var unitsById = (await _unitRepo.GetByIdsAsync(requestedUnitIds, ct)).ToDictionary(u => u.Id);
 
+        var requestedOptionValueIds = request.Items
+            .Where(i => i.OptionValueIds is { Count: > 0 })
+            .SelectMany(i => i.OptionValueIds!)
+            .Distinct()
+            .ToList();
+        var optionValuesById = (await _optionRepo.GetValuesByIdsAsync(requestedOptionValueIds, ct)).ToDictionary(v => v.Id);
+
         await _unitOfWork.BeginTransactionAsync();
         try
         {
@@ -104,6 +114,23 @@ public class CheckoutService : ICheckoutService
                         throw new BusinessRuleException("Selected unit does not belong to this listing");
                 }
 
+                var selectedOptionValues = new List<ListingOptionValue>();
+                if (item.OptionValueIds is { Count: > 0 })
+                {
+                    foreach (var valueId in item.OptionValueIds)
+                    {
+                        if (!optionValuesById.TryGetValue(valueId, out var optionValue))
+                            throw new NotFoundException("Selected option value not found");
+                        if (optionValue.Group.ListingId != listing.Id)
+                            throw new BusinessRuleException("Selected option does not belong to this listing");
+                        selectedOptionValues.Add(optionValue);
+                    }
+                }
+
+                if (selectedOptionValues.Any(v => v.RequiresSeatSelection) &&
+                    (unit == null || unit.Kind != ListingUnitKind.Seat))
+                    throw new BusinessRuleException("This option requires selecting a specific seat.");
+
                 // Duplicate-booking guard - same customer already holds a
                 // live (Pending/Confirmed) booking for this listing/unit that
                 // overlaps these dates. Unambiguous fraud signal, always
@@ -118,8 +145,12 @@ public class CheckoutService : ICheckoutService
                 var nextValue = await _bookingRepo.GetNextBookingSequenceAsync();
                 var bookingNumber = $"BKG-{nextValue:D6}";
 
-                var effectivePrice = unit?.PriceOverride ?? listing.Price;
-                var isDateBasedPricing = category.ServiceModel is PricingUnit.PerNight or PricingUnit.PerDay;
+                var optionPriceOverride = selectedOptionValues
+                    .LastOrDefault(v => v.PriceOverride.HasValue)?.PriceOverride;
+                var effectivePrice = (optionPriceOverride ?? unit?.PriceOverride ?? listing.Price)
+                    + selectedOptionValues.Sum(v => v.PriceModifier);
+                var effectivePricingUnit = listing.PricingUnitOverride ?? category.ServiceModel;
+                var isDateBasedPricing = effectivePricingUnit is PricingUnit.PerNight or PricingUnit.PerDay;
                 decimal totalAmount;
                 if (isDateBasedPricing)
                 {
@@ -132,7 +163,7 @@ public class CheckoutService : ICheckoutService
                 else
                 {
                     totalAmount = BookingPricingRules.CalculateTotal(
-                        effectivePrice, item.Quantity, item.StartDateTime, item.EndDateTime, category.ServiceModel);
+                        effectivePrice, item.Quantity, item.StartDateTime, item.EndDateTime, effectivePricingUnit);
                 }
 
                 // Applied once per booking, on top of any seasonal
@@ -142,7 +173,9 @@ public class CheckoutService : ICheckoutService
                     listing.Id, BusinessDate.Today, ct);
                 totalAmount = BookingPricingRules.ApplyOfferDiscount(totalAmount, activeOffer);
 
-                var status = category.BookingType == BookingConfirmationType.Instant
+                var effectiveBookingType = selectedOptionValues.FirstOrDefault(v => v.ConfirmationTypeOverride != null)?.ConfirmationTypeOverride
+                    ?? category.BookingType;
+                var status = effectiveBookingType == BookingConfirmationType.Instant
                     ? BookingStatus.Confirmed
                     : BookingStatus.Pending;
 
@@ -162,6 +195,9 @@ public class CheckoutService : ICheckoutService
                     BookingNumber = bookingNumber,
                     ListingId = listing.Id,
                     ListingUnitId = item.ListingUnitId,
+                    SelectedOptionValueIds = selectedOptionValues.Count > 0
+                        ? string.Join(",", selectedOptionValues.Select(v => v.Id))
+                        : null,
                     CustomerId = customerId,
                     StartDateTime = item.StartDateTime,
                     EndDateTime = item.EndDateTime,

@@ -54,6 +54,7 @@ public class ListingService : IListingService
             Description        = request.Description ?? string.Empty,
             Price              = request.Price,
             Currency           = request.Currency,
+            PricingUnitOverride = request.PricingUnitOverride,
             Location           = request.Location,
             IsActive           = request.IsActive,
             Tags               = request.Tags.Count > 0 ? string.Join(",", request.Tags) : null,
@@ -122,6 +123,7 @@ public class ListingService : IListingService
         listing.Description        = request.Description ?? string.Empty;
         listing.Price              = request.Price;
         listing.Currency           = request.Currency;
+        listing.PricingUnitOverride = request.PricingUnitOverride;
         listing.Location           = request.Location;
         listing.IsActive           = request.IsActive;
         listing.Tags               = request.Tags.Count > 0 ? string.Join(",", request.Tags) : null;
@@ -333,7 +335,8 @@ public class ListingService : IListingService
         // the enum's old default (Hotel) stored in Listing.Type.
         Type = effectiveType,
         CategoryType = effectiveType,
-        PricingUnit = l.Category?.ServiceModel,
+        PricingUnit = l.PricingUnitOverride ?? l.Category?.ServiceModel,
+        PricingUnitOverride = l.PricingUnitOverride,
         AverageRating = l.AverageRating,
         TotalReviews = l.TotalReviews,
         PrimaryImage = l.Images?.OrderByDescending(i => i.IsPrimary).Select(i => i.ImageUrl).FirstOrDefault(),
@@ -431,6 +434,23 @@ public class ListingService : IListingService
             IsActive = u.IsActive,
             DisplayOrder = u.DisplayOrder
         }).ToList() ?? new List<ListingUnitDto>(),
+        OptionGroups = l.OptionGroups?.OrderBy(g => g.DisplayOrder).Select(g => new ListingOptionGroupDto
+        {
+            Id = g.Id,
+            ListingId = g.ListingId,
+            Name = g.Name,
+            DisplayOrder = g.DisplayOrder,
+            Values = g.Values.OrderBy(v => v.DisplayOrder).Select(v => new ListingOptionValueDto
+            {
+                Id = v.Id,
+                Name = v.Name,
+                DisplayOrder = v.DisplayOrder,
+                PriceModifier = v.PriceModifier,
+                PriceOverride = v.PriceOverride,
+                ConfirmationTypeOverride = v.ConfirmationTypeOverride,
+                RequiresSeatSelection = v.RequiresSeatSelection
+            }).ToList()
+        }).ToList() ?? new List<ListingOptionGroupDto>(),
         BookingSelection = BuildBookingSelection(effectiveType, l)
         };
     }

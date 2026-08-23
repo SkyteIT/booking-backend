@@ -7,6 +7,7 @@ public class CheckoutItemRequest
     public DateTime StartDateTime { get; set; }
     public DateTime EndDateTime { get; set; }
     public Guid? ListingUnitId { get; set; }
+    public List<Guid>? OptionValueIds { get; set; }
 }
 
 public class CheckoutRequest

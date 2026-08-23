@@ -17,6 +17,11 @@ public class ListingUnit
 
     public string Name { get; set; } = string.Empty;
     public string? Code { get; set; }
+    // What makes this specific option different from another one with the
+    // same Kind (e.g. "Sea view, king bed, 35m2, free WiFi" for a Deluxe
+    // Room) - shown to the customer once they pick this unit. List-mode
+    // units only; not set for bulk-generated Seat/TimeSlot rows.
+    public string? Description { get; set; }
     public decimal? PriceOverride { get; set; }
     public int Capacity { get; set; } = 1;
 

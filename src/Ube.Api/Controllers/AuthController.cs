@@ -41,9 +41,10 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
     [HttpPost("google-login")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginRequest request)
     {
-        var result = await _authService.GoogleLoginAsync(request.IdToken, request.DeviceToken);
+        var result = await _authService.GoogleLoginAsync(request.EffectiveIdToken, request.DeviceToken);
         return Ok(result);
     }
 

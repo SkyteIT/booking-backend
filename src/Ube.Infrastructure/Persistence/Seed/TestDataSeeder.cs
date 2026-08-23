@@ -62,6 +62,7 @@ public static class TestDataSeeder
     public static readonly Guid ListingActivity2Id = Guid.Parse("20000000-0000-0000-0000-00000000000a");
 
     public static readonly Guid VendorPayoutId = Guid.Parse("bbbbbbbb-2222-2222-2222-bbbbbbbbbbbb");
+    public static readonly Guid MainVendorApplicationId = Guid.Parse("bbbbbbbb-4444-4444-4444-bbbbbbbbbbbb");
 
     public static readonly Guid VendorApplication1Id = Guid.Parse("dddddddd-1111-1111-1111-dddddddddddd");
     public static readonly Guid VendorApplication2Id = Guid.Parse("dddddddd-2222-2222-2222-dddddddddddd");
@@ -200,6 +201,26 @@ public static class TestDataSeeder
             today.AddDays(-10),
             today.AddDays(20),
             RecordStatus.Active,
+            now,
+            cancellationToken);
+
+        // The main seeded account already has the Vendor role and a vendor profile,
+        // so its onboarding application must also be approved. The frontend uses
+        // this application status to decide whether to open the vendor portal.
+        UpsertVendorApplication(
+            dbContext,
+            MainVendorApplicationId,
+            VendorUserId,
+            "Main Vendor Studio",
+            "Photography",
+            "Simple seeded vendor profile.",
+            "Colombo",
+            "Main Vendor",
+            "+94770000001",
+            "https://example.com/license-main-vendor.pdf",
+            "https://example.com/insurance-main-vendor.pdf",
+            "https://example.com/tax-main-vendor.pdf",
+            VendorApplicationStatus.Approved,
             now,
             cancellationToken);
 
@@ -361,7 +382,7 @@ public static class TestDataSeeder
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Seeded test dataset: 1 admin, 1 vendor, 5 customers, 5 pending vendor applications, 5 listings, 15 bookings.");
+            "Seeded test dataset: 1 admin, 1 approved vendor, 5 customers, 5 pending vendor applications, 5 listings, 15 bookings.");
 
     }
 

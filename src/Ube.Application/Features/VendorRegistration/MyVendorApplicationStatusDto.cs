@@ -10,4 +10,8 @@ public class MyVendorApplicationStatusDto
     public DateTime SubmittedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }
     public string? RejectionReason { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public bool CanReapply { get; set; }
+    public bool CanAccessVendorPortal { get; set; }
+    public bool ShowRejectionMessageBeforeForm { get; set; }
 }

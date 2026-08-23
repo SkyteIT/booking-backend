@@ -1,4 +1,5 @@
 using FluentValidation;
+using PhoneNumbers;
 
 namespace Ube.Application.Features.Bookings.Validators;
 
@@ -25,9 +26,9 @@ public class VendorRegisterApplicationDtoValidator : AbstractValidator<VendorReg
             .WithMessage("Website must be a valid URL");
 
         RuleFor(x => x.TaxId)
-            .NotEmpty().WithMessage("Tax ID / EIN is required")
             .MaximumLength(100)
-            .Matches(@"^[A-Za-z0-9\-]{4,100}$").WithMessage("Tax ID must be 4-100 alphanumeric characters");
+            .Matches(@"^[A-Za-z0-9\-]{4,100}$").WithMessage("Tax ID must be 4-100 alphanumeric characters")
+            .When(x => !string.IsNullOrWhiteSpace(x.TaxId));
 
         RuleFor(x => x.FirstName)
             .NotEmpty().WithMessage("First name is required")
@@ -44,13 +45,30 @@ public class VendorRegisterApplicationDtoValidator : AbstractValidator<VendorReg
 
         RuleFor(x => x.Phone)
             .NotEmpty().WithMessage("Phone number is required")
-            .Matches(@"^(0\d{9}|\+94\d{9})$").WithMessage("Phone must be 10 digits starting with 0, or start with +94")
-            .MaximumLength(20);
+            .MaximumLength(20)
+            .Must(BeValidSriLankanPhoneNumber)
+            .WithMessage("Enter a valid Sri Lankan phone number, for example 0771234567 or +94771234567");
 
         RuleFor(x => x.Categories)
             .NotEmpty().WithMessage("At least one category is required");
 
         RuleFor(x => x.CurrentStep)
             .InclusiveBetween(1, 3).WithMessage("Step must be between 1 and 3");
+    }
+
+    private static bool BeValidSriLankanPhoneNumber(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return false;
+
+        try
+        {
+            var util = PhoneNumberUtil.GetInstance();
+            var parsed = util.Parse(phone.Trim(), "LK");
+            return util.IsValidNumberForRegion(parsed, "LK");
+        }
+        catch (NumberParseException)
+        {
+            return false;
+        }
     }
 }

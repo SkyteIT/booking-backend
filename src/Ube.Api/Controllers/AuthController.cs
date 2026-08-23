@@ -41,9 +41,10 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
     [HttpPost("google-login")]
+    [EnableRateLimiting("auth")]
     public async Task<ActionResult<AuthResponseDto>> GoogleLogin([FromBody] GoogleLoginRequest request)
     {
-        var result = await _authService.GoogleLoginAsync(request.IdToken, request.DeviceToken);
+        var result = await _authService.GoogleLoginAsync(request.EffectiveIdToken, request.DeviceToken);
         return Ok(result);
     }
 
@@ -190,9 +191,9 @@ public class AuthController : ControllerBase
         if (!allowedTypes.Contains(extension))
             throw new BusinessRuleException("Only JPG/PNG files are allowed");
 
-        const long maxFileSize = 2 * 1024 * 1024;
+        const long maxFileSize = 5 * 1024 * 1024;
         if (file.Length > maxFileSize)
-            throw new BusinessRuleException("File size must not exceed 2MB");
+            throw new BusinessRuleException("Profile picture must not exceed 5MB");
 
         await using var stream = file.OpenReadStream();
         var imageUrl = await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);

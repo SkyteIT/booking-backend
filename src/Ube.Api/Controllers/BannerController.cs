@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Features.Content.Banner;
 using Ube.Application.Features.Vendors;
 
@@ -11,10 +12,12 @@ namespace Ube.Api.Controllers;
 public class BannerController : ControllerBase
 {
     private readonly IBannerService _service;
+    private readonly IFileStorageService _fileStorage;
 
-    public BannerController(IBannerService service)
+    public BannerController(IBannerService service, IFileStorageService fileStorage)
     {
         _service = service;
+        _fileStorage = fileStorage;
     }
 
     // GET: api/banners
@@ -64,20 +67,9 @@ public class BannerController : ControllerBase
         if (file.Length > maxFileSize)
             throw new BusinessRuleException("File size must not exceed 2MB");
 
-        var fileName = $"{Guid.NewGuid()}{extension}";
-        var folderPath = Path.Combine("wwwroot", "images", "banners");
+        await using var stream = file.OpenReadStream();
+        var imageUrl = await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);
 
-        if (!Directory.Exists(folderPath))
-            Directory.CreateDirectory(folderPath);
-
-        var filePath = Path.Combine(folderPath, fileName);
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
-        }
-
-        var imageUrl = $"/images/banners/{fileName}";
         return Ok(new { imageUrl });
     }
 

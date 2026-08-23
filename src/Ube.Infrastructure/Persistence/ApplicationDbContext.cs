@@ -87,54 +87,5 @@ public class ApplicationDbContext : DbContext, IAppDbContext
 
         // Apply all configurations from the current assembly (Configurations directory)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
-
-        // ================= ONE-TO-ONE LISTING DETAILS =================
-        // (These are currently not in separate configuration files)
-
-        modelBuilder.Entity<HotelListingDetails>(entity =>
-        {
-            entity.HasOne(h => h.Listing)
-                .WithOne()
-                .HasForeignKey<HotelListingDetails>(h => h.ListingId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(h => h.PricePerNight).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<RestaurantListingDetails>(entity =>
-        {
-            entity.HasOne(r => r.Listing)
-                .WithOne()
-                .HasForeignKey<RestaurantListingDetails>(r => r.ListingId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(r => r.AverageCost).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<EventListingDetails>(entity =>
-        {
-            entity.HasOne(e => e.Listing)
-                .WithOne()
-                .HasForeignKey<EventListingDetails>(e => e.ListingId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(e => e.TicketPrice).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<CarRentalListingDetails>(entity =>
-        {
-            entity.HasOne(c => c.Listing)
-                .WithOne()
-                .HasForeignKey<CarRentalListingDetails>(c => c.ListingId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(c => c.PricePerDay).HasColumnType("decimal(18,2)");
-            entity.Property(c => c.HourlyRate).HasColumnType("decimal(18,2)");
-        });
-
-        modelBuilder.Entity<ActivityListingDetails>(entity =>
-        {
-            entity.HasOne(a => a.Listing)
-                .WithOne()
-                .HasForeignKey<ActivityListingDetails>(a => a.ListingId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.Property(a => a.Price).HasColumnType("decimal(18,2)");
-        });
     }
 }

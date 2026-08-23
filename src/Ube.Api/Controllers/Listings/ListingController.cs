@@ -96,7 +96,10 @@ public class ListingController : ControllerBase
         }
 
         var imageUrls = await SaveListingImagesAsync(images ?? new List<IFormFile>(), ct);
-        request.Images = imageUrls;
+        if (images != null && images.Count > 0)
+        {
+            request.Images = imageUrls;
+        }
 
         try
         {

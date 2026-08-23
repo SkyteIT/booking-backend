@@ -64,4 +64,16 @@ public class ListingUnitsController : ControllerBase
         await _unitService.DeleteAsync(listingId, unitId, _currentUser.UserId, ct);
         return NoContent();
     }
+
+    // One-time cleanup for duplicate seat/time-slot units created before
+    // AddGridAsync/AddTimeSlotsAsync started replacing instead of
+    // appending. Not scoped to a single listing since the duplication bug
+    // could have affected any listing - safe to call more than once.
+    [HttpPost("~/api/admin/listing-units/cleanup-duplicates")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CleanupDuplicateUnits(CancellationToken ct)
+    {
+        var result = await _unitService.CleanupDuplicatesAsync(ct);
+        return Ok(result);
+    }
 }

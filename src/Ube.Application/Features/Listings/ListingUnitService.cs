@@ -28,6 +28,9 @@ public class ListingUnitService : IListingUnitService
         return units.Select(ToDto).ToList();
     }
 
+    public async Task<ListingUnitCleanupResult> CleanupDuplicatesAsync(CancellationToken ct = default)
+        => await _unitRepo.CleanupDuplicatesAsync(ct);
+
     public async Task<ListingUnitDto> AddAsync(Guid listingId, Guid userId, AddListingUnitRequest request, CancellationToken ct = default)
     {
         var listing = await EnsureOwnedListingAsync(listingId, userId, ct);

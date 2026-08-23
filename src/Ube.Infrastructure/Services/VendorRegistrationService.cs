@@ -48,14 +48,14 @@ public class VendorRegistrationService : IVendorRegistrationService
         Stream? insuranceCertificate, string? insuranceCertificateExt,
         Stream? taxDocument, string? taxDocumentExt)
     {
-        // A rejected applicant is allowed to re-apply; anyone with a Pending
-        // or already-Approved application is not - prevents duplicate/spam
-        // submissions that GetMyStatusAsync would otherwise silently overwrite
-        // the view of (it only ever surfaces the latest one).
+        // Pending and approved applications block duplicate submissions.
+        // A rejected applicant may correct their details and apply again.
         var existing = await _repo.GetLatestByUserIdAsync(userId);
         if (existing != null && existing.Status != VendorApplicationStatus.Rejected)
         {
-            throw new BusinessRuleException("You already have a vendor application in progress.");
+            throw new BusinessRuleException(existing.Status == VendorApplicationStatus.Approved
+                ? "Your vendor application has already been approved."
+                : "You already have a vendor application awaiting review.");
         }
 
         var application = new VendorApplication
@@ -122,6 +122,9 @@ public class VendorRegistrationService : IVendorRegistrationService
         var application = await _repo.GetLatestByUserIdAsync(userId);
         if (application == null) return null;
 
+        var isRejected = application.Status == VendorApplicationStatus.Rejected;
+        var isApproved = application.Status == VendorApplicationStatus.Approved;
+
         return new MyVendorApplicationStatusDto
         {
             Id = application.Id,
@@ -129,7 +132,18 @@ public class VendorRegistrationService : IVendorRegistrationService
             Status = application.Status,
             SubmittedAt = application.SubmittedAt,
             ReviewedAt = application.ReviewedAt,
-            RejectionReason = application.RejectionReason
+            RejectionReason = application.RejectionReason,
+            CanReapply = isRejected,
+            CanAccessVendorPortal = isApproved,
+            ShowRejectionMessageBeforeForm = isRejected,
+            Message = application.Status switch
+            {
+                VendorApplicationStatus.Rejected => string.IsNullOrWhiteSpace(application.RejectionReason)
+                    ? "Your vendor application was rejected. You can review your information and apply again."
+                    : $"Your vendor application was rejected: {application.RejectionReason}",
+                VendorApplicationStatus.Approved => "Your vendor application was approved. You can now access the vendor portal.",
+                _ => "Your vendor application is awaiting admin review."
+            }
         };
     }
 

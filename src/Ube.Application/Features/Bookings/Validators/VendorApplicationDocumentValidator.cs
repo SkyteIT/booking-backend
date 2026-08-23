@@ -8,10 +8,15 @@ public static class VendorApplicationDocumentValidator
     private static readonly string[] AllowedTypes = { ".pdf", ".docx" };
     private const long MaxSize = 5 * 1024 * 1024; // 5MB
 
-    public static void Validate(IFormFile? file, string label)
+    public static void Validate(IFormFile? file, string label, bool required = true)
     {
         if (file == null || file.Length == 0)
-            throw new BusinessRuleException($"{label} is required");
+        {
+            if (required)
+                throw new BusinessRuleException($"{label} is required");
+
+            return;
+        }
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (!AllowedTypes.Contains(extension))

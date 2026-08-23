@@ -80,3 +80,4 @@ secrets.json
 docs
 /src/Ube.Api/wwwroot/images/profiles/*
 /src/Ube.Api/wwwroot/images/listings/*
+/src/Ube.Api/wwwroot/images/banners/*

@@ -48,6 +48,8 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     public DbSet<PushSubscription> PushSubscriptions { get; set; } = default!;
     public DbSet<ListingImage> ListingImages { get; set; } = default!;
     public DbSet<ListingUnit> ListingUnits { get; set; } = default!;
+    public DbSet<ListingOptionGroup> ListingOptionGroups { get; set; } = default!;
+    public DbSet<ListingOptionValue> ListingOptionValues { get; set; } = default!;
     public DbSet<SeasonalPricingRule> SeasonalPricingRules { get; set; } = default!;
     public DbSet<ListingOffer> ListingOffers { get; set; } = default!;
     public DbSet<Cart> Carts { get; set; } = default!;

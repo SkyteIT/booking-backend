@@ -166,7 +166,7 @@ public class SeasonalPricingServiceTests
 
         var quote = await ctx.Service.GetPriceQuoteAsync(listing.Id, null, new DateTime(2026, 12, 20), new DateTime(2026, 12, 25), 3);
 
-        Assert.Equal(3000m, quote.TotalAmount); // 1000 * 3, duration irrelevant for FixedPrice
+        Assert.Equal(1000m, quote.TotalAmount); // flat 1000, quantity/duration irrelevant for FixedPrice
         ctx.RuleRepo.Verify(r => r.GetActiveInRangeAsync(It.IsAny<Guid>(), It.IsAny<Guid?>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

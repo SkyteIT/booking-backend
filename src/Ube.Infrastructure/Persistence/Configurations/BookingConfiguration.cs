@@ -25,6 +25,8 @@ public class BookingConfiguration : IEntityTypeConfiguration<Booking>
                 .HasMaxLength(10);
         builder.Property(x => x.Status)
                 .IsRequired();
+        builder.Property(x => x.SelectedOptionValueIds)
+                .HasMaxLength(500);
         builder.HasIndex(x => x.ListingId);
 
         // Composite subsumes a plain CustomerId index (leftmost-prefix) and

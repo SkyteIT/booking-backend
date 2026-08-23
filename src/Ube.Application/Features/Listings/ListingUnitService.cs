@@ -11,16 +11,22 @@ public class ListingUnitService : IListingUnitService
     private readonly IListingUnitRepository _unitRepo;
     private readonly IListingRepository _listingRepo;
     private readonly IVendorProfileRepository _vendorProfileRepo;
+    private readonly IBookingRepository _bookingRepo;
 
     public ListingUnitService(
         IListingUnitRepository unitRepo,
         IListingRepository listingRepo,
-        IVendorProfileRepository vendorProfileRepo)
+        IVendorProfileRepository vendorProfileRepo,
+        IBookingRepository bookingRepo)
     {
         _unitRepo = unitRepo;
         _listingRepo = listingRepo;
         _vendorProfileRepo = vendorProfileRepo;
+        _bookingRepo = bookingRepo;
     }
+
+    public async Task<IReadOnlyList<Guid>> GetBookedUnitIdsAsync(Guid listingId, DateTime start, DateTime end, CancellationToken ct = default)
+        => await _bookingRepo.GetBookedListingUnitIdsAsync(listingId, start, end, ct);
 
     public async Task<IReadOnlyList<ListingUnitDto>> GetForListingAsync(Guid listingId, CancellationToken ct = default)
     {
@@ -41,6 +47,7 @@ public class ListingUnitService : IListingUnitService
             ListingId = listing.Id,
             Kind = ListingUnitKind.Generic,
             Name = request.Name,
+            Description = request.Description,
             PriceOverride = request.PriceOverride,
             Capacity = request.Capacity,
             DisplayOrder = request.DisplayOrder
@@ -141,6 +148,7 @@ public class ListingUnitService : IListingUnitService
             throw new NotFoundException("Listing unit not found");
 
         if (request.Name is not null) unit.Name = request.Name;
+        if (request.Description is not null) unit.Description = request.Description;
         if (request.PriceOverride.HasValue) unit.PriceOverride = request.PriceOverride;
         if (request.Capacity.HasValue) unit.Capacity = request.Capacity.Value;
         if (request.IsActive.HasValue) unit.IsActive = request.IsActive.Value;
@@ -181,6 +189,7 @@ public class ListingUnitService : IListingUnitService
         Kind = u.Kind,
         Name = u.Name,
         Code = u.Code,
+        Description = u.Description,
         PriceOverride = u.PriceOverride,
         Capacity = u.Capacity,
         RowIndex = u.RowIndex,

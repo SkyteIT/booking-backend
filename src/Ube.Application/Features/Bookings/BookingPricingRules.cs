@@ -19,7 +19,12 @@ public static class BookingPricingRules
 
         return pricingUnit switch
         {
-            PricingUnit.FixedPrice => effectivePrice * quantity,
+            // A fixed price is per booking, not per person/unit - a table
+            // for 2 costs the same whether 1 or 2 people actually show up;
+            // quantity there is party size for capacity checks, not a
+            // price multiplier. PerPerson is the pricing unit for "each
+            // person pays their own way" listings instead.
+            PricingUnit.FixedPrice => effectivePrice,
             PricingUnit.PerPerson => effectivePrice * quantity,
             PricingUnit.PerHour => effectivePrice * quantity * Math.Max(1, (decimal)(end - start).TotalHours),
             PricingUnit.PerNight or PricingUnit.PerDay or null => effectivePrice * quantity * days,

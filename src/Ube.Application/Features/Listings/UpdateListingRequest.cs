@@ -1,3 +1,5 @@
+using Ube.Domain.Enums.Listings;
+
 namespace Ube.Application.Features.Listings;
 
 public class UpdateListingRequest
@@ -9,6 +11,8 @@ public class UpdateListingRequest
     public string? Description { get; set; }
     public decimal Price { get; set; }
     public string Currency { get; set; } = "LKR";
+    // Null = use the category's own ServiceModel.
+    public PricingUnit? PricingUnitOverride { get; set; }
     public string? Location { get; set; }
     public bool IsActive { get; set; } = true;
     public List<string> Images { get; set; } = new();

@@ -21,6 +21,7 @@ public class CheckoutServiceTests
         Mock<IBookingRepository> BookingRepo,
         Mock<IListingRepository> ListingRepo,
         Mock<IListingUnitRepository> UnitRepo,
+        Mock<IListingOptionRepository> OptionRepo,
         Mock<IBlockedDateRepository> BlockedDateRepo,
         Mock<ICategoryRepository> CategoryRepo,
         Mock<ISeasonalPricingRepository> SeasonalPricingRepo,
@@ -36,6 +37,7 @@ public class CheckoutServiceTests
         var bookingRepo = new Mock<IBookingRepository>();
         var listingRepo = new Mock<IListingRepository>();
         var unitRepo = new Mock<IListingUnitRepository>();
+        var optionRepo = new Mock<IListingOptionRepository>();
         var blockedDateRepo = new Mock<IBlockedDateRepository>();
         var categoryRepo = new Mock<ICategoryRepository>();
         var seasonalPricingRepo = new Mock<ISeasonalPricingRepository>();
@@ -131,6 +133,10 @@ public class CheckoutServiceTests
                 return results;
             });
 
+        optionRepo
+            .Setup(r => r.GetValuesByIdsAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ListingOptionValue>());
+
         fraudDetectionService
             .Setup(f => f.IsNewAccountHighValueAsync(It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(false);
@@ -143,6 +149,7 @@ public class CheckoutServiceTests
             bookingRepo.Object,
             listingRepo.Object,
             unitRepo.Object,
+            optionRepo.Object,
             blockedDateRepo.Object,
             categoryRepo.Object,
             seasonalPricingRepo.Object,
@@ -153,7 +160,7 @@ public class CheckoutServiceTests
             notificationService.Object,
             unitOfWork.Object);
 
-        return new Ctx(bookingRepo, listingRepo, unitRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, offerRepo, paymentService, fraudDetectionService, notificationService, unitOfWork, service);
+        return new Ctx(bookingRepo, listingRepo, unitRepo, optionRepo, blockedDateRepo, categoryRepo, seasonalPricingRepo, offerRepo, paymentService, fraudDetectionService, notificationService, unitOfWork, service);
     }
 
     private static Listing MakeListing(Guid categoryId) => new()

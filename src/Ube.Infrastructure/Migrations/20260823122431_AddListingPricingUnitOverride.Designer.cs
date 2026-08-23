@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ube.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Ube.Infrastructure.Persistence;
 namespace Ube.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260823122431_AddListingPricingUnitOverride")]
+    partial class AddListingPricingUnitOverride
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -55,7 +58,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("EmailVerificationTokens", (string)null);
+                    b.ToTable("EmailVerificationTokens");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Auth.PasswordResetToken", b =>
@@ -88,7 +91,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PasswordResetTokens", (string)null);
+                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Auth.RefreshToken", b =>
@@ -121,7 +124,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Auth.TrustedDevice", b =>
@@ -151,7 +154,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TrustedDevices", (string)null);
+                    b.ToTable("TrustedDevices");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Auth.TwoFactorBackupCode", b =>
@@ -181,7 +184,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TwoFactorBackupCodes", (string)null);
+                    b.ToTable("TwoFactorBackupCodes");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Auth.TwoFactorChallenge", b =>
@@ -214,7 +217,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TwoFactorChallenges", (string)null);
+                    b.ToTable("TwoFactorChallenges");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Bookings.Booking", b =>
@@ -290,7 +293,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("CustomerId", "CreatedAt");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Carts.Cart", b =>
@@ -324,7 +327,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Carts", (string)null);
+                    b.ToTable("Carts");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Carts.CartItem", b =>
@@ -359,7 +362,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("CartItems", (string)null);
+                    b.ToTable("CartItems");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Content.Banner", b =>
@@ -561,7 +564,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ListingId")
                         .IsUnique();
 
-                    b.ToTable("ActivityListingDetails", (string)null);
+                    b.ToTable("ActivityListingDetails");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.BlockedDate", b =>
@@ -584,7 +587,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ListingId", "Date")
                         .IsUnique();
 
-                    b.ToTable("BlockedDates", (string)null);
+                    b.ToTable("BlockedDates");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.CarRentalListingDetails", b =>
@@ -642,7 +645,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ListingId")
                         .IsUnique();
 
-                    b.ToTable("CarRentalListingDetails", (string)null);
+                    b.ToTable("CarRentalListingDetails");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Category", b =>
@@ -748,7 +751,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.CategoryCustomField", b =>
@@ -788,7 +791,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("CategoryCustomFields", (string)null);
+                    b.ToTable("CategoryCustomFields");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.EventListingDetails", b =>
@@ -834,7 +837,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ListingId")
                         .IsUnique();
 
-                    b.ToTable("EventListingDetails", (string)null);
+                    b.ToTable("EventListingDetails");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.HotelListingDetails", b =>
@@ -879,7 +882,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ListingId")
                         .IsUnique();
 
-                    b.ToTable("HotelListingDetails", (string)null);
+                    b.ToTable("HotelListingDetails");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
@@ -974,7 +977,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("VendorProfileId");
 
-                    b.ToTable("Listings", (string)null);
+                    b.ToTable("Listings");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingCustomFieldValue", b =>
@@ -1006,7 +1009,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("ListingCustomFieldValues", (string)null);
+                    b.ToTable("ListingCustomFieldValues");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingImage", b =>
@@ -1238,7 +1241,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ListingId")
                         .IsUnique();
 
-                    b.ToTable("RestaurantListingDetails", (string)null);
+                    b.ToTable("RestaurantListingDetails");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.SeasonalPricingRule", b =>
@@ -1940,7 +1943,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("VendorId");
 
-                    b.ToTable("ListingQuestions", (string)null);
+                    b.ToTable("ListingQuestions");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Reviews.Review", b =>
@@ -2011,7 +2014,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("VendorId", "CreatedAt");
 
-                    b.ToTable("Reviews", null, t =>
+                    b.ToTable("Reviews", t =>
                         {
                             t.HasCheckConstraint("CK_Review_Rating", "Rating >= 1 AND Rating <= 5");
                         });
@@ -2039,7 +2042,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("ReviewId", "CustomerId")
                         .IsUnique();
 
-                    b.ToTable("ReviewLikes", (string)null);
+                    b.ToTable("ReviewLikes");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Users.EmailChangeRequest", b =>
@@ -2206,7 +2209,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("Role");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Users.UserLocalizationSettings", b =>
@@ -2350,7 +2353,7 @@ namespace Ube.Infrastructure.Migrations
 
                     b.HasIndex("Status", "SubmittedAt");
 
-                    b.ToTable("VendorApplications", (string)null);
+                    b.ToTable("VendorApplications");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Vendors.VendorPayout", b =>
@@ -2447,7 +2450,7 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("VendorProfiles", (string)null);
+                    b.ToTable("VendorProfiles");
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Auth.EmailVerificationToken", b =>

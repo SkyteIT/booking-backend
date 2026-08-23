@@ -25,6 +25,10 @@ public class ListingResponse
     // daily/flat), from the listing's Category - lets the frontend cart
     // compute an accurate live total estimate matching BookingPricingRules.
     public PricingUnit? PricingUnit { get; set; }
+    // The vendor's own override, if set - distinct from the resolved
+    // PricingUnit above so the edit form can tell "explicitly overridden"
+    // apart from "using category default".
+    public PricingUnit? PricingUnitOverride { get; set; }
 
     public ListingType Type { get; set; }
     public ListingType CategoryType { get; set; }
@@ -49,6 +53,8 @@ public class ListingResponse
     public BookingSelectionConfigDto BookingSelection { get; set; } = new();
 
     public List<ListingCustomFieldValueDto> CustomFieldValues { get; set; } = new();
+
+    public List<ListingOptionGroupDto> OptionGroups { get; set; } = new();
 }
 
 public class BookingSelectionConfigDto

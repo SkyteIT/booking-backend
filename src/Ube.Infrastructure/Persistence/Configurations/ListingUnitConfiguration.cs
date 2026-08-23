@@ -14,6 +14,7 @@ public class ListingUnitConfiguration : IEntityTypeConfiguration<ListingUnit>
         builder.Property(x => x.Kind).IsRequired().HasConversion<int>();
         builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
         builder.Property(x => x.Code).HasMaxLength(20);
+        builder.Property(x => x.Description).HasMaxLength(500);
         builder.Property(x => x.PriceOverride).HasColumnType("decimal(18,2)");
 
         builder.HasIndex(x => x.ListingId);

@@ -18,6 +18,13 @@ public class Booking
     public Guid? ListingUnitId { get; set; }
     public ListingUnit? ListingUnit { get; set; }
 
+    // Comma-separated ListingOptionValue ids selected at checkout (e.g.
+    // Room Type: Deluxe, Stay Type: Overnight) - a simple denormalized
+    // record for the receipt/admin view. Nothing currently needs to query
+    // bookings by a specific option value, so this stays a plain column
+    // rather than a join table.
+    public string? SelectedOptionValueIds { get; set; }
+
     public Guid CustomerId { get; set; }
     public User Customer { get; set; } = null!;
 

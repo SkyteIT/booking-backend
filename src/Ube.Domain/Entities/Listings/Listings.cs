@@ -19,6 +19,9 @@ public class Listing
     public string Description { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public string Currency { get; set; } = "LKR";
+
+
+    public PricingUnit? PricingUnitOverride { get; set; }
     public string? Location { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsFeatured { get; set; }
@@ -50,4 +53,5 @@ public class Listing
     public ICollection<ListingCustomFieldValue> CustomFieldValues { get; set; } = new List<ListingCustomFieldValue>();
     public ICollection<ListingUnit> Units { get; set; } = new List<ListingUnit>();
     public ICollection<ListingOffer> Offers { get; set; } = new List<ListingOffer>();
+    public ICollection<ListingOptionGroup> OptionGroups { get; set; } = new List<ListingOptionGroup>();
 }

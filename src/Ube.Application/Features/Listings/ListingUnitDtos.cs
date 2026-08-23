@@ -9,6 +9,7 @@ public class ListingUnitDto
     public ListingUnitKind Kind { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Code { get; set; }
+    public string? Description { get; set; }
     public decimal? PriceOverride { get; set; }
     public int Capacity { get; set; }
     public int? RowIndex { get; set; }
@@ -22,6 +23,7 @@ public class ListingUnitDto
 public class AddListingUnitRequest
 {
     public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
     public decimal? PriceOverride { get; set; }
     public int Capacity { get; set; } = 1;
     public int DisplayOrder { get; set; }
@@ -47,6 +49,7 @@ public class AddListingUnitsTimeSlotsRequest
 public class UpdateListingUnitRequest
 {
     public string? Name { get; set; }
+    public string? Description { get; set; }
     public decimal? PriceOverride { get; set; }
     public int? Capacity { get; set; }
     public bool? IsActive { get; set; }

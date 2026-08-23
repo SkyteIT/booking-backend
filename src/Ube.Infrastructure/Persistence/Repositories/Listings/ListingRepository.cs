@@ -206,6 +206,8 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
+            .Include(l => l.OptionGroups)
+                .ThenInclude(g => g.Values)
             .FirstOrDefaultAsync(l => l.Id == listingId, ct);
 
     // Backs the public, unauthenticated GET /api/listings - must never
@@ -226,6 +228,8 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
+            .Include(l => l.OptionGroups)
+                .ThenInclude(g => g.Values)
             .ToListAsync(ct);
 
     public async Task<List<Listing>> GetByVendorProfileIdWithDetailsAsync(Guid vendorProfileId, CancellationToken ct = default)
@@ -242,6 +246,8 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Offers)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
+            .Include(l => l.OptionGroups)
+                .ThenInclude(g => g.Values)
             .ToListAsync(ct);
 
     public async Task AddAsync(Listing listing, CancellationToken ct = default)

@@ -52,6 +52,9 @@ public class ListingConfiguration : IEntityTypeConfiguration<Listing>
                 .IsRequired()
                 .HasConversion<int>();
 
+        builder.Property(x => x.PricingUnitOverride)
+                .HasConversion<int?>();
+
         builder.Property(x => x.Tags)
                 .HasMaxLength(500);
         builder.Property(x => x.CancellationPolicy)

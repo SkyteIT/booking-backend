@@ -54,6 +54,12 @@ public class ListingUnitService : IListingUnitService
         if (request.Rows <= 0 || request.Columns <= 0)
             throw new BusinessRuleException("Rows and columns must both be positive.");
 
+        // Re-running grid generation (a retry after a dropped response, a
+        // double-click, or regenerating with different dimensions) must
+        // replace the previous seat map, not layer a second copy on top of
+        // it with fresh ids.
+        await _unitRepo.DeleteByListingAndKindAsync(listingId, ListingUnitKind.Seat, ct);
+
         var units = new List<ListingUnit>();
         for (var row = 0; row < request.Rows; row++)
         {
@@ -92,6 +98,9 @@ public class ListingUnitService : IListingUnitService
             throw new BusinessRuleException("Slot duration must be positive.");
         if (request.EndTime <= request.StartTime)
             throw new BusinessRuleException("End time must be after start time.");
+
+        // Same replace-not-append reasoning as AddGridAsync.
+        await _unitRepo.DeleteByListingAndKindAsync(listingId, ListingUnitKind.TimeSlot, ct);
 
         var duration = TimeSpan.FromMinutes(request.SlotDurationMinutes);
         var units = new List<ListingUnit>();

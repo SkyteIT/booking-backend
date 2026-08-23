@@ -131,14 +131,18 @@ public class CheckoutService : ICheckoutService
                     (unit == null || unit.Kind != ListingUnitKind.Seat))
                     throw new BusinessRuleException("This option requires selecting a specific seat.");
 
-                // Duplicate-booking guard - same customer already holds a
-                // live (Pending/Confirmed) booking for this listing/unit that
-                // overlaps these dates. Unambiguous fraud signal, always
-                // hard-declined, never just flagged.
-                var isDuplicate = await _bookingRepo.HasOverlappingBookingForCustomerAsync(
-                    customerId, listing.Id, item.ListingUnitId, item.StartDateTime, item.EndDateTime, ct);
-                if (isDuplicate)
-                    throw new BusinessRuleException($"You already have a booking for {listing.Title} in this date range.");
+                // Only applies when a specific unit (seat/room/car) is being
+                // reserved - re-buying that exact resource is a real
+                // conflict. Unit-less items (e.g. General Admission tickets)
+                // are legitimately re-purchasable; IdempotencyKey already
+                // guards against an accidental double-submit of the same request.
+                if (item.ListingUnitId.HasValue)
+                {
+                    var isDuplicate = await _bookingRepo.HasOverlappingBookingForCustomerAsync(
+                        customerId, listing.Id, item.ListingUnitId, item.StartDateTime, item.EndDateTime, ct);
+                    if (isDuplicate)
+                        throw new BusinessRuleException($"You already have a booking for {listing.Title} in this date range.");
+                }
 
                 await EnsureAvailableAsync(listing, unit, item.StartDateTime, item.EndDateTime, ct);
 
@@ -147,8 +151,16 @@ public class CheckoutService : ICheckoutService
 
                 var optionPriceOverride = selectedOptionValues
                     .LastOrDefault(v => v.PriceOverride.HasValue)?.PriceOverride;
-                var effectivePrice = (optionPriceOverride ?? unit?.PriceOverride ?? listing.Price)
-                    + selectedOptionValues.Sum(v => v.PriceModifier);
+                var optionBasePrice = optionPriceOverride ?? unit?.PriceOverride ?? listing.Price;
+                var optionModifierTotal = selectedOptionValues.Sum(v =>
+                    v.IsPercentageModifier ? optionBasePrice * (v.PriceModifier / 100m) : v.PriceModifier);
+                var occupancyAddOn = 0m;
+                if (listing.HotelDetails?.OccupancyPriceModifier is decimal perGuest && item.OccupantCount.HasValue)
+                {
+                    var extraGuests = Math.Max(0, item.OccupantCount.Value - listing.HotelDetails.BaseOccupancy);
+                    occupancyAddOn = extraGuests * perGuest;
+                }
+                var effectivePrice = optionBasePrice + optionModifierTotal + occupancyAddOn;
                 var effectivePricingUnit = listing.PricingUnitOverride ?? category.ServiceModel;
                 var isDateBasedPricing = effectivePricingUnit is PricingUnit.PerNight or PricingUnit.PerDay;
                 decimal totalAmount;

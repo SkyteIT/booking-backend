@@ -10,4 +10,6 @@ public class HotelDetailsDto
     public string CheckOutTime { get; set; } = string.Empty;
     public string? PropertyType { get; set; }
     public string? PrimaryRoomType { get; set; }
+    public int BaseOccupancy { get; set; } = 2;
+    public decimal? OccupancyPriceModifier { get; set; }
 }

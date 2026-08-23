@@ -31,5 +31,10 @@ public class CartRepository : ICartRepository
         return Task.CompletedTask;
     }
 
+    public async Task RemoveByListingIdAsync(Guid listingId, CancellationToken ct = default)
+        => await _db.CartItems
+            .Where(ci => ci.ListingId == listingId)
+            .ExecuteDeleteAsync(ct);
+
     public Task SaveChangesAsync() => _db.SaveChangesAsync();
 }

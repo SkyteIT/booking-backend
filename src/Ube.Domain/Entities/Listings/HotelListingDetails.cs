@@ -14,4 +14,11 @@ public class HotelListingDetails : IListingDetail
     public string CheckOutTime { get; set; } = string.Empty;
     public string? PropertyType { get; set; }
     public string? PrimaryRoomType { get; set; }
+
+    // Guests included in PricePerNight before occupancy pricing kicks in -
+    // matches Booking.com's "double occupancy" base concept.
+    public int BaseOccupancy { get; set; } = 2;
+    // Currency amount added per night for each guest beyond BaseOccupancy.
+    // Null = no occupancy pricing (today's flat-per-room behavior).
+    public decimal? OccupancyPriceModifier { get; set; }
 }

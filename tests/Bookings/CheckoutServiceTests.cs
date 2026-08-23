@@ -202,10 +202,39 @@ public class CheckoutServiceTests
     };
 
     [Fact]
-    public async Task CheckoutAsync_Throws_And_Never_Charges_When_Customer_Already_Has_Overlapping_Booking()
+    public async Task CheckoutAsync_Throws_And_Never_Charges_When_Customer_Already_Has_Overlapping_Booking_For_Same_Unit()
     {
         var ctx = Build();
         var category = MakeCategory();
+        var listing = MakeListing(category.Id);
+        var unit = new ListingUnit { Id = Guid.NewGuid(), ListingId = listing.Id, Kind = ListingUnitKind.Seat, Name = "A1", Capacity = 1 };
+
+        ctx.ListingRepo.Setup(r => r.GetByIdAsync(listing.Id)).ReturnsAsync(listing);
+        ctx.CategoryRepo.Setup(r => r.GetByIdAsync(category.Id, false, It.IsAny<CancellationToken>())).ReturnsAsync(category);
+        ctx.UnitRepo.Setup(r => r.GetByIdAsync(unit.Id, It.IsAny<CancellationToken>())).ReturnsAsync(unit);
+        ctx.BookingRepo
+            .Setup(r => r.HasOverlappingBookingForCustomerAsync(It.IsAny<Guid>(), listing.Id, unit.Id, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+
+        var request = MakeRequest(listing.Id);
+        request.Items[0].ListingUnitId = unit.Id;
+
+        await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            ctx.Service.CheckoutAsync(Guid.NewGuid(), request));
+
+        ctx.PaymentService.Verify(p => p.InitiateAsync(It.IsAny<Guid>(), It.IsAny<InitiatePaymentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        ctx.UnitOfWork.Verify(u => u.RollbackAsync(), Times.Once);
+        ctx.UnitOfWork.Verify(u => u.CommitAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task CheckoutAsync_Allows_Repeat_Purchase_Of_Unitless_Items_Even_When_Overlapping()
+    {
+        // General Admission tickets etc. have no ListingUnitId - buying more
+        // is a legitimate repeat purchase, not a duplicate. IdempotencyKey
+        // is what guards against an accidental double-submit, not this check.
+        var ctx = Build();
+        var category = MakeCategory(BookingConfirmationType.Instant, ServiceCollectionModel.Prepay);
         var listing = MakeListing(category.Id);
 
         ctx.ListingRepo.Setup(r => r.GetByIdAsync(listing.Id)).ReturnsAsync(listing);
@@ -214,12 +243,10 @@ public class CheckoutServiceTests
             .Setup(r => r.HasOverlappingBookingForCustomerAsync(It.IsAny<Guid>(), listing.Id, null, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(true);
 
-        await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            ctx.Service.CheckoutAsync(Guid.NewGuid(), MakeRequest(listing.Id)));
+        var result = await ctx.Service.CheckoutAsync(Guid.NewGuid(), MakeRequest(listing.Id));
 
-        ctx.PaymentService.Verify(p => p.InitiateAsync(It.IsAny<Guid>(), It.IsAny<InitiatePaymentRequest>(), It.IsAny<CancellationToken>()), Times.Never);
-        ctx.UnitOfWork.Verify(u => u.RollbackAsync(), Times.Once);
-        ctx.UnitOfWork.Verify(u => u.CommitAsync(), Times.Never);
+        Assert.Single(result.Payments);
+        ctx.UnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
     }
 
     [Fact]

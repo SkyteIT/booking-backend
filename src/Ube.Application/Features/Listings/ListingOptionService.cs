@@ -87,6 +87,7 @@ public class ListingOptionService : IListingOptionService
             Name = request.Name,
             DisplayOrder = request.DisplayOrder,
             PriceModifier = request.PriceModifier,
+            IsPercentageModifier = request.IsPercentageModifier,
             PriceOverride = request.PriceOverride,
             ConfirmationTypeOverride = request.ConfirmationTypeOverride,
             RequiresSeatSelection = request.RequiresSeatSelection
@@ -108,6 +109,7 @@ public class ListingOptionService : IListingOptionService
         if (request.Name is not null) value.Name = request.Name;
         if (request.DisplayOrder.HasValue) value.DisplayOrder = request.DisplayOrder.Value;
         if (request.PriceModifier.HasValue) value.PriceModifier = request.PriceModifier.Value;
+        if (request.IsPercentageModifier.HasValue) value.IsPercentageModifier = request.IsPercentageModifier.Value;
         if (request.RequiresSeatSelection.HasValue) value.RequiresSeatSelection = request.RequiresSeatSelection.Value;
         if (request.ClearConfirmationTypeOverride)
             value.ConfirmationTypeOverride = null;
@@ -161,6 +163,7 @@ public class ListingOptionService : IListingOptionService
         Name = v.Name,
         DisplayOrder = v.DisplayOrder,
         PriceModifier = v.PriceModifier,
+        IsPercentageModifier = v.IsPercentageModifier,
         PriceOverride = v.PriceOverride,
         ConfirmationTypeOverride = v.ConfirmationTypeOverride,
         RequiresSeatSelection = v.RequiresSeatSelection

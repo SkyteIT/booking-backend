@@ -24,6 +24,7 @@ public class ListingRepository : IListingRepository
     public async Task<List<Listing>> GetByIdsAsync(IEnumerable<Guid> listingIds, CancellationToken ct = default)
         => await _db.Listings
             .Include(l => l.VendorProfile)
+            .Include(l => l.HotelDetails)
             .Where(l => listingIds.Contains(l.Id))
             .ToListAsync(ct);
 

@@ -309,40 +309,93 @@ public static class TestDataSeeder
             now,
             cancellationToken);
 
+        // Every photography listing is a session package (a flat rate for the
+        // shoot, not priced per attendee) - PricingUnitOverride = FixedPrice
+        // so a "2 guests" selection on any of these doesn't multiply the
+        // price, matching how a real photography session is actually sold.
         var listings = new[]
         {
-            new { Id = Listing1Id, Title = "Wedding Photography", Price = 25000m, Location = "Colombo", Description = "Full day wedding photography package." },
-            new { Id = Listing2Id, Title = "Event Photography", Price = 18000m, Location = "Kandy", Description = "Photography for events and functions." },
-            new { Id = Listing3Id, Title = "Portrait Session", Price = 12000m, Location = "Galle", Description = "Outdoor portrait photography session." },
-            new { Id = Listing4Id, Title = "Corporate Photography", Price = 22000m, Location = "Negombo", Description = "Corporate and team photography package." },
-            new { Id = Listing5Id, Title = "Product Photography", Price = 15000m, Location = "Colombo", Description = "Studio product photography package." }
+            new { Id = Listing1Id, Title = "Wedding Photography", Price = 25000m, Location = "Colombo", Description = "Full day wedding photography package.", Image1 = "https://images.unsplash.com/photo-1519741497674-611481863552?w=800", Image2 = "https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=800", ActivityType = "Wedding Photography", Duration = 8, Difficulty = "Easy", MinGroup = 2, MaxGroup = 2, Included = "Photographer,Edited Photos,Online Gallery", Safety = "None" },
+            new { Id = Listing2Id, Title = "Event Photography", Price = 18000m, Location = "Kandy", Description = "Photography for events and functions.", Image1 = "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800", Image2 = "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800", ActivityType = "Event Photography", Duration = 5, Difficulty = "Easy", MinGroup = 1, MaxGroup = 1, Included = "Photographer,Edited Photos", Safety = "None" },
+            new { Id = Listing3Id, Title = "Portrait Session", Price = 12000m, Location = "Galle", Description = "Outdoor portrait photography session.", Image1 = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=800", Image2 = "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=800", ActivityType = "Portrait Photography", Duration = 2, Difficulty = "Easy", MinGroup = 1, MaxGroup = 1, Included = "Photographer,10 Edited Photos", Safety = "None" },
+            new { Id = Listing4Id, Title = "Corporate Photography", Price = 22000m, Location = "Negombo", Description = "Corporate and team photography package.", Image1 = "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800", Image2 = "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800", ActivityType = "Corporate Photography", Duration = 6, Difficulty = "Easy", MinGroup = 1, MaxGroup = 1, Included = "Photographer,Edited Photos,Same-Day Preview", Safety = "None" },
+            new { Id = Listing5Id, Title = "Product Photography", Price = 15000m, Location = "Colombo", Description = "Studio product photography package.", Image1 = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800", Image2 = "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800", ActivityType = "Product Photography", Duration = 4, Difficulty = "Easy", MinGroup = 1, MaxGroup = 1, Included = "Studio Time,Photographer,Edited Photos", Safety = "None" }
         };
 
         foreach (var listing in listings)
         {
-            UpsertListing(dbContext, listing.Id, VendorProfileId, CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, ListingType.Activity, now, cancellationToken);
+            UpsertListing(dbContext, listing.Id, VendorProfileId, CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, ListingType.Activity, now, cancellationToken, PricingUnit.FixedPrice);
+            UpsertActivityDetails(dbContext, listing.Id, listing.ActivityType, listing.Duration, listing.Difficulty, listing.Price, listing.MinGroup, listing.MaxGroup, listing.Included, listing.Safety);
+            UpsertListingImages(dbContext, listing.Id, listing.Image1, listing.Image2);
         }
 
         // 2 listings per type-scoped category so search/filter/category tiles have
         // real spread across all 5 listing types, not just the photography vendor.
-        var typeScopedListings = new[]
-        {
-            new { Id = ListingHotel1Id, CategoryId = CategoryHotelId, Type = ListingType.Hotel, Title = "Seaside Resort Room", Price = 32000m, Location = "Galle", Description = "Ocean-view double room with breakfast included." },
-            new { Id = ListingHotel2Id, CategoryId = CategoryHotelId, Type = ListingType.Hotel, Title = "City Center Apartment", Price = 19000m, Location = "Colombo", Description = "Self-catered 1-bedroom apartment near the city center." },
-            new { Id = ListingRestaurant1Id, CategoryId = CategoryRestaurantId, Type = ListingType.Restaurant, Title = "Table at Spice Garden", Price = 6000m, Location = "Colombo", Description = "Table for two at a popular Sri Lankan fine-dining restaurant." },
-            new { Id = ListingRestaurant2Id, CategoryId = CategoryRestaurantId, Type = ListingType.Restaurant, Title = "Rooftop Grill Reservation", Price = 8500m, Location = "Kandy", Description = "Rooftop grill and bar table reservation." },
-            new { Id = ListingEvent1Id, CategoryId = CategoryEventId, Type = ListingType.Event, Title = "Colombo Music Festival", Price = 5000m, Location = "Colombo", Description = "General admission ticket to the annual music festival." },
-            new { Id = ListingEvent2Id, CategoryId = CategoryEventId, Type = ListingType.Event, Title = "Theater Night: The Play", Price = 3500m, Location = "Kandy", Description = "Ticket to an evening theater performance." },
-            new { Id = ListingCarRental1Id, CategoryId = CategoryCarRentalId, Type = ListingType.CarRental, Title = "Compact Car Rental", Price = 9000m, Location = "Colombo", Description = "Self-drive compact car, daily rental." },
-            new { Id = ListingCarRental2Id, CategoryId = CategoryCarRentalId, Type = ListingType.CarRental, Title = "SUV with Driver", Price = 16000m, Location = "Negombo", Description = "Chauffeur-driven SUV, daily rental." },
-            new { Id = ListingActivity1Id, CategoryId = CategoryActivityId, Type = ListingType.Activity, Title = "Sigiriya Day Tour", Price = 14000m, Location = "Sigiriya", Description = "Full-day guided tour of Sigiriya rock fortress." },
-            new { Id = ListingActivity2Id, CategoryId = CategoryActivityId, Type = ListingType.Activity, Title = "Whitewater Rafting", Price = 11000m, Location = "Kitulgala", Description = "Half-day guided whitewater rafting experience." },
-        };
+        // Pricing model is deliberately mixed across these so the feature is
+        // actually exercised: a hotel room and a restaurant table are flat
+        // (FixedPrice - a "2 guests" pick doesn't double the price), while
+        // event tickets and a guided tour are genuinely PerPerson (each
+        // extra person really does cost more).
 
-        foreach (var listing in typeScopedListings)
+        // Hotels: PerNight - a room is booked per night stayed, real hotel
+        // pricing. "Number of Rooms" (quantity) multiplies rooms x nights,
+        // not guests within a room.
+        UpsertListing(dbContext, ListingHotel1Id, VendorProfileId, CategoryHotelId, "Seaside Resort Room", "Ocean-view double room with breakfast included.", 32000m, "Galle", ListingType.Hotel, now, cancellationToken, PricingUnit.PerNight);
+        UpsertHotelDetails(dbContext, ListingHotel1Id, 32000m, 10, "WiFi,Pool,Breakfast,Air Conditioning", "Deluxe,Suite,Standard", "2:00 PM", "11:00 AM", "Resort", "Deluxe Ocean View");
+        UpsertListingImages(dbContext, ListingHotel1Id, "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800", "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800");
+
+        UpsertListing(dbContext, ListingHotel2Id, VendorProfileId, CategoryHotelId, "City Center Apartment", "Self-catered 1-bedroom apartment near the city center.", 19000m, "Colombo", ListingType.Hotel, now, cancellationToken, PricingUnit.PerNight);
+        UpsertHotelDetails(dbContext, ListingHotel2Id, 19000m, 5, "WiFi,Kitchen,Washer", "Studio,1-Bedroom", "3:00 PM", "10:00 AM", "Apartment", "1-Bedroom");
+        UpsertListingImages(dbContext, ListingHotel2Id, "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800", "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800");
+
+        // Restaurants: FixedPrice - reserving the table costs the same
+        // whether 2 or 4 people actually sit at it; party size is
+        // capacity, not a price multiplier.
+        UpsertListing(dbContext, ListingRestaurant1Id, VendorProfileId, CategoryRestaurantId, "Table at Spice Garden", "Table for two at a popular Sri Lankan fine-dining restaurant.", 6000m, "Colombo", ListingType.Restaurant, now, cancellationToken, PricingUnit.FixedPrice);
+        UpsertRestaurantDetails(dbContext, ListingRestaurant1Id, "Sri Lankan", 3000m, "11:00 AM - 10:00 PM", 4, "Indoor,Outdoor", "2 hour seating limit");
+        UpsertListingImages(dbContext, ListingRestaurant1Id, "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800", "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800");
+
+        UpsertListing(dbContext, ListingRestaurant2Id, VendorProfileId, CategoryRestaurantId, "Rooftop Grill Reservation", "Rooftop grill and bar table reservation.", 8500m, "Kandy", ListingType.Restaurant, now, cancellationToken, PricingUnit.FixedPrice);
+        UpsertRestaurantDetails(dbContext, ListingRestaurant2Id, "Grill & BBQ", 4500m, "5:00 PM - 11:00 PM", 6, "Rooftop,VIP Booth", "Advance booking required on weekends");
+        UpsertListingImages(dbContext, ListingRestaurant2Id, "https://images.unsplash.com/photo-1544025162-d76694265947?w=800", "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800");
+
+        // Events: PerPerson - each ticket is a separate seat/entry; buying
+        // 3 tickets genuinely costs 3x, unlike a table or a room.
+        UpsertListing(dbContext, ListingEvent1Id, VendorProfileId, CategoryEventId, "Colombo Music Festival", "General admission ticket to the annual music festival.", 5000m, "Colombo", ListingType.Event, now, cancellationToken, PricingUnit.PerPerson);
+        UpsertEventDetails(dbContext, ListingEvent1Id, "Colombo Music Festival", "Colombo Live Events", now.AddMonths(2), 500, 5000m, "Concert", "Viharamahadevi Open Air Theater", "Colombo 7");
+        UpsertListingImages(dbContext, ListingEvent1Id, "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=800", "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800");
+
+        UpsertListing(dbContext, ListingEvent2Id, VendorProfileId, CategoryEventId, "Theater Night: The Play", "Ticket to an evening theater performance.", 3500m, "Kandy", ListingType.Event, now, cancellationToken, PricingUnit.PerPerson);
+        UpsertEventDetails(dbContext, ListingEvent2Id, "Theater Night: The Play", "Kandy Theater Guild", now.AddMonths(1), 200, 3500m, "Theater", "Kandy City Theatre", "Kandy");
+        UpsertListingImages(dbContext, ListingEvent2Id, "https://images.unsplash.com/photo-1503095396549-807759245b35?w=800", "https://images.unsplash.com/photo-1507924538820-ede94a04019d?w=800");
+
+        // Car rentals: PerDay - the car itself is rented per day; how many
+        // passengers ride in it doesn't change the daily rate.
+        UpsertListing(dbContext, ListingCarRental1Id, VendorProfileId, CategoryCarRentalId, "Compact Car Rental", "Self-drive compact car, daily rental.", 9000m, "Colombo", ListingType.CarRental, now, cancellationToken, PricingUnit.PerDay);
+        UpsertCarRentalDetails(dbContext, ListingCarRental1Id, "Toyota", "Aqua", "Automatic", 9000m, 5, "Petrol", "Available", 2022, null, "Colombo Airport", "Colombo Airport");
+        UpsertListingImages(dbContext, ListingCarRental1Id, "https://images.unsplash.com/photo-1502877338535-766e1452684a?w=800", "https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?w=800");
+
+        UpsertListing(dbContext, ListingCarRental2Id, VendorProfileId, CategoryCarRentalId, "SUV with Driver", "Chauffeur-driven SUV, daily rental.", 16000m, "Negombo", ListingType.CarRental, now, cancellationToken, PricingUnit.PerDay);
+        UpsertCarRentalDetails(dbContext, ListingCarRental2Id, "Toyota", "Prado", "Automatic", 16000m, 7, "Diesel", "Available", 2023, 2500m, "Negombo", "Negombo", "Full Coverage");
+        UpsertListingImages(dbContext, ListingCarRental2Id, "https://images.unsplash.com/photo-1519641471654-76ce0107ad1b?w=800", "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800");
+
+        // Sigiriya tour: PerPerson - each extra person is a real added
+        // cost to the vendor (their own entry ticket + a lunch), unlike
+        // the rafting trip below where the boat/guide is a flat package
+        // regardless of headcount up to capacity.
+        UpsertListing(dbContext, ListingActivity1Id, VendorProfileId, CategoryActivityId, "Sigiriya Day Tour", "Full-day guided tour of Sigiriya rock fortress.", 14000m, "Sigiriya", ListingType.Activity, now, cancellationToken, PricingUnit.PerPerson);
+        UpsertActivityDetails(dbContext, ListingActivity1Id, "Cultural Tour", 8, "Moderate", 14000m, 2, 15, "Guide,Entry Tickets,Lunch", "Comfortable walking shoes required");
+        UpsertListingImages(dbContext, ListingActivity1Id, "https://images.unsplash.com/photo-1580889240912-c17ba9b02f8b?w=800", "https://images.unsplash.com/photo-1544644181-1484b3fdfc62?w=800");
+
+        UpsertListing(dbContext, ListingActivity2Id, VendorProfileId, CategoryActivityId, "Whitewater Rafting", "Half-day guided whitewater rafting experience.", 11000m, "Kitulgala", ListingType.Activity, now, cancellationToken, PricingUnit.PerPerson);
+        UpsertActivityDetails(dbContext, ListingActivity2Id, "Water Sports", 4, "Moderate", 11000m, 1, 15, "Safety Gear,Guide,Snacks", "Must know how to swim");
+        UpsertListingImages(dbContext, ListingActivity2Id, "https://images.unsplash.com/photo-1530866495561-507c9faab8d1?w=800", "https://images.unsplash.com/photo-1530866495561-2b4a9ef78e6f?w=800");
+        UpsertOptionGroupWithValues(dbContext, ListingActivity2Id, "Group Size", new[]
         {
-            UpsertListing(dbContext, listing.Id, VendorProfileId, listing.CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, listing.Type, now, cancellationToken);
-        }
+            ("Standard (1-9 people)", 11000m),
+            ("Large Group (10+, 15% off)", 9350m),
+            ("Private Trip (2-4 people, +1500/person)", 12500m)
+        });
 
         var customerIds = new[] { Customer1Id, Customer2Id, Customer3Id };
         var customerNames = new[] { "Customer One", "Customer Two", "Customer Three" };
@@ -645,7 +698,8 @@ public static class TestDataSeeder
         string location,
         ListingType type,
         DateTime now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        PricingUnit? pricingUnitOverride = null)
     {
         var listing = dbContext.Listings.FirstOrDefault(x => x.Id == listingId);
         if (listing == null)
@@ -664,6 +718,7 @@ public static class TestDataSeeder
                 Type = type,
                 AvailabilityType = AvailabilityType.Capacity,
                 Capacity = 1,
+                PricingUnitOverride = pricingUnitOverride,
                 CreatedAt = now
             });
             return;
@@ -680,8 +735,240 @@ public static class TestDataSeeder
         listing.Type = type;
         listing.AvailabilityType = AvailabilityType.Capacity;
         listing.Capacity = 1;
+        listing.PricingUnitOverride = pricingUnitOverride;
         listing.UpdatedAt = now;
         dbContext.Listings.Update(listing);
+    }
+
+    // Two real, thematically-matching Unsplash photos per listing (a
+    // wedding photo for "Wedding Photography", a hotel room for the
+    // seaside resort, etc.) instead of a repeated or random placeholder -
+    // same CDN/URL pattern the frontend's own FALLBACK_IMAGE already uses.
+    private static void UpsertListingImages(
+        ApplicationDbContext dbContext,
+        Guid listingId,
+        string primaryImageUrl,
+        string secondaryImageUrl)
+    {
+        var alreadyHasImages = dbContext.ListingImages.Any(x => x.ListingId == listingId);
+        if (alreadyHasImages)
+            return;
+
+        dbContext.ListingImages.AddRange(
+            new ListingImage
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                ImageUrl = primaryImageUrl,
+                IsPrimary = true
+            },
+            new ListingImage
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                ImageUrl = secondaryImageUrl,
+                IsPrimary = false
+            });
+
+        var listing = dbContext.Listings.Local.FirstOrDefault(x => x.Id == listingId)
+            ?? dbContext.Listings.First(x => x.Id == listingId);
+        listing.ThumbnailUrl = primaryImageUrl;
+    }
+
+    private static void UpsertOptionGroupWithValues(
+        ApplicationDbContext dbContext, Guid listingId, string groupName,
+        (string Name, decimal PriceOverride)[] values)
+    {
+        if (dbContext.Set<ListingOptionGroup>().Any(x => x.ListingId == listingId && x.Name == groupName))
+            return;
+
+        var group = new ListingOptionGroup { Id = Guid.NewGuid(), ListingId = listingId, Name = groupName, DisplayOrder = 0 };
+        dbContext.Set<ListingOptionGroup>().Add(group);
+
+        for (var i = 0; i < values.Length; i++)
+        {
+            dbContext.Set<ListingOptionValue>().Add(new ListingOptionValue
+            {
+                Id = Guid.NewGuid(),
+                GroupId = group.Id,
+                Name = values[i].Name,
+                DisplayOrder = i,
+                PriceOverride = values[i].PriceOverride
+            });
+        }
+    }
+
+    private static void UpsertHotelDetails(
+        ApplicationDbContext dbContext, Guid listingId, decimal pricePerNight, int availableRooms,
+        string amenities, string roomTypes, string checkInTime, string checkOutTime,
+        string propertyType, string primaryRoomType)
+    {
+        var details = dbContext.Set<HotelListingDetails>().FirstOrDefault(x => x.ListingId == listingId);
+        if (details == null)
+        {
+            dbContext.Set<HotelListingDetails>().Add(new HotelListingDetails
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                PricePerNight = pricePerNight,
+                AvailableRooms = availableRooms,
+                Amenities = amenities,
+                RoomTypes = roomTypes,
+                CheckInTime = checkInTime,
+                CheckOutTime = checkOutTime,
+                PropertyType = propertyType,
+                PrimaryRoomType = primaryRoomType
+            });
+            return;
+        }
+
+        details.PricePerNight = pricePerNight;
+        details.AvailableRooms = availableRooms;
+        details.Amenities = amenities;
+        details.RoomTypes = roomTypes;
+        details.CheckInTime = checkInTime;
+        details.CheckOutTime = checkOutTime;
+        details.PropertyType = propertyType;
+        details.PrimaryRoomType = primaryRoomType;
+    }
+
+    private static void UpsertRestaurantDetails(
+        ApplicationDbContext dbContext, Guid listingId, string cuisineType, decimal averageCost,
+        string openingHours, int tableCapacity, string tableTypes, string reservationRules)
+    {
+        var details = dbContext.Set<RestaurantListingDetails>().FirstOrDefault(x => x.ListingId == listingId);
+        if (details == null)
+        {
+            dbContext.Set<RestaurantListingDetails>().Add(new RestaurantListingDetails
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                CuisineType = cuisineType,
+                AverageCost = averageCost,
+                OpeningHours = openingHours,
+                TableCapacity = tableCapacity,
+                TableTypes = tableTypes,
+                ReservationRules = reservationRules
+            });
+            return;
+        }
+
+        details.CuisineType = cuisineType;
+        details.AverageCost = averageCost;
+        details.OpeningHours = openingHours;
+        details.TableCapacity = tableCapacity;
+        details.TableTypes = tableTypes;
+        details.ReservationRules = reservationRules;
+    }
+
+    private static void UpsertEventDetails(
+        ApplicationDbContext dbContext, Guid listingId, string eventName, string organizer,
+        DateTime dateAndTime, int seatCount, decimal ticketPrice, string eventType,
+        string venueName, string venueAddress)
+    {
+        var details = dbContext.Set<EventListingDetails>().FirstOrDefault(x => x.ListingId == listingId);
+        if (details == null)
+        {
+            dbContext.Set<EventListingDetails>().Add(new EventListingDetails
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                EventName = eventName,
+                Organizer = organizer,
+                DateAndTime = dateAndTime,
+                SeatCount = seatCount,
+                TicketPrice = ticketPrice,
+                EventType = eventType,
+                VenueName = venueName,
+                VenueAddress = venueAddress
+            });
+            return;
+        }
+
+        details.EventName = eventName;
+        details.Organizer = organizer;
+        details.DateAndTime = dateAndTime;
+        details.SeatCount = seatCount;
+        details.TicketPrice = ticketPrice;
+        details.EventType = eventType;
+        details.VenueName = venueName;
+        details.VenueAddress = venueAddress;
+    }
+
+    private static void UpsertCarRentalDetails(
+        ApplicationDbContext dbContext, Guid listingId, string brand, string model, string transmission,
+        decimal pricePerDay, int seatCount, string fuelType, string availabilityStatus, int year,
+        decimal? hourlyRate, string pickupLocation, string returnLocation, string? insuranceOptions = null)
+    {
+        var details = dbContext.Set<CarRentalListingDetails>().FirstOrDefault(x => x.ListingId == listingId);
+        if (details == null)
+        {
+            dbContext.Set<CarRentalListingDetails>().Add(new CarRentalListingDetails
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                Brand = brand,
+                Model = model,
+                Transmission = transmission,
+                PricePerDay = pricePerDay,
+                SeatCount = seatCount,
+                FuelType = fuelType,
+                AvailabilityStatus = availabilityStatus,
+                Year = year,
+                HourlyRate = hourlyRate,
+                PickupLocation = pickupLocation,
+                ReturnLocation = returnLocation,
+                InsuranceOptions = insuranceOptions
+            });
+            return;
+        }
+
+        details.Brand = brand;
+        details.Model = model;
+        details.Transmission = transmission;
+        details.PricePerDay = pricePerDay;
+        details.SeatCount = seatCount;
+        details.FuelType = fuelType;
+        details.AvailabilityStatus = availabilityStatus;
+        details.Year = year;
+        details.HourlyRate = hourlyRate;
+        details.PickupLocation = pickupLocation;
+        details.ReturnLocation = returnLocation;
+        details.InsuranceOptions = insuranceOptions;
+    }
+
+    private static void UpsertActivityDetails(
+        ApplicationDbContext dbContext, Guid listingId, string activityType, int durationHours,
+        string difficultyLevel, decimal price, int minGroupSize, int maxGroupSize,
+        string includedServices, string safetyRequirements)
+    {
+        var details = dbContext.Set<ActivityListingDetails>().FirstOrDefault(x => x.ListingId == listingId);
+        if (details == null)
+        {
+            dbContext.Set<ActivityListingDetails>().Add(new ActivityListingDetails
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listingId,
+                ActivityType = activityType,
+                DurationHours = durationHours,
+                DifficultyLevel = difficultyLevel,
+                Price = price,
+                MinGroupSize = minGroupSize,
+                MaxGroupSize = maxGroupSize,
+                IncludedServices = includedServices,
+                SafetyRequirements = safetyRequirements
+            });
+            return;
+        }
+
+        details.ActivityType = activityType;
+        details.DurationHours = durationHours;
+        details.DifficultyLevel = difficultyLevel;
+        details.Price = price;
+        details.MinGroupSize = minGroupSize;
+        details.MaxGroupSize = maxGroupSize;
+        details.IncludedServices = includedServices;
+        details.SafetyRequirements = safetyRequirements;
     }
 
     private static void UpsertVendorApplication(

@@ -10,5 +10,7 @@ public class HotelListingDetailsConfiguration : IEntityTypeConfiguration<HotelLi
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.PricePerNight).HasColumnType("decimal(18,2)");
+        builder.Property(x => x.OccupancyPriceModifier).HasColumnType("decimal(18,2)");
+        builder.Property(x => x.BaseOccupancy).HasDefaultValue(2);
     }
 }

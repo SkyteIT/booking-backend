@@ -2,6 +2,7 @@ using System.Text.Json;
 using Ube.Application.Common.Interfaces.Services;
 using Ube.Application.Common.Interfaces.Persistence;
 using Ube.Application.Common.Exceptions;
+using Ube.Application.Features.Cart;
 using Ube.Application.Features.Content.Category;
 using Ube.Application.Features.Listings.Validators;
 using Ube.Application.Features.Vendors;
@@ -17,17 +18,20 @@ public class ListingService : IListingService
     private readonly IVendorProfileRepository _vendorProfileRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICartRepository _cartRepository;
 
     public ListingService(
         IListingRepository listingRepository,
         IVendorProfileRepository vendorProfileRepository,
         ICategoryRepository categoryRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICartRepository cartRepository)
     {
         _listingRepository = listingRepository;
         _vendorProfileRepository = vendorProfileRepository;
         _categoryRepository = categoryRepository;
         _unitOfWork = unitOfWork;
+        _cartRepository = cartRepository;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -131,11 +135,7 @@ public class ListingService : IListingService
         listing.ThumbnailUrl       = request.Images.Count > 0 ? request.Images[0] : null;
         listing.UpdatedAt          = DateTime.UtcNow;
 
-        // ClearDetailsAsync below removes the previous category's detail row
-        // before UpsertDetailsFromUpdateAsync writes the new one - without a
-        // transaction, a failure in between (e.g. a DB constraint) leaves the
-        // listing with no detail row at all instead of the row it had before
-        // the update, silently corrupting a previously-valid listing.
+        
         await _unitOfWork.BeginTransactionAsync();
         try
         {
@@ -245,6 +245,12 @@ public class ListingService : IListingService
         if (listing.VendorProfileId != vendor.Id)
             throw new BusinessRuleException("You do not own this listing.");
 
+        // A customer's leftover cart item (abandoned cart, never checked
+        // out) still references this listing - CartItem.ListingId is
+        // DeleteBehavior.NoAction, so it would otherwise block the delete
+        // with a raw FK constraint error instead of a real reason.
+        await _cartRepository.RemoveByListingIdAsync(listingId, ct);
+
         await _listingRepository.DeleteAsync(listing, ct);
     }
 
@@ -353,6 +359,8 @@ public class ListingService : IListingService
             CheckOutTime    = l.HotelDetails.CheckOutTime,
             PropertyType    = l.HotelDetails.PropertyType,
             PrimaryRoomType = l.HotelDetails.PrimaryRoomType,
+            BaseOccupancy = l.HotelDetails.BaseOccupancy,
+            OccupancyPriceModifier = l.HotelDetails.OccupancyPriceModifier,
         },
 
         RestaurantDetails = effectiveType != ListingType.Restaurant || l.RestaurantDetails == null ? null : new RestaurantDetailsDto
@@ -446,6 +454,7 @@ public class ListingService : IListingService
                 Name = v.Name,
                 DisplayOrder = v.DisplayOrder,
                 PriceModifier = v.PriceModifier,
+                IsPercentageModifier = v.IsPercentageModifier,
                 PriceOverride = v.PriceOverride,
                 ConfirmationTypeOverride = v.ConfirmationTypeOverride,
                 RequiresSeatSelection = v.RequiresSeatSelection
@@ -557,6 +566,8 @@ public class ListingService : IListingService
                 CheckOutTime    = r.HotelDetails.CheckOutTime,
                 PropertyType    = r.HotelDetails.PropertyType,
                 PrimaryRoomType = r.HotelDetails.PrimaryRoomType,
+                BaseOccupancy = r.HotelDetails.BaseOccupancy,
+                OccupancyPriceModifier = r.HotelDetails.OccupancyPriceModifier,
             }, ct);
 
         if (r.RestaurantDetails != null)
@@ -645,6 +656,8 @@ public class ListingService : IListingService
                 CheckOutTime    = r.HotelDetails.CheckOutTime,
                 PropertyType    = r.HotelDetails.PropertyType,
                 PrimaryRoomType = r.HotelDetails.PrimaryRoomType,
+                BaseOccupancy = r.HotelDetails.BaseOccupancy,
+                OccupancyPriceModifier = r.HotelDetails.OccupancyPriceModifier,
             }, ct);
 
         if (r.RestaurantDetails != null)

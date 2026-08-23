@@ -8,6 +8,9 @@ public class CheckoutItemRequest
     public DateTime EndDateTime { get; set; }
     public Guid? ListingUnitId { get; set; }
     public List<Guid>? OptionValueIds { get; set; }
+    // Guests occupying a room (Hotel only) - distinct from Quantity, which
+    // is room count. Null/absent = no occupancy pricing effect.
+    public int? OccupantCount { get; set; }
 }
 
 public class CheckoutRequest

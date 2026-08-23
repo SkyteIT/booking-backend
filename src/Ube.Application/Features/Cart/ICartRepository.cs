@@ -8,5 +8,7 @@ public interface ICartRepository
     Task AddAsync(Ube.Domain.Entities.Carts.Cart cart);
     Task AddCartItemAsync(CartItem item);
     Task RemoveItemAsync(CartItem item);
+    
+    Task RemoveByListingIdAsync(Guid listingId, CancellationToken ct = default);
     Task SaveChangesAsync();
 }

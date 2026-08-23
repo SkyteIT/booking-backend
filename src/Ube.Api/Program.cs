@@ -114,6 +114,8 @@ builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
 builder.Services.AddScoped<IListingService, ListingService>();
 builder.Services.AddScoped<IListingUnitRepository, ListingUnitRepository>();
 builder.Services.AddScoped<IListingUnitService, ListingUnitService>();
+builder.Services.AddScoped<IListingOptionRepository, ListingOptionRepository>();
+builder.Services.AddScoped<IListingOptionService, ListingOptionService>();
 builder.Services.AddScoped<ISeasonalPricingRepository, SeasonalPricingRepository>();
 builder.Services.AddScoped<ISeasonalPricingService, SeasonalPricingService>();
 builder.Services.AddScoped<IListingOfferRepository, ListingOfferRepository>();

@@ -43,7 +43,7 @@ public class SeasonalPricingService : ISeasonalPricingService
     public async Task<SeasonalPricingRuleDto> CreateAsync(Guid listingId, Guid userId, CreateSeasonalPricingRuleRequest request, CancellationToken ct = default)
     {
         var listing = await EnsureOwnedListingAsync(listingId, userId, ct);
-        await EnsureSeasonalPricingSupportedAsync(listing.CategoryId, ct);
+        await EnsureSeasonalPricingSupportedAsync(listing, ct);
 
         if (request.ListingUnitId.HasValue)
         {
@@ -135,11 +135,12 @@ public class SeasonalPricingService : ISeasonalPricingService
             effectivePrice = unit.PriceOverride ?? listing.Price;
         }
 
-        var isDateBased = category.ServiceModel is PricingUnit.PerNight or PricingUnit.PerDay;
+        var effectivePricingUnit = listing.PricingUnitOverride ?? category.ServiceModel;
+        var isDateBased = effectivePricingUnit is PricingUnit.PerNight or PricingUnit.PerDay;
         decimal total;
         if (!isDateBased)
         {
-            total = BookingPricingRules.CalculateTotal(effectivePrice, quantity, startDate, endDate, category.ServiceModel);
+            total = BookingPricingRules.CalculateTotal(effectivePrice, quantity, startDate, endDate, effectivePricingUnit);
         }
         else
         {
@@ -165,12 +166,13 @@ public class SeasonalPricingService : ISeasonalPricingService
     // Seasonal rules only make sense for date-based pricing (PerNight/
     // PerDay) - other pricing units have no per-date concept to attach
     // a season to (BookingPricingRules.CalculateTotal treats them flat).
-    private async Task EnsureSeasonalPricingSupportedAsync(Guid categoryId, CancellationToken ct)
+    private async Task EnsureSeasonalPricingSupportedAsync(Listing listing, CancellationToken ct)
     {
-        var category = await _categoryRepo.GetByIdAsync(categoryId, ct: ct)
+        var category = await _categoryRepo.GetByIdAsync(listing.CategoryId, ct: ct)
             ?? throw new NotFoundException("Category not found");
 
-        if (category.ServiceModel is not (PricingUnit.PerNight or PricingUnit.PerDay))
+        var effectivePricingUnit = listing.PricingUnitOverride ?? category.ServiceModel;
+        if (effectivePricingUnit is not (PricingUnit.PerNight or PricingUnit.PerDay))
             throw new BusinessRuleException("Seasonal pricing only applies to per-night or per-day listings.");
     }
 

@@ -30,10 +30,10 @@ public class BookingPricingRulesTests
     }
 
     [Fact]
-    public void CalculateTotal_FixedPrice_Ignores_Duration()
+    public void CalculateTotal_FixedPrice_Ignores_Duration_And_Quantity()
     {
         var total = BookingPricingRules.CalculateTotal(2500m, 3, Start, Start.AddDays(10), PricingUnit.FixedPrice);
-        Assert.Equal(7500m, total); // 2500 * 3 qty, duration irrelevant
+        Assert.Equal(2500m, total); // flat price per booking - quantity is party size, not a multiplier
     }
 
     [Fact]

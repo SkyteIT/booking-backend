@@ -59,7 +59,15 @@ public class BannerServiceTests
         InMemoryBannerRepository repo,
         Mock<IUserRepository> userRepo,
         Mock<INotificationService> notificationService)
-        => new(repo, userRepo.Object, notificationService.Object);
+    {
+        // Default so NotifyCustomersAsync's foreach has a real (empty) list
+        // to iterate instead of Moq's null default - individual tests can
+        // still override this setup if they need specific customers.
+        userRepo.Setup(r => r.GetByRoleAsync(It.IsAny<UserRole>()))
+            .ReturnsAsync(new List<Ube.Domain.Entities.Users.User>());
+
+        return new(repo, userRepo.Object, notificationService.Object);
+    }
 
     private static Banner MakeBanner(
         string title,

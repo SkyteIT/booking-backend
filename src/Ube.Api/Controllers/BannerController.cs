@@ -146,7 +146,7 @@ public class BannerController : ControllerBase
         return deleted ? NoContent() : NotFound(); // 204 or 404
     }
 
-    private static async Task<string> SaveBannerImageAsync(IFormFile file)
+    private async Task<string> SaveBannerImageAsync(IFormFile file)
     {
         if (file == null || file.Length == 0)
             throw new BusinessRuleException("Invalid file");
@@ -159,9 +159,7 @@ public class BannerController : ControllerBase
             throw new BusinessRuleException("File size must not exceed 2MB");
 
         await using var stream = file.OpenReadStream();
-        var imageUrl = await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);
-
-        return Ok(new { imageUrl });
+        return await _fileStorage.UploadAsync(stream, extension, file.ContentType, IFileStorageService.ImagesContainer);
     }
 
     private static Task DeleteBannerImageAsync(string? imageUrl)

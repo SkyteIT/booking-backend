@@ -55,6 +55,16 @@ public class ListingRepository : IListingRepository
     {
         var query = _db.Listings
             .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.VendorProfile)
+            .Include(x => x.Images)
+            .Include(x => x.HotelDetails)
+            .Include(x => x.RestaurantDetails)
+            .Include(x => x.ActivityDetails)
+            .Include(x => x.EventDetails)
+            .Include(x => x.CarRentalDetails)
+            .Include(x => x.Units)
+            .Include(x => x.CustomFieldValues).ThenInclude(x => x.CategoryCustomField)
             .Include(x => x.Category)
             .Include(x => x.VendorProfile)
             .Where(x => x.IsActive && x.Category.Status == RecordStatus.Active);
@@ -92,7 +102,12 @@ public class ListingRepository : IListingRepository
         var normalizedQuery = SearchQueryTokenizer.Normalize(request.SearchTerm);
         var scoringTokens = SearchQueryTokenizer.Tokenize(request.SearchTerm);
 
-        var candidates = await query
+        var page = await query
+            .OrderByDescending(x => x.IsFeatured)
+            .ThenBy(x => x.Price)
+            .ThenBy(x => x.Id)
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
             .Select(x => new
             {
                 x.Id,
@@ -164,20 +179,21 @@ public class ListingRepository : IListingRepository
             .Take(request.PageSize)
             .Select(r => new SearchListingDto
         {
-            Id = r.Candidate.Id,
-            CategoryId = r.Candidate.CategoryId,
-            Type = r.Candidate.Type,
-            Title = r.Candidate.Title,
-            CategoryName = r.Candidate.CategoryName,
-            Location = r.Candidate.Location,
-            Price = r.Candidate.Price,
-            Currency = r.Candidate.Currency,
-            AverageRating = r.Candidate.AverageRating,
-            IsFeatured = r.Candidate.IsFeatured,
-            IsActive = r.Candidate.IsActive,
-            ThumbnailUrl = r.Candidate.ThumbnailUrl,
-            HasActiveOffer = r.Candidate.ActiveOffer != null,
-            OfferBadgeText = r.Candidate.ActiveOffer == null ? null : FormatOfferBadge(r.Candidate.ActiveOffer.DiscountType, r.Candidate.ActiveOffer.DiscountValue)
+            Details = Ube.Application.Features.Listings.ListingService.MapToResponse(r.Listing),
+            Id = r.Listing.Id,
+            CategoryId = r.Listing.CategoryId,
+            Type = r.Listing.Category.Type ?? r.Listing.Type,
+            Title = r.Listing.Title,
+            CategoryName = r.Listing.Category.Name,
+            Location = r.Listing.Location ?? string.Empty,
+            Price = r.Listing.Price,
+            Currency = r.Listing.Currency,
+            AverageRating = r.Listing.AverageRating,
+            IsFeatured = r.Listing.IsFeatured,
+            IsActive = r.Listing.IsActive,
+            ThumbnailUrl = r.Listing.ThumbnailUrl,
+            HasActiveOffer = r.ActiveOffer != null,
+            OfferBadgeText = r.ActiveOffer == null ? null : FormatOfferBadge(r.ActiveOffer.DiscountType, r.ActiveOffer.DiscountValue)
         }).ToList();
 
         return new SearchListingsResult { Items = items, TotalCount = totalCount };

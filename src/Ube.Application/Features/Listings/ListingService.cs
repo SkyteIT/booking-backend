@@ -17,17 +17,20 @@ public class ListingService : IListingService
     private readonly IVendorProfileRepository _vendorProfileRepository;
     private readonly ICategoryRepository _categoryRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IVendorListingCategoryService _vendorCategories;
 
     public ListingService(
         IListingRepository listingRepository,
         IVendorProfileRepository vendorProfileRepository,
         ICategoryRepository categoryRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IVendorListingCategoryService vendorCategories)
     {
         _listingRepository = listingRepository;
         _vendorProfileRepository = vendorProfileRepository;
         _categoryRepository = categoryRepository;
         _unitOfWork = unitOfWork;
+        _vendorCategories = vendorCategories;
     }
 
     // ── Create ────────────────────────────────────────────────────────────────
@@ -40,6 +43,7 @@ public class ListingService : IListingService
         var vendor = await _vendorProfileRepository.GetVendorIdAsync(userId)
             ?? throw new BusinessRuleException("Vendor profile not found for this user.");
 
+        await _vendorCategories.EnsureAllowedAsync(userId, request.CategoryId, ct);
         var category = await GetValidCategoryAsync(request.CategoryId, ct);
         ValidateDetails(category.Type!.Value, request.HotelDetails, request.RestaurantDetails,
             request.EventDetails, request.CarRentalDetails, request.ActivityDetails);
@@ -112,6 +116,7 @@ public class ListingService : IListingService
         if (listing.VendorProfileId != vendor.Id)
             throw new BusinessRuleException("You do not own this listing.");
 
+        await _vendorCategories.EnsureAllowedAsync(userId, request.CategoryId, ct);
         var category = await GetValidCategoryAsync(request.CategoryId, ct);
         ValidateDetails(category.Type!.Value, request.HotelDetails, request.RestaurantDetails,
             request.EventDetails, request.CarRentalDetails, request.ActivityDetails);
@@ -299,7 +304,7 @@ public class ListingService : IListingService
 
     // ── Mapper ────────────────────────────────────────────────────────────────
 
-    private static ListingResponse MapToResponse(Listing l)
+    public static ListingResponse MapToResponse(Listing l)
     {
         var effectiveType = l.Category?.Type ?? l.Type;
         var restaurantHours = ListingTimeFormat.ParseRange(l.RestaurantDetails?.OpeningHours);
@@ -383,6 +388,7 @@ public class ListingService : IListingService
         {
             Brand              = l.CarRentalDetails.Brand,
             Model              = l.CarRentalDetails.Model,
+            VehicleType        = l.CarRentalDetails.VehicleType,
             Transmission       = l.CarRentalDetails.Transmission,
             PricePerDay        = l.CarRentalDetails.PricePerDay,
             SeatCount          = l.CarRentalDetails.SeatCount,
@@ -576,6 +582,7 @@ public class ListingService : IListingService
                 ListingId          = listingId,
                 Brand              = r.CarRentalDetails.Brand,
                 Model              = r.CarRentalDetails.Model,
+                VehicleType        = r.CarRentalDetails.VehicleType,
                 Transmission       = r.CarRentalDetails.Transmission,
                 PricePerDay        = r.CarRentalDetails.PricePerDay,
                 SeatCount          = r.CarRentalDetails.SeatCount,
@@ -664,6 +671,7 @@ public class ListingService : IListingService
                 ListingId          = listingId,
                 Brand              = r.CarRentalDetails.Brand,
                 Model              = r.CarRentalDetails.Model,
+                VehicleType        = r.CarRentalDetails.VehicleType,
                 Transmission       = r.CarRentalDetails.Transmission,
                 PricePerDay        = r.CarRentalDetails.PricePerDay,
                 SeatCount          = r.CarRentalDetails.SeatCount,

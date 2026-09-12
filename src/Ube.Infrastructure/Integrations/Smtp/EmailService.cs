@@ -31,15 +31,36 @@ public class EmailService : IEmailService
         var verificationLink = $"{_frontendBaseUrl}/verify-email?token={token}";
 
         var body = $"""
-            <h3>Welcome to Ube!</h3>
-            <p>Please verify your email by clicking the link below:</p>
-            <a href='{verificationLink}' style='display:inline-block;padding:10px 20px;
-               background:#4f46e5;color:#fff;text-decoration:none;border-radius:6px;'>
-               Verify Email
-            </a>
-            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
-               This link expires in 24 hours. If you didn't create an account, you can ignore this email.
-            </p>
+            <div style="margin:0;padding:0;background:#f4f8fb;">
+              <div style="max-width:640px;margin:0 auto;padding:32px 20px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+                <div style="background:linear-gradient(135deg,#005a8d,#0077b6);border-radius:20px 20px 0 0;padding:30px 28px;color:#ffffff;">
+                  <div style="font-size:13px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.85;">UBE</div>
+                  <h1 style="margin:10px 0 0;font-size:28px;line-height:1.15;">Verify your email address</h1>
+                  <p style="margin:12px 0 0;font-size:15px;line-height:1.6;opacity:0.96;">One quick step and your Ube account will be ready.</p>
+                </div>
+
+                <div style="background:#ffffff;border:1px solid #dbe6ef;border-top:none;border-radius:0 0 20px 20px;padding:28px;">
+                  <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Welcome to Ube!</p>
+                  <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#334155;">
+                    Confirm that this email address belongs to you by selecting the button below.
+                  </p>
+
+                  <div style="text-align:center;margin:28px 0;">
+                    <a href="{verificationLink}" style="display:inline-block;background:linear-gradient(135deg,#005a8d,#0077b6);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:999px;">
+                      Verify email address
+                    </a>
+                  </div>
+
+                  <div style="padding:16px 18px;background:#f8fbfe;border:1px solid #dbe6ef;border-radius:14px;font-size:13px;line-height:1.7;color:#64748b;">
+                    This verification link expires in 24 hours. If you did not create an Ube account, you can safely ignore this email.
+                  </div>
+                </div>
+
+                <div style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">
+                  This automated message was sent to help secure your Ube account.
+                </div>
+              </div>
+            </div>
             """;
 
         return SendEmailAsync(email, "Verify your Ube account", body);
@@ -100,17 +121,46 @@ public class EmailService : IEmailService
 
     public Task SendVendorApplicationSubmittedEmailAsync(string email, string firstName, string businessName)
     {
-        var displayName = string.IsNullOrWhiteSpace(firstName) ? "there" : firstName.Trim();
-        var safeBusinessName = string.IsNullOrWhiteSpace(businessName) ? "your business" : businessName.Trim();
+        var displayName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(firstName) ? "there" : firstName.Trim());
+        var safeBusinessName = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(businessName) ? "your business" : businessName.Trim());
+        var statusLink = $"{_frontendBaseUrl}/vendor/application-status";
         var body = $"""
-            <h3>Vendor application submitted</h3>
-            <p>Hi {displayName},</p>
-            <p>Your vendor application for <strong>{safeBusinessName}</strong> has been submitted successfully.</p>
-            <p>Status: <strong>Pending review</strong></p>
-            <p>Our admin team will review your application and update you once a decision has been made.</p>
-            <p style='color:#6b7280;font-size:13px;margin-top:16px;'>
-               If you did not submit this application, please contact support immediately.
-            </p>
+            <div style="margin:0;padding:0;background:#f4f8fb;">
+              <div style="max-width:640px;margin:0 auto;padding:32px 20px;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
+                <div style="background:linear-gradient(135deg,#005a8d,#0077b6);border-radius:20px 20px 0 0;padding:30px 28px;color:#ffffff;">
+                  <div style="font-size:13px;letter-spacing:0.14em;text-transform:uppercase;opacity:0.85;">UBE VENDOR</div>
+                  <h1 style="margin:10px 0 0;font-size:28px;line-height:1.15;">Application received</h1>
+                  <p style="margin:12px 0 0;font-size:15px;line-height:1.6;opacity:0.96;">Your vendor application is safely with our review team.</p>
+                </div>
+
+                <div style="background:#ffffff;border:1px solid #dbe6ef;border-top:none;border-radius:0 0 20px 20px;padding:28px;">
+                  <p style="margin:0 0 14px;font-size:16px;line-height:1.7;">Hi {displayName},</p>
+                  <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#334155;">
+                    We received the vendor application for <strong style="color:#0f172a;">{safeBusinessName}</strong>. No further action is needed while our admin team reviews the information provided.
+                  </p>
+
+                  <div style="margin:22px 0;padding:18px;background:#f8fbfe;border:1px solid #dbe6ef;border-radius:16px;">
+                    <div style="font-size:12px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Current status</div>
+                    <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:#fff7ed;color:#b45309;font-size:14px;font-weight:700;">Pending review</div>
+                    <p style="margin:14px 0 0;font-size:14px;line-height:1.7;color:#475569;">We will notify you as soon as a decision has been made.</p>
+                  </div>
+
+                  <div style="text-align:center;margin:28px 0 22px;">
+                    <a href="{statusLink}" style="display:inline-block;background:linear-gradient(135deg,#005a8d,#0077b6);color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 24px;border-radius:999px;">
+                      View application status
+                    </a>
+                  </div>
+
+                  <p style="margin:0;font-size:13px;line-height:1.7;color:#64748b;">
+                    If you did not submit this application, please contact Ube support immediately.
+                  </p>
+                </div>
+
+                <div style="padding:16px 8px 0;text-align:center;font-size:12px;line-height:1.6;color:#94a3b8;">
+                  Ube vendor onboarding updates are sent automatically when your application status changes.
+                </div>
+              </div>
+            </div>
             """;
 
         return SendEmailAsync(email, "Vendor application submitted", body);

@@ -54,6 +54,17 @@ public class ListingRepository : IListingRepository
     public async Task<SearchListingsResult> SearchAsync(SearchListingsRequest request, CancellationToken cancellationToken = default)
     {
         var query = _db.Listings
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.VendorProfile)
+            .Include(x => x.Images)
+            .Include(x => x.HotelDetails)
+            .Include(x => x.RestaurantDetails)
+            .Include(x => x.ActivityDetails)
+            .Include(x => x.EventDetails)
+            .Include(x => x.CarRentalDetails)
+            .Include(x => x.Units)
+            .Include(x => x.CustomFieldValues).ThenInclude(x => x.CategoryCustomField)
             .Include(x => x.Category)
             .Where(x => x.IsActive && x.Category.Status == RecordStatus.Active);
 
@@ -101,6 +112,7 @@ public class ListingRepository : IListingRepository
         var page = await query
             .OrderByDescending(x => x.IsFeatured)
             .ThenBy(x => x.Price)
+            .ThenBy(x => x.Id)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .Select(x => new
@@ -116,6 +128,7 @@ public class ListingRepository : IListingRepository
 
         var items = page.Select(r => new SearchListingDto
         {
+            Details = Ube.Application.Features.Listings.ListingService.MapToResponse(r.Listing),
             Id = r.Listing.Id,
             CategoryId = r.Listing.CategoryId,
             Type = r.Listing.Category.Type ?? r.Listing.Type,

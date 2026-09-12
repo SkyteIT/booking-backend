@@ -34,52 +34,51 @@ public class ExceptionMiddleware
 
         int statusCode;
         string message;
+        IEnumerable<string>? errors = null;
 
         switch (ex)
         {
-            // Our own typed application exceptions — highest priority
+            case ValidationException validationEx:
+                statusCode = validationEx.StatusCode;
+                message = validationEx.Message;
+                errors = validationEx.Errors;
+                break;
+
             case AppException appEx:
                 statusCode = appEx.StatusCode;
                 message = appEx.Message;
                 break;
 
-            // Optimistic concurrency conflict (RowVersion on Booking etc.)
             case DbUpdateConcurrencyException:
                 statusCode = (int)HttpStatusCode.Conflict;
                 message = "The record was modified by another user. Please reload and try again.";
                 break;
 
-            // Unique-constraint violation from DB
             case DbUpdateException dbEx when IsUniqueConstraintViolation(dbEx):
                 statusCode = (int)HttpStatusCode.Conflict;
                 message = "A record with this value already exists.";
                 break;
 
-            // Other EF save failures
             case DbUpdateException:
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = "Database update failed. Check your input values.";
                 break;
 
-            // Resource not found (thrown by services without using NotFoundException)
             case KeyNotFoundException:
                 statusCode = (int)HttpStatusCode.NotFound;
                 message = ex.Message;
                 break;
 
-            // Bad arguments from caller code
             case ArgumentException:
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = ex.Message;
                 break;
 
-            // Business rule violations expressed as InvalidOperationException
             case InvalidOperationException:
                 statusCode = (int)HttpStatusCode.Conflict;
                 message = ex.Message;
                 break;
 
-            // Anything else — log internally, never leak details to client
             default:
                 _logger.LogError(ex, "Unhandled exception on {Method} {Path}",
                     context.Request.Method, context.Request.Path);
@@ -88,7 +87,13 @@ public class ExceptionMiddleware
                 break;
         }
 
-        var result = JsonSerializer.Serialize(new { message }, new JsonSerializerOptions
+        var payload = new
+        {
+            message,
+            errors = errors?.ToArray()
+        };
+
+        var result = JsonSerializer.Serialize(payload, new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });

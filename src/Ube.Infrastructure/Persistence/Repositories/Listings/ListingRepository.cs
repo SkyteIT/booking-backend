@@ -66,19 +66,11 @@ public class ListingRepository : IListingRepository
             .Include(x => x.Units)
             .Include(x => x.CustomFieldValues).ThenInclude(x => x.CategoryCustomField)
             .Include(x => x.Category)
+            .Include(x => x.VendorProfile)
             .Where(x => x.IsActive && x.Category.Status == RecordStatus.Active);
 
         if (request.CategoryIds.Count > 0)
             query = query.Where(x => request.CategoryIds.Contains(x.CategoryId));
-
-        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
-        {
-            var term = request.SearchTerm.Trim().ToLower();
-            query = query.Where(x =>
-                x.Title.ToLower().Contains(term) ||
-                x.Category.Name.ToLower().Contains(term) ||
-                (x.Location != null && x.Location.ToLower().Contains(term)));
-        }
 
         if (!string.IsNullOrWhiteSpace(request.Location))
         {
@@ -107,7 +99,8 @@ public class ListingRepository : IListingRepository
                 o.StartDate <= today && o.EndDate >= today));
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
+        var normalizedQuery = SearchQueryTokenizer.Normalize(request.SearchTerm);
+        var scoringTokens = SearchQueryTokenizer.Tokenize(request.SearchTerm);
 
         var page = await query
             .OrderByDescending(x => x.IsFeatured)
@@ -117,7 +110,23 @@ public class ListingRepository : IListingRepository
             .Take(request.PageSize)
             .Select(x => new
             {
-                Listing = x,
+                x.Id,
+                x.CategoryId,
+                Type = x.Category.Type ?? x.Type,
+                x.Title,
+                CategoryName = x.Category.Name,
+                Location = x.Location ?? string.Empty,
+                x.Price,
+                x.Currency,
+                x.AverageRating,
+                x.IsFeatured,
+                x.IsActive,
+                x.ThumbnailUrl,
+                x.Description,
+                x.OriginalCategoryName,
+                x.Tags,
+                VendorBusinessName = x.VendorProfile.BusinessName,
+                VendorBusinessType = x.VendorProfile.BusinessType,
                 ActiveOffer = _db.ListingOffers
                     .Where(o => o.ListingId == x.Id && o.IsActive &&
                                 o.StartDate <= today && o.EndDate >= today)
@@ -126,7 +135,49 @@ public class ListingRepository : IListingRepository
             })
             .ToListAsync(cancellationToken);
 
-        var items = page.Select(r => new SearchListingDto
+        var matchedCandidates = string.IsNullOrWhiteSpace(request.SearchTerm)
+            ? candidates
+            : candidates
+                .Where(candidate => SearchRelevanceScorer.IsMatch(
+                    request.SearchTerm,
+                    new SearchListingScoringInput(
+                        candidate.Title,
+                        candidate.CategoryName,
+                        candidate.Location,
+                        candidate.Description,
+                        candidate.OriginalCategoryName,
+                        candidate.Tags,
+                        candidate.VendorBusinessName,
+                        candidate.VendorBusinessType)))
+                .ToList();
+
+        var totalCount = matchedCandidates.Count;
+
+        var items = matchedCandidates
+            .Select(candidate => new
+            {
+                Candidate = candidate,
+                Score = SearchRelevanceScorer.Score(
+                    normalizedQuery,
+                    scoringTokens,
+                    new SearchListingScoringInput(
+                        candidate.Title,
+                        candidate.CategoryName,
+                        candidate.Location,
+                        candidate.Description,
+                        candidate.OriginalCategoryName,
+                        candidate.Tags,
+                        candidate.VendorBusinessName,
+                        candidate.VendorBusinessType))
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Candidate.IsFeatured)
+            .ThenByDescending(x => x.Candidate.AverageRating)
+            .ThenBy(x => x.Candidate.Price)
+            .ThenBy(x => x.Candidate.Title)
+            .Skip((request.Page - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(r => new SearchListingDto
         {
             Details = Ube.Application.Features.Listings.ListingService.MapToResponse(r.Listing),
             Id = r.Listing.Id,

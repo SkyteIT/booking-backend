@@ -15,7 +15,11 @@ public static class VendorApplicationRules
     public static Result ValidateRejection(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            return Result.Failure("Rejection reason is required");
+            return Result.Success();
+
+        if (reason.Length > 500)
+            return Result.Failure("Rejection reason must not exceed 500 characters");
+
         return Result.Success();
     }
 

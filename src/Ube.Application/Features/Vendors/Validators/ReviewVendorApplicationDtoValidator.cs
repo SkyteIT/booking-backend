@@ -6,14 +6,36 @@ public class ReviewVendorApplicationDtoValidator : AbstractValidator<ReviewVendo
 {
     public ReviewVendorApplicationDtoValidator()
     {
-        RuleFor(x => x.Status)
-            .Must(s => string.Equals(s, "Approved", StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(s, "Rejected", StringComparison.OrdinalIgnoreCase))
-            .WithMessage("Status must be Approved or Rejected");
+        RuleFor(x => x)
+            .Must(x => HasValidDecision(x.Status, x.Action))
+            .WithMessage("Status or action must be approve/Approved or reject/Rejected");
 
         RuleFor(x => x.RejectionReason)
-            .NotEmpty().WithMessage("Rejection reason is required when rejecting an application")
             .MaximumLength(500)
-            .When(x => string.Equals(x.Status, "Rejected", StringComparison.OrdinalIgnoreCase));
+            .When(x => IsRejectionDecision(x.Status, x.Action));
+    }
+
+    private static bool HasValidDecision(string? status, string? action)
+    {
+        return IsApprovalDecision(status, action) || IsRejectionDecision(status, action);
+    }
+
+    private static bool IsApprovalDecision(string? status, string? action)
+    {
+        return IsMatch(status, "Approved", "approve") || IsMatch(action, "Approved", "approve");
+    }
+
+    private static bool IsRejectionDecision(string? status, string? action)
+    {
+        return IsMatch(status, "Rejected", "reject") || IsMatch(action, "Rejected", "reject");
+    }
+
+    private static bool IsMatch(string? value, params string[] acceptedValues)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        return acceptedValues.Any(accepted =>
+            string.Equals(value.Trim(), accepted, StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -63,14 +63,28 @@ using Azure.Extensions.AspNetCore.Configuration.Secrets;
 using Ube.Api.Hubs;
 using Ube.Api.Services;
 using Microsoft.Data.SqlClient;
+using Microsoft.AspNetCore.DataProtection;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsDevelopment())
+{
+    // Keep development keys scoped to this checkout. Keys from the default
+    // Windows profile may belong to another account and fail DPAPI decryption.
+    builder.Services.AddDataProtection()
+        .SetApplicationName("Ube.Api.Development")
+        .PersistKeysToFileSystem(new DirectoryInfo(
+            Path.Combine(builder.Environment.ContentRootPath, "obj", "DataProtection-Keys")));
+}
+
 // (KeyVault:Uri) so each environment can point at its own vault without a code change.
 // For local dev, KeyVault:Uri is removed from user-secrets (Azure subscription disabled),
 // so this block is skipped and secrets come from user-secrets/appsettings instead.
 var keyVaultUriSetting = builder.Configuration["KeyVault:Uri"];
-if (!string.IsNullOrWhiteSpace(keyVaultUriSetting))
+var useKeyVault = builder.Configuration.GetValue<bool?>("KeyVault:Enabled") ?? true;
+
+if (useKeyVault && !string.IsNullOrWhiteSpace(keyVaultUriSetting))
 {
     var credential = new ClientSecretCredential(
         builder.Configuration["Azure:TenantId"],
@@ -93,19 +107,11 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
-// BlobServiceClient is thread-safe and cheap to reuse - singleton avoids
-// reconnecting/re-parsing the connection string on every request.
-// Falls back to local disk storage when Azure Storage isn't configured (e.g. local dev
-// without access to the Azure Storage account).
-var azureStorageConnectionString = builder.Configuration["AzureStorage:ConnectionString"];
-if (string.IsNullOrWhiteSpace(azureStorageConnectionString) || azureStorageConnectionString == "LOADED_FROM_AZURE_KEY_VAULT")
-{
-    builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
-}
+// Local development must not depend on production Azure credentials.
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddSingleton<IFileStorageService, DevelopmentFileStorageService>();
 else
-{
     builder.Services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
-}
 // Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 // Register validators from the auth DTO assembly
@@ -125,6 +131,7 @@ builder.Services.AddScoped<IBlockedDateRepository, BlockedDateRepository>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
 builder.Services.AddScoped<IListingService, ListingService>();
+builder.Services.AddScoped<IVendorListingCategoryService, VendorListingCategoryService>();
 builder.Services.AddScoped<IListingUnitRepository, ListingUnitRepository>();
 builder.Services.AddScoped<IListingUnitService, ListingUnitService>();
 builder.Services.AddScoped<IListingOptionRepository, ListingOptionRepository>();
@@ -308,7 +315,9 @@ if (app.Environment.IsDevelopment())
     try
     {
         await dbContext.Database.MigrateAsync();
-        await TestDataSeeder.SeedAsync(dbContext, app.Logger);
+        // Test fixtures are opt-in so restarting cannot recreate removed demo data.
+        if (builder.Configuration.GetValue<bool>("SeedData:Enabled"))
+            await TestDataSeeder.SeedAsync(dbContext, app.Logger);
     }
     catch (SqlException exception)
     {

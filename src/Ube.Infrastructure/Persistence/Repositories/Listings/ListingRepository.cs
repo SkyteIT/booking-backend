@@ -56,8 +56,6 @@ public class ListingRepository : IListingRepository
     {
         var query = _db.Listings
             .AsNoTracking()
-            .Include(x => x.Category)
-            .Include(x => x.VendorProfile)
             .Where(x => x.IsActive && x.Category.Status == RecordStatus.Active);
 
         if (request.CategoryIds.Count > 0)
@@ -139,7 +137,7 @@ public class ListingRepository : IListingRepository
 
         var totalCount = matchedCandidates.Count;
 
-        var items = matchedCandidates
+        var pagedCandidates = matchedCandidates
             .Select(candidate => new
             {
                 Candidate = candidate,
@@ -163,23 +161,53 @@ public class ListingRepository : IListingRepository
             .ThenBy(x => x.Candidate.Title)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(r => new SearchListingDto
-        {
-            Id = r.Candidate.Id,
-            CategoryId = r.Candidate.CategoryId,
-            Type = r.Candidate.Type,
-            Title = r.Candidate.Title,
-            CategoryName = r.Candidate.CategoryName,
-            Location = r.Candidate.Location,
-            Price = r.Candidate.Price,
-            Currency = r.Candidate.Currency,
-            AverageRating = r.Candidate.AverageRating,
-            IsFeatured = r.Candidate.IsFeatured,
-            IsActive = r.Candidate.IsActive,
-            ThumbnailUrl = r.Candidate.ThumbnailUrl,
-            HasActiveOffer = r.Candidate.ActiveOffer != null,
-            OfferBadgeText = r.Candidate.ActiveOffer == null ? null : FormatOfferBadge(r.Candidate.ActiveOffer.DiscountType, r.Candidate.ActiveOffer.DiscountValue)
-        }).ToList();
+            .Select(x => x.Candidate)
+            .ToList();
+
+        // Full navigation graph (Details/etc.) is only needed for the one page being
+        // returned, not every candidate scored above - fetched separately by id to
+        // avoid eager-loading every matching listing on every search.
+        var pagedIds = pagedCandidates.Select(c => c.Id).ToList();
+        var listingsById = await _db.Listings
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(x => x.VendorProfile)
+            .Include(x => x.Images)
+            .Include(x => x.HotelDetails)
+            .Include(x => x.RestaurantDetails)
+            .Include(x => x.ActivityDetails)
+            .Include(x => x.EventDetails)
+            .Include(x => x.CarRentalDetails)
+            .Include(x => x.Units)
+            .Include(x => x.CustomFieldValues).ThenInclude(x => x.CategoryCustomField)
+            .Include(x => x.Category)
+            .Where(x => pagedIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var items = pagedCandidates
+            .Select(candidate =>
+            {
+                var listing = listingsById[candidate.Id];
+                return new SearchListingDto
+                {
+                    Details = Ube.Application.Features.Listings.ListingService.MapToResponse(listing),
+                    Id = listing.Id,
+                    CategoryId = listing.CategoryId,
+                    Type = listing.Category.Type ?? listing.Type,
+                    Title = listing.Title,
+                    CategoryName = listing.Category.Name,
+                    Location = listing.Location ?? string.Empty,
+                    Price = listing.Price,
+                    Currency = listing.Currency,
+                    AverageRating = listing.AverageRating,
+                    IsFeatured = listing.IsFeatured,
+                    IsActive = listing.IsActive,
+                    ThumbnailUrl = listing.ThumbnailUrl,
+                    HasActiveOffer = candidate.ActiveOffer != null,
+                    OfferBadgeText = candidate.ActiveOffer == null ? null : FormatOfferBadge(candidate.ActiveOffer.DiscountType, candidate.ActiveOffer.DiscountValue)
+                };
+            })
+            .ToList();
 
         return new SearchListingsResult { Items = items, TotalCount = totalCount };
     }

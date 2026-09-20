@@ -4,6 +4,7 @@ namespace Ube.Application.Features.Search;
 
 public class SearchListingDto
 {
+    public Ube.Application.Features.Listings.ListingResponse? Details { get; set; }
     public Guid Id { get; set; }
     public Guid CategoryId { get; set; }
     public ListingType Type { get; set; }

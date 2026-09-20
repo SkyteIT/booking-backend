@@ -52,6 +52,7 @@ public static class TestDataSeeder
     // 2 listings per new type-scoped category (see CategoryHotelId etc. above).
     public static readonly Guid ListingHotel1Id = Guid.Parse("20000000-0000-0000-0000-000000000001");
     public static readonly Guid ListingHotel2Id = Guid.Parse("20000000-0000-0000-0000-000000000002");
+    public static readonly Guid ListingHotel1DeluxeRoomId = Guid.Parse("21000000-0000-0000-0000-000000000001");
     public static readonly Guid ListingRestaurant1Id = Guid.Parse("20000000-0000-0000-0000-000000000003");
     public static readonly Guid ListingRestaurant2Id = Guid.Parse("20000000-0000-0000-0000-000000000004");
     public static readonly Guid ListingEvent1Id = Guid.Parse("20000000-0000-0000-0000-000000000005");
@@ -309,80 +310,12 @@ public static class TestDataSeeder
             now,
             cancellationToken);
 
-        var listings = new[]
-        {
-            new { Id = Listing1Id, Title = "Wedding Photography", Price = 25000m, Location = "Colombo", Description = "Full day wedding photography package." },
-            new { Id = Listing2Id, Title = "Event Photography", Price = 18000m, Location = "Kandy", Description = "Photography for events and functions." },
-            new { Id = Listing3Id, Title = "Portrait Session", Price = 12000m, Location = "Galle", Description = "Outdoor portrait photography session." },
-            new { Id = Listing4Id, Title = "Corporate Photography", Price = 22000m, Location = "Negombo", Description = "Corporate and team photography package." },
-            new { Id = Listing5Id, Title = "Product Photography", Price = 15000m, Location = "Colombo", Description = "Studio product photography package." }
-        };
-
-        foreach (var listing in listings)
-        {
-            UpsertListing(dbContext, listing.Id, VendorProfileId, CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, ListingType.Activity, now, cancellationToken);
-        }
-
-        // 2 listings per type-scoped category so search/filter/category tiles have
-        // real spread across all 5 listing types, not just the photography vendor.
-        var typeScopedListings = new[]
-        {
-            new { Id = ListingHotel1Id, CategoryId = CategoryHotelId, Type = ListingType.Hotel, Title = "Seaside Resort Room", Price = 32000m, Location = "Galle", Description = "Ocean-view double room with breakfast included." },
-            new { Id = ListingHotel2Id, CategoryId = CategoryHotelId, Type = ListingType.Hotel, Title = "City Center Apartment", Price = 19000m, Location = "Colombo", Description = "Self-catered 1-bedroom apartment near the city center." },
-            new { Id = ListingRestaurant1Id, CategoryId = CategoryRestaurantId, Type = ListingType.Restaurant, Title = "Table at Spice Garden", Price = 6000m, Location = "Colombo", Description = "Table for two at a popular Sri Lankan fine-dining restaurant." },
-            new { Id = ListingRestaurant2Id, CategoryId = CategoryRestaurantId, Type = ListingType.Restaurant, Title = "Rooftop Grill Reservation", Price = 8500m, Location = "Kandy", Description = "Rooftop grill and bar table reservation." },
-            new { Id = ListingEvent1Id, CategoryId = CategoryEventId, Type = ListingType.Event, Title = "Colombo Music Festival", Price = 5000m, Location = "Colombo", Description = "General admission ticket to the annual music festival." },
-            new { Id = ListingEvent2Id, CategoryId = CategoryEventId, Type = ListingType.Event, Title = "Theater Night: The Play", Price = 3500m, Location = "Kandy", Description = "Ticket to an evening theater performance." },
-            new { Id = ListingCarRental1Id, CategoryId = CategoryCarRentalId, Type = ListingType.CarRental, Title = "Compact Car Rental", Price = 9000m, Location = "Colombo", Description = "Self-drive compact car, daily rental." },
-            new { Id = ListingCarRental2Id, CategoryId = CategoryCarRentalId, Type = ListingType.CarRental, Title = "SUV with Driver", Price = 16000m, Location = "Negombo", Description = "Chauffeur-driven SUV, daily rental." },
-            new { Id = ListingActivity1Id, CategoryId = CategoryActivityId, Type = ListingType.Activity, Title = "Sigiriya Day Tour", Price = 14000m, Location = "Sigiriya", Description = "Full-day guided tour of Sigiriya rock fortress." },
-            new { Id = ListingActivity2Id, CategoryId = CategoryActivityId, Type = ListingType.Activity, Title = "Whitewater Rafting", Price = 11000m, Location = "Kitulgala", Description = "Half-day guided whitewater rafting experience." },
-        };
-
-        foreach (var listing in typeScopedListings)
-        {
-            UpsertListing(dbContext, listing.Id, VendorProfileId, listing.CategoryId, listing.Title, listing.Description, listing.Price, listing.Location, listing.Type, now, cancellationToken);
-        }
-
-        var customerIds = new[] { Customer1Id, Customer2Id, Customer3Id };
-        var customerNames = new[] { "Customer One", "Customer Two", "Customer Three" };
-        var listingIds = new[] { Listing1Id, Listing2Id, Listing3Id, Listing4Id, Listing5Id };
-        var bookingStatuses = new[]
-        {
-            BookingStatus.Confirmed,
-            BookingStatus.Pending,
-            BookingStatus.Completed,
-            BookingStatus.Confirmed,
-            BookingStatus.Pending
-        };
-
-        for (var customerIndex = 0; customerIndex < customerIds.Length; customerIndex++)
-        {
-            for (var listingIndex = 0; listingIndex < listingIds.Length; listingIndex++)
-            {
-                var bookingId = BookingIds[customerIndex, listingIndex];
-                var startDate = new DateTime(2026, 5, 10 + (customerIndex * 5) + listingIndex, 10, 0, 0, DateTimeKind.Utc);
-                var amount = 12000m + (listingIndex * 2500m) + (customerIndex * 1000m);
-
-                UpsertBooking(
-                    dbContext,
-                    bookingId,
-                    listingIds[listingIndex],
-                    customerIds[customerIndex],
-                    $"BKG-{customerIndex + 1:00}{listingIndex + 1:00}",
-                    startDate,
-                    startDate.AddHours(4),
-                    bookingStatuses[listingIndex],
-                    amount,
-                    now,
-                    cancellationToken);
-            }
-        }
+        // Listings and bookings are created through the application, not startup seeding.
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
         logger.LogInformation(
-            "Seeded test dataset: 1 admin, 1 approved vendor, 5 customers, 5 pending vendor applications, 5 listings, 15 bookings.");
+            "Seeded test dataset: 1 admin, 1 approved vendor, 5 customers, 5 pending vendor applications.");
 
     }
 
@@ -417,16 +350,9 @@ public static class TestDataSeeder
             return;
         }
 
-        user.Role = role;
-        user.Email = email;
-        user.FirstName = firstName;
-        user.LastName = lastName;
-        user.PhoneNumber = phoneNumber;
-        user.IsEmailVerified = isEmailVerified;
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(SeedPassword);
-        user.AuthProvider = AuthProvider.Local;
-        user.UpdatedAt = now;
-        dbContext.Users.Update(user);
+        // Existing accounts may have changed their password, email, or security
+        // settings. Seed defaults apply only when creating an account; replaying
+        // them on startup would invalidate credentials and undo account changes.
     }
 
     private static void UpsertVendorProfile(

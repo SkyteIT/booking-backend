@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <RunCommand>dotnet</RunCommand>
+    <RunArguments>run --project &quot;$(MSBuildProjectDirectory)\src\Ube.Api\Ube.Api.csproj&quot;</RunArguments>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="RootRunner.cs" />
+  </ItemGroup>
+</Project>

@@ -429,11 +429,22 @@ public class AuthService : IAuthService
         if (user.TwoFactorEnabled)
             throw new BusinessRuleException("Two-factor authentication is already enabled");
 
-        var secretBytes = KeyGeneration.GenerateRandomKey(20);
-        var base32Secret = Base32Encoding.ToString(secretBytes);
+        // Reuse a still-pending secret instead of regenerating on every call - a repeated
+        // start request (double-click, page reload, or React StrictMode's double-invoked
+        // effect in dev) must not silently invalidate a QR code the user already scanned.
+        string base32Secret;
+        if (!string.IsNullOrEmpty(user.TwoFactorSecret))
+        {
+            base32Secret = _encryptionService.Decrypt(user.TwoFactorSecret);
+        }
+        else
+        {
+            var secretBytes = KeyGeneration.GenerateRandomKey(20);
+            base32Secret = Base32Encoding.ToString(secretBytes);
 
-        user.TwoFactorSecret = _encryptionService.Encrypt(base32Secret);
-        await _userRepo.UpdateAsync(user);
+            user.TwoFactorSecret = _encryptionService.Encrypt(base32Secret);
+            await _userRepo.UpdateAsync(user);
+        }
 
         var otpAuthUri = $"otpauth://totp/{TotpIssuer}:{Uri.EscapeDataString(user.Email)}" +
                           $"?secret={base32Secret}&issuer={TotpIssuer}&digits=6&period=30";
@@ -554,11 +565,22 @@ public class AuthService : IAuthService
         if (user.TwoFactorEnabled)
             throw new BusinessRuleException("Two-factor authentication is already enabled");
 
-        var secretBytes = KeyGeneration.GenerateRandomKey(20);
-        var base32Secret = Base32Encoding.ToString(secretBytes);
+        // Reuse a still-pending secret instead of regenerating on every call - a repeated
+        // start request (double-click, page reload, or React StrictMode's double-invoked
+        // effect in dev) must not silently invalidate a QR code the user already scanned.
+        string base32Secret;
+        if (!string.IsNullOrEmpty(user.TwoFactorSecret))
+        {
+            base32Secret = _encryptionService.Decrypt(user.TwoFactorSecret);
+        }
+        else
+        {
+            var secretBytes = KeyGeneration.GenerateRandomKey(20);
+            base32Secret = Base32Encoding.ToString(secretBytes);
 
-        user.TwoFactorSecret = _encryptionService.Encrypt(base32Secret);
-        await _userRepo.UpdateAsync(user);
+            user.TwoFactorSecret = _encryptionService.Encrypt(base32Secret);
+            await _userRepo.UpdateAsync(user);
+        }
 
         var otpAuthUri = $"otpauth://totp/{TotpIssuer}:{Uri.EscapeDataString(user.Email)}" +
                           $"?secret={base32Secret}&issuer={TotpIssuer}&digits=6&period=30";

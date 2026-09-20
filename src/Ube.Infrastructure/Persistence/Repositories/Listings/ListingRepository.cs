@@ -223,6 +223,7 @@ public class ListingRepository : IListingRepository
 
     public async Task<Listing?> GetByIdWithDetailsAsync(Guid listingId, CancellationToken ct = default)
         => await _db.Listings
+            .AsSplitQuery()
             .Include(l => l.VendorProfile)
             .Include(l => l.Category)
             .Include(l => l.Images)
@@ -245,6 +246,7 @@ public class ListingRepository : IListingRepository
     public async Task<List<Listing>> GetAllWithDetailsAsync(CancellationToken ct = default)
         => await _db.Listings
             .Where(l => l.IsActive)
+            .AsSplitQuery()
             .Include(l => l.VendorProfile)
             .Include(l => l.Category)
             .Include(l => l.Images)
@@ -264,6 +266,7 @@ public class ListingRepository : IListingRepository
     public async Task<List<Listing>> GetByVendorProfileIdWithDetailsAsync(Guid vendorProfileId, CancellationToken ct = default)
         => await _db.Listings
             .Where(l => l.VendorProfileId == vendorProfileId)
+            .AsSplitQuery()
             .Include(l => l.Category)
             .Include(l => l.Images)
             .Include(l => l.HotelDetails)

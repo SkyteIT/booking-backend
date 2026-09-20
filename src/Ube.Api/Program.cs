@@ -67,6 +67,8 @@ using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 // (KeyVault:Uri) so each environment can point at its own vault without a code change.
+// For local dev, KeyVault:Uri is removed from user-secrets (Azure subscription disabled),
+// so this block is skipped and secrets come from user-secrets/appsettings instead.
 var keyVaultUriSetting = builder.Configuration["KeyVault:Uri"];
 if (!string.IsNullOrWhiteSpace(keyVaultUriSetting))
 {
@@ -93,7 +95,17 @@ builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 // BlobServiceClient is thread-safe and cheap to reuse - singleton avoids
 // reconnecting/re-parsing the connection string on every request.
-builder.Services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
+// Falls back to local disk storage when Azure Storage isn't configured (e.g. local dev
+// without access to the Azure Storage account).
+var azureStorageConnectionString = builder.Configuration["AzureStorage:ConnectionString"];
+if (string.IsNullOrWhiteSpace(azureStorageConnectionString) || azureStorageConnectionString == "LOADED_FROM_AZURE_KEY_VAULT")
+{
+    builder.Services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+}
+else
+{
+    builder.Services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
+}
 // Add FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 // Register validators from the auth DTO assembly

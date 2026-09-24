@@ -1,0 +1,4 @@
+using Microsoft.AspNetCore.Authorization; using Microsoft.AspNetCore.Mvc; using Ube.Application.Common.Interfaces.Services.Auth; using Ube.Application.Features.Vendors; using Ube.Domain.Enums.Vendors;
+namespace Ube.Api.Controllers.Admin;
+[ApiController,Authorize(Roles="Admin"),Route("api/admin/category-requests")]
+public class CategoryRequestsController(IVendorCategoryRequestService service,ICurrentUserService user):ControllerBase { [HttpGet] public async Task<IActionResult> All([FromQuery]CategoryRequestStatus? status,CancellationToken ct)=>Ok(await service.GetAllAsync(status,ct)); [HttpPatch("{id:guid}/review")] public async Task<IActionResult> Review(Guid id,ReviewCategoryRequestDto dto,CancellationToken ct){await service.ReviewAsync(id,user.UserId,dto,ct);return Ok(new{message="Category request reviewed successfully"});} }

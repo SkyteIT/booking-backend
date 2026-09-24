@@ -7,7 +7,6 @@ using Ube.Application.Features.Dashboard;
 using Ube.Application.Features.Bookings;
 using Ube.Infrastructure.Persistence.Repositories.Bookings;
 using Ube.Infrastructure.Persistence.Repositories.Listings;
-using Ube.Infrastructure.Persistence.Seed;
 using System.Text.Json.Serialization;
 using Ube.Application.Features.Availability;
 using Ube.Application.Features.Availability.Strategies;
@@ -130,12 +129,15 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IDashboardService, VendorDashboardService>();
 builder.Services.AddScoped<IListingService, ListingService>();
 builder.Services.AddScoped<IVendorListingCategoryService, VendorListingCategoryService>();
+builder.Services.AddScoped<IVendorCategoryRequestService, VendorCategoryRequestService>();
 builder.Services.AddScoped<IListingUnitRepository, ListingUnitRepository>();
 builder.Services.AddScoped<IListingUnitService, ListingUnitService>();
 builder.Services.AddScoped<ISeasonalPricingRepository, SeasonalPricingRepository>();
 builder.Services.AddScoped<ISeasonalPricingService, SeasonalPricingService>();
 builder.Services.AddScoped<IListingOfferRepository, ListingOfferRepository>();
 builder.Services.AddScoped<IListingOfferService, ListingOfferService>();
+builder.Services.AddScoped<IListingAddonRepository, ListingAddonRepository>();
+builder.Services.AddScoped<IListingAddonService, ListingAddonService>();
 builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 // Register availability strategies
 builder.Services.AddScoped<IAvailabilityStrategy, CapacityStrategy>();
@@ -311,9 +313,7 @@ if (app.Environment.IsDevelopment())
     try
     {
         await dbContext.Database.MigrateAsync();
-        // Test fixtures are opt-in so restarting cannot recreate removed demo data.
-        if (builder.Configuration.GetValue<bool>("SeedData:Enabled"))
-            await TestDataSeeder.SeedAsync(dbContext, app.Logger);
+
     }
     catch (SqlException exception)
     {

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Ube.Infrastructure.Persistence;
 
@@ -11,9 +12,11 @@ using Ube.Infrastructure.Persistence;
 namespace Ube.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260920143015_AddVendorCategoryRequests")]
+    partial class AddVendorCategoryRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -971,49 +974,6 @@ namespace Ube.Infrastructure.Migrations
                     b.HasIndex("VendorProfileId");
 
                     b.ToTable("Listings");
-                });
-
-            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingAddon", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("ListingId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("PricingModel")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListingId");
-
-                    b.ToTable("ListingAddons", (string)null);
                 });
 
             modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingCustomFieldValue", b =>
@@ -2668,17 +2628,6 @@ namespace Ube.Infrastructure.Migrations
                     b.Navigation("VendorProfile");
                 });
 
-            modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingAddon", b =>
-                {
-                    b.HasOne("Ube.Domain.Entities.Listings.Listing", "Listing")
-                        .WithMany("Addons")
-                        .HasForeignKey("ListingId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Listing");
-                });
-
             modelBuilder.Entity("Ube.Domain.Entities.Listings.ListingCustomFieldValue", b =>
                 {
                     b.HasOne("Ube.Domain.Entities.Listings.CategoryCustomField", "CategoryCustomField")
@@ -2942,8 +2891,6 @@ namespace Ube.Infrastructure.Migrations
             modelBuilder.Entity("Ube.Domain.Entities.Listings.Listing", b =>
                 {
                     b.Navigation("ActivityDetails");
-
-                    b.Navigation("Addons");
 
                     b.Navigation("CarRentalDetails");
 

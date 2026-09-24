@@ -7,7 +7,7 @@ public class HotelDetailsDtoValidator : AbstractValidator<HotelDetailsDto>
     public HotelDetailsDtoValidator()
     {
         RuleFor(x => x.PricePerNight)
-            .GreaterThan(0).WithMessage("Price per night must be greater than 0");
+            .GreaterThanOrEqualTo(0).WithMessage("Price per night cannot be negative");
 
         RuleFor(x => x.AvailableRooms)
             .GreaterThanOrEqualTo(0).WithMessage("Available rooms cannot be negative");
@@ -24,8 +24,7 @@ public class HotelDetailsDtoValidator : AbstractValidator<HotelDetailsDto>
 
         RuleFor(x => x.Amenities)
             .NotEmpty().WithMessage("At least one amenity is required");
-
-        RuleFor(x => x.RoomTypes)
-            .NotEmpty().WithMessage("At least one room type is required");
     }
 }
+
+

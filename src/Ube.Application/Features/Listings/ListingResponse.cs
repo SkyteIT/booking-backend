@@ -49,6 +49,7 @@ public class ListingResponse
     public BookingSelectionConfigDto BookingSelection { get; set; } = new();
 
     public List<ListingCustomFieldValueDto> CustomFieldValues { get; set; } = new();
+    public List<ListingAddonDto> Addons { get; set; } = new();
 }
 
 public class BookingSelectionConfigDto

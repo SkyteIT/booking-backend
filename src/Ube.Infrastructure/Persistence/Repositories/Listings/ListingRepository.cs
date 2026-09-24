@@ -69,7 +69,7 @@ public class ListingRepository : IListingRepository
             .Include(x => x.VendorProfile)
             .Where(x => x.IsActive && x.Category.Status == RecordStatus.Active);
 
-        if (request.CategoryIds.Count > 0)
+        if (request.CategoryIds != null && request.CategoryIds.Count > 0)
             query = query.Where(x => request.CategoryIds.Contains(x.CategoryId));
 
         if (!string.IsNullOrWhiteSpace(request.Location))
@@ -102,12 +102,7 @@ public class ListingRepository : IListingRepository
         var normalizedQuery = SearchQueryTokenizer.Normalize(request.SearchTerm);
         var scoringTokens = SearchQueryTokenizer.Tokenize(request.SearchTerm);
 
-        var page = await query
-            .OrderByDescending(x => x.IsFeatured)
-            .ThenBy(x => x.Price)
-            .ThenBy(x => x.Id)
-            .Skip((request.Page - 1) * request.PageSize)
-            .Take(request.PageSize)
+        var candidates = await query
             .Select(x => new
             {
                 x.Id,
@@ -153,7 +148,7 @@ public class ListingRepository : IListingRepository
 
         var totalCount = matchedCandidates.Count;
 
-        var items = matchedCandidates
+        var itemsData = matchedCandidates
             .Select(candidate => new
             {
                 Candidate = candidate,
@@ -177,23 +172,55 @@ public class ListingRepository : IListingRepository
             .ThenBy(x => x.Candidate.Title)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(r => new SearchListingDto
+            .ToList();
+
+        var pagedIds = itemsData.Select(x => x.Candidate.Id).ToList();
+
+        var fullListings = await _db.Listings
+            .AsNoTracking()
+            .Include(x => x.VendorProfile)
+            .Include(x => x.Images)
+            .Include(x => x.HotelDetails)
+            .Include(x => x.RestaurantDetails)
+            .Include(x => x.ActivityDetails)
+            .Include(x => x.EventDetails)
+            .Include(x => x.CarRentalDetails)
+            .Include(x => x.Units)
+            .Include(x => x.CustomFieldValues).ThenInclude(x => x.CategoryCustomField)
+            .Include(x => x.Category)
+            .Include(x => x.Addons)
+            .Where(x => pagedIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        var items = itemsData.Select(x =>
         {
-            Details = Ube.Application.Features.Listings.ListingService.MapToResponse(r.Listing),
-            Id = r.Listing.Id,
-            CategoryId = r.Listing.CategoryId,
-            Type = r.Listing.Category.Type ?? r.Listing.Type,
-            Title = r.Listing.Title,
-            CategoryName = r.Listing.Category.Name,
-            Location = r.Listing.Location ?? string.Empty,
-            Price = r.Listing.Price,
-            Currency = r.Listing.Currency,
-            AverageRating = r.Listing.AverageRating,
-            IsFeatured = r.Listing.IsFeatured,
-            IsActive = r.Listing.IsActive,
-            ThumbnailUrl = r.Listing.ThumbnailUrl,
-            HasActiveOffer = r.ActiveOffer != null,
-            OfferBadgeText = r.ActiveOffer == null ? null : FormatOfferBadge(r.ActiveOffer.DiscountType, r.ActiveOffer.DiscountValue)
+            var candidate = x.Candidate;
+            var listing = fullListings.First(l => l.Id == candidate.Id);
+            return new SearchListingDto
+            {
+                Details = Ube.Application.Features.Listings.ListingService.MapToResponse(listing),
+                Id = candidate.Id,
+                CategoryId = candidate.CategoryId,
+                Type = candidate.Type,
+                Title = candidate.Title,
+                CategoryName = candidate.CategoryName,
+                Location = candidate.Location,
+                Price = candidate.Price > 0 ? candidate.Price :
+                        (decimal)(listing.Units != null && listing.Units.Any(u => u.IsActive && u.PriceOverride.HasValue)
+                            ? listing.Units.Where(u => u.IsActive && u.PriceOverride.HasValue).Min(u => u.PriceOverride!.Value)
+                            : (listing.CarRentalDetails?.PricePerDay > 0 ? listing.CarRentalDetails.PricePerDay :
+                               listing.HotelDetails?.PricePerNight > 0 ? listing.HotelDetails.PricePerNight :
+                               listing.ActivityDetails?.Price > 0 ? listing.ActivityDetails.Price :
+                               listing.EventDetails?.TicketPrice > 0 ? listing.EventDetails.TicketPrice :
+                               listing.RestaurantDetails?.AverageCost ?? 0m)),
+                Currency = candidate.Currency,
+                AverageRating = candidate.AverageRating,
+                IsFeatured = candidate.IsFeatured,
+                IsActive = candidate.IsActive,
+                ThumbnailUrl = candidate.ThumbnailUrl,
+                HasActiveOffer = candidate.ActiveOffer != null,
+                OfferBadgeText = candidate.ActiveOffer == null ? null : FormatOfferBadge(candidate.ActiveOffer.DiscountType, candidate.ActiveOffer.DiscountValue)
+            };
         }).ToList();
 
         return new SearchListingsResult { Items = items, TotalCount = totalCount };
@@ -220,6 +247,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.ActivityDetails)
             .Include(l => l.Units)
             .Include(l => l.Offers)
+            .Include(l => l.Addons)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
             .FirstOrDefaultAsync(l => l.Id == listingId, ct);
@@ -240,6 +268,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.ActivityDetails)
             .Include(l => l.Units)
             .Include(l => l.Offers)
+            .Include(l => l.Addons)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
             .ToListAsync(ct);
@@ -256,6 +285,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.ActivityDetails)
             .Include(l => l.Units)
             .Include(l => l.Offers)
+            .Include(l => l.Addons)
             .Include(l => l.CustomFieldValues)
                 .ThenInclude(v => v.CategoryCustomField)
             .ToListAsync(ct);

@@ -339,6 +339,11 @@ public class AuthService : IAuthService
         try
         {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+
+            // Completing a password reset proves the user owns the inbox that
+            // received the link, so treat it as implicit email verification.
+            user.IsEmailVerified = true;
+
             record.IsUsed = true;
 
             await _userRepo.UpdateAsync(user);

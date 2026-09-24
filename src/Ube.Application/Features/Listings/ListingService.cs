@@ -437,7 +437,17 @@ public class ListingService : IListingService
             IsActive = u.IsActive,
             DisplayOrder = u.DisplayOrder
         }).ToList() ?? new List<ListingUnitDto>(),
-        BookingSelection = BuildBookingSelection(effectiveType, l)
+        BookingSelection = BuildBookingSelection(effectiveType, l),
+        Addons = l.Addons?.Where(a => a.IsActive).Select(a => new ListingAddonDto
+        {
+            Id = a.Id,
+            ListingId = a.ListingId,
+            Name = a.Name,
+            Description = a.Description,
+            Price = a.Price,
+            PricingModel = a.PricingModel,
+            IsActive = a.IsActive
+        }).ToList() ?? new List<ListingAddonDto>()
         };
     }
 

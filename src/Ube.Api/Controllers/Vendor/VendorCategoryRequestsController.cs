@@ -1,0 +1,4 @@
+using Microsoft.AspNetCore.Authorization; using Microsoft.AspNetCore.Mvc; using Ube.Application.Common.Interfaces.Services.Auth; using Ube.Application.Features.Vendors;
+namespace Ube.Api.Controllers.Vendor;
+[ApiController,Authorize(Roles="Vendor"),Route("api/vendor/category-requests")]
+public class VendorCategoryRequestsController(IVendorCategoryRequestService service,ICurrentUserService user):ControllerBase { [HttpGet] public async Task<IActionResult> Mine(CancellationToken ct)=>Ok(await service.GetMineAsync(user.UserId,ct)); [HttpPost] public async Task<IActionResult> Create(CreateCategoryRequestDto dto,CancellationToken ct)=>Ok(await service.CreateAsync(user.UserId,dto,ct)); }

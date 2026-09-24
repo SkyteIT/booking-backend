@@ -291,6 +291,11 @@ public class AdminVendorApplicationService : IAdminVendorApplicationService
 
             await _realtimeUpdateService.PublishToRoleAsync("admin", "dashboard.refresh", payload);
             await _realtimeUpdateService.PublishToRoleAsync("vendor", "dashboard.refresh", payload);
+            
+            if (status == VendorApplicationStatus.Approved.ToString())
+            {
+                await _realtimeUpdateService.PublishToUserAsync(userId, "vendor.application.approved", payload);
+            }
         }
         catch
         {

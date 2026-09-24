@@ -23,12 +23,14 @@ public class ApplicationDbContext : DbContext, IAppDbContext
     // ================= BASE TABLES =================
     public DbSet<User> Users { get; set; } = default!;
     public DbSet<Listing> Listings { get; set; } = default!;
+    public DbSet<ListingAddon> ListingAddons { get; set; } = default!;
     public DbSet<Booking> Bookings { get; set; } = default!;
     public DbSet<Review> Reviews { get; set; } = default!;
     public DbSet<ReviewLike> ReviewLikes { get; set; } = default!;
     public DbSet<ListingQuestion> ListingQuestions { get; set; } = default!;
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<VendorApplication> VendorApplications { get; set; } = default!;
+    public DbSet<VendorCategoryRequest> VendorCategoryRequests { get; set; } = default!;
     public DbSet<VendorProfile> VendorProfiles { get; set; } = default!;
     public DbSet<VendorPayout> VendorPayouts { get; set; } = default!;
     public DbSet<BlockedDate> BlockedDates { get; set; } = default!;
